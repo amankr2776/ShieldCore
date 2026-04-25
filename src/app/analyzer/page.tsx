@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, CheckCircle2, ShieldAlert, Loader2, RefreshCw, Copy, Flag, ThumbsDown } from 'lucide-react';
+import { AlertCircle, CheckCircle2, ShieldAlert, Loader2, RefreshCw, Copy, Flag, Activity } from 'lucide-react';
 import { analyzeHttpRequest, AnalyzeHttpRequestOutput } from '@/ai/flows/analyze-http-request-with-ai-explanation';
 import { reanalyzeModifiedPayloadInWhatIfMode, ReanalyzeModifiedPayloadInWhatIfModeOutput } from '@/ai/flows/reanalyze-modified-payload-in-what-if-mode';
 import { cn } from '@/lib/utils';
@@ -324,8 +324,9 @@ export default function AnalyzerPage() {
                           </span>
                           <span className="uppercase">DistilBERT-HTTP v2.0</span>
                         </div>
-                      </>
-                    )}
+                      </CardContent>
+                    </>
+                  )}
                 </Card>
 
                 {/* What-If Result */}
