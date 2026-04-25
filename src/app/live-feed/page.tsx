@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -16,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { formatDistanceToNow } from 'date-fns';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
+import { DNASequencerModal } from '@/components/dna-sequencer-modal';
 
 const ATTACK_ICONS: Record<string, any> = {
   'SQL Injection': Syringe,
@@ -28,12 +30,21 @@ const ATTACK_ICONS: Record<string, any> = {
   'Suspicious': AlertCircle
 };
 
+interface Genome {
+  id: string;
+  sequence: string;
+  type: string;
+  timestamp: string;
+}
+
 export default function LiveFeedPage() {
   const [requests, setRequests] = useState<any[]>([]);
   const [isPaused, setIsPaused] = useState(false);
   const [filter, setFilter] = useState('ALL');
   const [search, setSearch] = useState('');
   const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
+  const [sequencingAttack, setSequencingAttack] = useState<any | null>(null);
+  const [genomeDatabase, setGenomeDatabase] = useState<Genome[]>([]);
   const [isConnected, setIsConnected] = useState(true);
   const [replayStep, setReplayStep] = useState(-1);
   const [stats, setStats] = useState({
@@ -74,6 +85,12 @@ export default function LiveFeedPage() {
             variant: "destructive",
             className: "glass-card border-destructive/50 animate-blocked-shimmer"
           });
+          
+          // Trigger DNA Sequencer for blocked requests
+          // Delay slightly so toast is visible first
+          setTimeout(() => {
+            setSequencingAttack(newReq);
+          }, 800);
         }
       }
     }, 2500);
@@ -100,6 +117,15 @@ export default function LiveFeedPage() {
       return matchesFilter && matchesSearch;
     });
   }, [requests, filter, search]);
+
+  const handleSaveGenome = (genome: Genome) => {
+    setGenomeDatabase(prev => [...prev, genome]);
+    toast({
+      title: "Genome Saved",
+      description: `Analysis for ${genome.id} stored in session database.`
+    });
+    setSequencingAttack(null);
+  };
 
   return (
     <div className="relative min-h-screen dashboard-cursor">
@@ -298,6 +324,15 @@ export default function LiveFeedPage() {
             )}
           </SheetContent>
         </Sheet>
+
+        {/* DNA Sequencer Modal */}
+        <DNASequencerModal 
+          attack={sequencingAttack}
+          isOpen={!!sequencingAttack}
+          onClose={() => setSequencingAttack(null)}
+          genomeDatabase={genomeDatabase}
+          onSave={handleSaveGenome}
+        />
       </div>
     </div>
   );
