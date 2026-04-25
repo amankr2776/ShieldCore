@@ -39,6 +39,8 @@ export function WafNavbar() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
+  const isLandingPage = pathname === '/';
+
   useEffect(() => {
     const saved = localStorage.getItem('theme') as 'dark' | 'light' | null;
     const initialTheme = saved || 'dark';
@@ -80,12 +82,12 @@ export function WafNavbar() {
     return () => clearInterval(interval);
   }, [isAuthenticated]);
 
-  if (!isAuthenticated && pathname !== '/') return null;
+  if (!isAuthenticated && !isLandingPage && pathname !== '/login') return null;
 
   return (
     <nav className={cn(
       "sticky top-0 z-[5000] w-full transition-all duration-500 border-b",
-      pathname === '/' 
+      isLandingPage 
         ? "bg-transparent border-transparent" 
         : "bg-white/80 dark:bg-black/80 backdrop-blur-xl border-gray-200 dark:border-white/10"
     )}>
@@ -95,7 +97,7 @@ export function WafNavbar() {
           <span className="hidden sm:inline">SHIELDCORE <span className="text-destructive">WAF</span></span>
         </Link>
         
-        {isAuthenticated && (
+        {isAuthenticated && !isLandingPage && (
           <div className="hidden lg:flex gap-1 items-center bg-gray-100 dark:bg-white/5 p-1 rounded-2xl border border-gray-200 dark:border-white/5">
             {navItems.map((item) => {
               const isActive = pathname === item.href;
@@ -119,122 +121,126 @@ export function WafNavbar() {
         )}
 
         <div className="flex items-center gap-3">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={toggleTheme} 
-            className="rounded-full h-10 w-10 text-gray-500 dark:text-muted-foreground hover:text-gray-900 dark:hover:text-foreground hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
-          >
-            {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-          </Button>
+          {!isLandingPage && (
+            <>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={toggleTheme} 
+                className="rounded-full h-10 w-10 text-gray-500 dark:text-muted-foreground hover:text-gray-900 dark:hover:text-foreground hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+              >
+                {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              </Button>
 
-          {!isAuthenticated ? (
-            <Button asChild size="sm" className="bg-destructive hover:bg-destructive/90 text-white font-bold rounded-xl px-8 h-12 glow-btn">
-              <Link href="/login">Initialize</Link>
-            </Button>
-          ) : (
-            <div className="flex items-center gap-2">
-              <DropdownMenu onOpenChange={(open) => open && setUnreadCount(0)}>
-                <DropdownMenuTrigger asChild>
-                  <button className="relative p-2 text-gray-500 dark:text-muted-foreground hover:text-gray-900 dark:hover:text-foreground transition-colors group">
-                    <Bell className="h-5 w-5 group-hover:rotate-12 transition-transform" />
-                    {unreadCount > 0 && (
-                      <span className="absolute top-1 right-1 h-4 w-4 bg-destructive text-[10px] font-bold text-white rounded-full flex items-center justify-center border-2 border-white dark:border-background shadow-lg badge-glow-red">
-                        {unreadCount}
-                      </span>
-                    )}
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-80 glass-card border-gray-200 dark:border-white/10 shadow-2xl p-0 overflow-hidden">
-                  <div className="bg-destructive/10 p-4 border-b border-gray-100 dark:border-white/5">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-destructive">Alert Stream</span>
-                      <Badge variant="destructive" className="text-[9px] rounded-sm px-1.5 py-0">Critical</Badge>
-                    </div>
-                  </div>
-                  <div className="max-h-[350px] overflow-auto">
-                    {notifications.length === 0 ? (
-                      <div className="py-12 text-center text-xs text-gray-400 dark:text-muted-foreground italic font-mono uppercase tracking-widest opacity-50">
-                        Zero Threat Activity
+              {!isAuthenticated ? (
+                <Button asChild size="sm" className="bg-destructive hover:bg-destructive/90 text-white font-bold rounded-xl px-8 h-12 glow-btn">
+                  <Link href="/login">Initialize</Link>
+                </Button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <DropdownMenu onOpenChange={(open) => open && setUnreadCount(0)}>
+                    <DropdownMenuTrigger asChild>
+                      <button className="relative p-2 text-gray-500 dark:text-muted-foreground hover:text-gray-900 dark:hover:text-foreground transition-colors group">
+                        <Bell className="h-5 w-5 group-hover:rotate-12 transition-transform" />
+                        {unreadCount > 0 && (
+                          <span className="absolute top-1 right-1 h-4 w-4 bg-destructive text-[10px] font-bold text-white rounded-full flex items-center justify-center border-2 border-white dark:border-background shadow-lg badge-glow-red">
+                            {unreadCount}
+                          </span>
+                        )}
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-80 glass-card border-gray-200 dark:border-white/10 shadow-2xl p-0 overflow-hidden">
+                      <div className="bg-destructive/10 p-4 border-b border-gray-100 dark:border-white/5">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-destructive">Alert Stream</span>
+                          <Badge variant="destructive" className="text-[9px] rounded-sm px-1.5 py-0">Critical</Badge>
+                        </div>
                       </div>
-                    ) : (
-                      notifications.map((n) => (
-                        <DropdownMenuItem key={n.id} className="flex flex-col items-start gap-1 p-4 border-b border-gray-100 dark:border-white/5 last:border-0 hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer">
-                          <div className="flex w-full justify-between items-center">
-                            <span className="text-[10px] font-black text-destructive flex items-center gap-1 uppercase tracking-tighter">
-                              <Shield className="h-3 w-3" /> {n.attack}
-                            </span>
-                            <span className="text-[9px] font-mono text-gray-400 dark:text-muted-foreground opacity-70">{n.time}</span>
+                      <div className="max-h-[350px] overflow-auto">
+                        {notifications.length === 0 ? (
+                          <div className="py-12 text-center text-xs text-gray-400 dark:text-muted-foreground italic font-mono uppercase tracking-widest opacity-50">
+                            Zero Threat Activity
                           </div>
-                          <div className="flex w-full justify-between items-center mt-1">
-                            <span className="text-xs font-mono font-bold tracking-tight text-gray-700 dark:text-white">{n.ip}</span>
-                            <span className="text-[10px] font-bold px-1.5 rounded-sm bg-destructive/10 text-destructive">{n.score}% Confidence</span>
-                          </div>
-                        </DropdownMenuItem>
-                      ))
-                    )}
-                  </div>
-                  <Link href="/live-feed" className="block w-full text-center py-3 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 dark:text-muted-foreground hover:text-destructive hover:bg-gray-50 dark:hover:bg-white/5 transition-all bg-gray-50/50 dark:bg-white/5">
-                    View Full Feed
-                  </Link>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                        ) : (
+                          notifications.map((n) => (
+                            <DropdownMenuItem key={n.id} className="flex flex-col items-start gap-1 p-4 border-b border-gray-100 dark:border-white/5 last:border-0 hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer">
+                              <div className="flex w-full justify-between items-center">
+                                <span className="text-[10px] font-black text-destructive flex items-center gap-1 uppercase tracking-tighter">
+                                  <Shield className="h-3 w-3" /> {n.attack}
+                                </span>
+                                <span className="text-[9px] font-mono text-gray-400 dark:text-muted-foreground opacity-70">{n.time}</span>
+                              </div>
+                              <div className="flex w-full justify-between items-center mt-1">
+                                <span className="text-xs font-mono font-bold tracking-tight text-gray-700 dark:text-white">{n.ip}</span>
+                                <span className="text-[10px] font-bold px-1.5 rounded-sm bg-destructive/10 text-destructive">{n.score}% Confidence</span>
+                              </div>
+                            </DropdownMenuItem>
+                          ))
+                        )}
+                      </div>
+                      <Link href="/live-feed" className="block w-full text-center py-3 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 dark:text-muted-foreground hover:text-destructive hover:bg-gray-50 dark:hover:bg-white/5 transition-all bg-gray-50/50 dark:bg-white/5">
+                        View Full Feed
+                      </Link>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 border border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-white/5 overflow-hidden hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">
-                    <div className="h-full w-full flex items-center justify-center font-black text-xs text-destructive">
-                      SC
-                    </div>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 glass-card border-gray-200 dark:border-white/10 p-2">
-                  <DropdownMenuLabel className="px-3 py-2">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-muted-foreground">Analyst Node</p>
-                      <p className="text-sm font-bold tracking-tight truncate text-gray-900 dark:text-white">{user?.email}</p>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator className="bg-gray-100 dark:bg-white/5" />
-                  <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer rounded-lg font-bold text-xs uppercase tracking-widest mt-1">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Logout System
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              
-              <div className="lg:hidden">
-                <Sheet>
-                  <SheetTrigger asChild>
-                    <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 text-gray-500 dark:text-muted-foreground hover:bg-gray-100 dark:hover:bg-white/10">
-                      <Menu className="h-5 w-5" />
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="right" className="glass-card border-l border-gray-200 dark:border-white/10 w-80 p-0">
-                    <div className="sr-only">
-                      <SheetHeader>
-                        <SheetTitle>Navigation Menu</SheetTitle>
-                        <SheetDescription>Access dashboard features and telemetry</SheetDescription>
-                      </SheetHeader>
-                    </div>
-                    <div className="p-8 space-y-8">
-                      <div className="flex items-center gap-3 font-black text-2xl tracking-tighter text-gray-900 dark:text-white">
-                        <Shield className="h-8 w-8 text-destructive" />
-                        <span>SHIELDCORE <span className="text-destructive">WAF</span></span>
-                      </div>
-                      <div className="flex flex-col gap-4">
-                        {navItems.map((item) => (
-                          <Link key={item.href} href={item.href} className="flex items-center gap-4 p-4 rounded-2xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/5 hover:border-destructive/30 transition-all font-bold uppercase tracking-widest text-xs text-gray-700 dark:text-white">
-                            <item.icon className="h-5 w-5 text-destructive" />
-                            {item.name}
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-                  </SheetContent>
-                </Sheet>
-              </div>
-            </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 border border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-white/5 overflow-hidden hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">
+                        <div className="h-full w-full flex items-center justify-center font-black text-xs text-destructive">
+                          SC
+                        </div>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56 glass-card border-gray-200 dark:border-white/10 p-2">
+                      <DropdownMenuLabel className="px-3 py-2">
+                        <div className="flex flex-col space-y-1">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-muted-foreground">Analyst Node</p>
+                          <p className="text-sm font-bold tracking-tight truncate text-gray-900 dark:text-white">{user?.email}</p>
+                        </div>
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator className="bg-gray-100 dark:bg-white/5" />
+                      <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer rounded-lg font-bold text-xs uppercase tracking-widest mt-1">
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Logout System
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  
+                  <div className="lg:hidden">
+                    <Sheet>
+                      <SheetTrigger asChild>
+                        <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 text-gray-500 dark:text-muted-foreground hover:bg-gray-100 dark:hover:bg-white/10">
+                          <Menu className="h-5 w-5" />
+                        </Button>
+                      </SheetTrigger>
+                      <SheetContent side="right" className="glass-card border-l border-gray-200 dark:border-white/10 w-80 p-0">
+                        <div className="sr-only">
+                          <SheetHeader>
+                            <SheetTitle>Navigation Menu</SheetTitle>
+                            <SheetDescription>Access dashboard features and telemetry</SheetDescription>
+                          </SheetHeader>
+                        </div>
+                        <div className="p-8 space-y-8">
+                          <div className="flex items-center gap-3 font-black text-2xl tracking-tighter text-gray-900 dark:text-white">
+                            <Shield className="h-8 w-8 text-destructive" />
+                            <span>SHIELDCORE <span className="text-destructive">WAF</span></span>
+                          </div>
+                          <div className="flex flex-col gap-4">
+                            {navItems.map((item) => (
+                              <Link key={item.href} href={item.href} className="flex items-center gap-4 p-4 rounded-2xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/5 hover:border-destructive/30 transition-all font-bold uppercase tracking-widest text-xs text-gray-700 dark:text-white">
+                                <item.icon className="h-5 w-5 text-destructive" />
+                                {item.name}
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      </SheetContent>
+                    </Sheet>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
