@@ -31,18 +31,25 @@ export const CSIC_VALID_SAMPLES = [
   { method: "GET", url: "/tienda1/index.jsp", payload: "Cookie: JSESSIONID=F43C7CD943DE7B1C20D3A9896C463DFB", id: "13033" },
   { method: "POST", url: "/tienda1/publico/entrar.jsp", payload: "errorMsg=Credenciales+incorrectas", id: "3286" },
   { method: "GET", url: "/tienda1/publico/miembros.jsp", payload: "Cookie: JSESSIONID=2A48D6F851EE859F13A273FF4FF92637", id: "5267" },
-  { method: "POST", url: "/tienda1/miembros/editar.jsp", payload: "modo=registro&login=dafoe&password=25I6La&nombre=Aldebar", id: "19288" }
+  { method: "POST", url: "/tienda1/miembros/editar.jsp", payload: "modo=registro&login=dafoe&password=25I6La&nombre=Aldebar", id: "19288" },
+  { method: "POST", url: "/tienda1/publico/autenticar.jsp", payload: "modo=entrar&login=eggebraa&pwd=enALtEceDOr&remember=on&B1=Entrar", id: "27977" },
+  { method: "GET", url: "/tienda1/global/estilos.css", payload: "Accept: text/css", id: "14566" },
+  { method: "GET", url: "/tienda1/miembros/salir.jsp", payload: "Cookie: JSESSIONID=7C7D9FAB545CDB214E96AFDE9E202090", id: "31314" },
+  { method: "GET", url: "/tienda1/imagenes/logo.gif", payload: "Accept: image/gif", id: "25883" },
+  { method: "GET", url: "/tienda1/global/menum.jsp", payload: "Cookie: JSESSIONID=42CFED5D078524484AA6B1692283DE86", id: "2864" },
+  { method: "GET", url: "/tienda1/miembros/fotos.jsp", payload: "Cookie: JSESSIONID=4D52613C7A0A8769FEF7E8B93E050D2D", id: "22097" },
+  { method: "GET", url: "/tienda1/publico/pagar.jsp?modo=insertar&precio=8656&B1=Confirmar", payload: "Cookie: JSESSIONID=6B8FCC0BFBF0378A7A2507C09243692E", id: "32160" }
 ];
 
 // Real CSIC 2010 Parsed Samples (Anomalous - Reconstructed from typical patterns in dataset)
 export const CSIC_ANOMALOUS_SAMPLES = [
-  { method: "GET", url: "/tienda1/publico/caracteristicas.jsp?id=%27OR%27a%3D%27a", payload: "SQL Injection", attackType: "SQL Injection", score: 0.96, id: "AN-1" },
-  { method: "GET", url: "/tienda1/miembros/editar.jsp?modo=registro%3CSCRIPT%3Ealert%28%22Paros%22%29%3B%3C%2FSCRIPT%3E", payload: "XSS script execution", attackType: "XSS", score: 0.94, id: "AN-2" },
-  { method: "POST", url: "/tienda1/publico/autenticar.jsp", payload: "login=admin%27--&pwd=bypass", attackType: "SQL Injection", score: 0.98, id: "AN-3" },
-  { method: "GET", url: "/tienda1/miembros/imagenes/zarauz.jpg?path=../../etc/passwd", payload: "Path Traversal", attackType: "Path Traversal", score: 0.92, id: "AN-4" },
-  { method: "POST", url: "/tienda1/publico/registro.jsp", payload: "email=%3Cimg+src%3Dx+onerror%3Dalert(1)%3E", attackType: "XSS", score: 0.95, id: "AN-5" },
-  { method: "GET", url: "/tienda1/publico/anadir.jsp?id=3&cantidad=999999999999999999", payload: "Buffer Overflow", attackType: "Buffer Overflow", score: 0.88, id: "AN-6" },
-  { method: "GET", url: "/api/proxy?url=http://169.254.169.254/latest/meta-data/", payload: "SSRF Attempt", attackType: "SSRF", score: 0.91, id: "AN-7" }
+  { method: "GET", url: "/tienda1/publico/caracteristicas.jsp?id=%27OR%27a%3D%27a", payload: "SQL Injection Payload", attackType: "SQL Injection", score: 0.96, id: "AN-7704" },
+  { method: "GET", url: "/tienda1/miembros/editar.jsp?modo=registro%3CSCRIPT%3Ealert%28%22Paros%22%29%3B%3C%2FSCRIPT%3E", payload: "XSS script execution", attackType: "XSS", score: 0.94, id: "AN-13515" },
+  { method: "POST", url: "/tienda1/publico/autenticar.jsp", payload: "login=admin%27--&pwd=bypass", attackType: "SQL Injection", score: 0.98, id: "AN-35896" },
+  { method: "GET", url: "/tienda1/miembros/imagenes/zarauz.jpg?path=../../etc/passwd", payload: "Path Traversal Attempt", attackType: "Path Traversal", score: 0.92, id: "AN-12445" },
+  { method: "POST", url: "/tienda1/publico/registro.jsp", payload: "email=%3Cimg+src%3Dx+onerror%3Dalert(1)%3E", attackType: "XSS", score: 0.95, id: "AN-6784" },
+  { method: "GET", url: "/tienda1/publico/anadir.jsp?id=3&cantidad=999999999999999999", payload: "Buffer Overflow Simulation", attackType: "Buffer Overflow", score: 0.88, id: "AN-23259" },
+  { method: "GET", url: "/api/proxy?url=http://169.254.169.254/latest/meta-data/", payload: "SSRF Intelligence Probe", attackType: "SSRF", score: 0.91, id: "AN-15888" }
 ];
 
 export const ATTACK_TYPES = [
@@ -72,9 +79,12 @@ export function generateFakeRequest(timestampOverride?: string) {
   }
 
   const ip = getRandomElement(FAKE_IPS);
+  
+  // Ensure the ID is globally unique for React keys even if the same sample is picked multiple times
+  const uniqueId = `${sample.id || 'id'}-${Math.random().toString(36).substring(2, 7)}-${Date.now() % 10000}`;
 
   return {
-    id: sample.id || Math.random().toString(36).substr(2, 9),
+    id: uniqueId,
     timestamp: timestampOverride || new Date().toISOString(),
     ip: ip,
     country: IP_TO_COUNTRY[ip] || "US",
