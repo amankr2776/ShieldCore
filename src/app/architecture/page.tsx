@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
-import { Shield, Zap, Database, Server, Cpu, Globe, ArrowRight, Code2, Search, Activity, Terminal } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Shield, Zap, Database, Server, Cpu, Globe, ArrowRight, Code2, Activity, Terminal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 
@@ -32,7 +32,7 @@ export default function ArchitecturePage() {
     { name: "Inference Engine", tech: "Genkit Flow", icon: Zap, desc: "Multi-stage transformer orchestration" },
     { name: "DistilBERT", tech: "Transformers", icon: Cpu, desc: "Deep semantic packet inspection" },
     { name: "Security Decision", tech: "Thresholds", icon: Shield, desc: "Confidence-based policy enforcement" },
-    { name: "Threat Log", tech: "SQLite", icon: Database, desc: "Persistent storage of security events" },
+    { name: "Threat Log", tech: "Firestore", icon: Database, desc: "Persistent storage of security events" },
     { name: "Dash Stream", tech: "Real-time UI", icon: Activity, desc: "Live visualization and analyst console" }
   ];
 
@@ -105,14 +105,14 @@ export default function ArchitecturePage() {
                   <span>Model Accuracy</span>
                   <span>94.3%</span>
                 </div>
-                <Progress value={94.3} className="h-1.5" indicatorClassName="bg-emerald-500" />
+                <Progress value={94.3} className="h-1.5" indicatorclassname="bg-emerald-500" />
               </div>
               <div className="space-y-1">
                 <div className="flex justify-between text-[10px] font-bold uppercase">
                   <span>Recall (TPR)</span>
                   <span>95.1%</span>
                 </div>
-                <Progress value={95.1} className="h-1.5" indicatorClassName="bg-accent" />
+                <Progress value={95.1} className="h-1.5" indicatorclassname="bg-accent" />
               </div>
             </div>
           </CardContent>
@@ -168,7 +168,7 @@ export default function ArchitecturePage() {
                          <span className="uppercase">{cls}</span>
                          <span className="font-bold">95.4%</span>
                        </div>
-                       <Progress value={95.4} className="h-1 bg-secondary" indicatorClassName="bg-destructive" />
+                       <Progress value={95.4} className="h-1 bg-secondary" indicatorclassname="bg-destructive" />
                      </div>
                    ))}
                  </div>
