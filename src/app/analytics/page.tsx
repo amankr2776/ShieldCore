@@ -12,7 +12,7 @@ import {
 import { 
   ShieldAlert, Zap, Download, Loader2, 
   Activity, Clock, AlertTriangle, Fingerprint,
-  Globe, MapPin, X, Shield
+  Globe, MapPin, X, Shield, Server, MousePointer2
 } from 'lucide-react';
 import { getSeededData } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
@@ -33,6 +33,9 @@ const CITY_COORDS: Record<string, { city: string, x: number, y: number }[]> = {
   'ES': [{ city: 'Madrid', x: 460, y: 130 }]
 };
 
+// Central Server Location (Protected Resource)
+const CENTRAL_SERVER = { x: 400, y: 150 };
+
 const WORLD_MAP_PATH = "M110,130 L130,120 L150,140 L170,120 L190,140 L210,130 L230,150 L250,140 L240,160 L220,170 L200,160 L180,180 L160,170 L140,190 L120,180 L100,200 L80,190 Z M460,90 L480,80 L500,100 L520,90 L540,110 L560,100 L580,120 L600,110 L620,130 L640,120 L660,140 L680,130 L700,150 L720,140 L740,160 L760,150 L780,170 L800,160 L800,300 L780,310 L760,290 L740,300 L720,280 L700,290 L680,270 L660,280 L640,260 L620,270 L600,250 L580,260 L560,240 L540,250 L520,230 L500,240 L480,220 L460,230 L440,210 L420,220 L400,200 L380,210 L360,190 L340,200 L320,180 L300,190 L280,170 L260,180 L240,160 L220,170 L200,150 L180,160 L160,140 L140,150 L120,130 L100,140 Z";
 
 export default function AnalyticsPage() {
@@ -48,9 +51,10 @@ export default function AnalyticsPage() {
     setData(seeded);
     
     // Derived interactive threat markers from data
-    const blockedEvents = seeded.filter(r => r.decision === 'BLOCKED').slice(0, 15);
+    const blockedEvents = seeded.filter(r => r.decision === 'BLOCKED').slice(0, 20);
     const markers = blockedEvents.map((event, idx) => {
-      const cityList = CITY_COORDS[event.country] || CITY_COORDS['US'];
+      const countryCode = event.country;
+      const cityList = CITY_COORDS[countryCode] || CITY_COORDS['US'];
       const cityData = cityList[idx % cityList.length];
       return {
         ...event,
@@ -152,87 +156,176 @@ export default function AnalyticsPage() {
       </div>
 
       <div className="section-label">Global Signal Mapping</div>
-      <Card className="glass-card rounded-[2rem] overflow-hidden relative min-h-[500px]">
+      <Card className="glass-card rounded-[2rem] overflow-hidden relative min-h-[600px] border border-destructive/20 shadow-2xl">
+        {/* Floating Attack Counter */}
         <div className="absolute top-8 left-10 z-20 space-y-2">
-           <h3 className="text-xl font-black tracking-tighter text-gray-900 dark:text-white uppercase">Live Threat Vector Map</h3>
-           <p className="text-[10px] font-mono text-gray-400 dark:text-muted-foreground opacity-50 uppercase tracking-widest">Active Ingress Monitoring</p>
+           <div className="flex items-center gap-3">
+             <div className="h-4 w-4 rounded-full bg-destructive animate-ping" />
+             <h3 className="text-2xl font-black tracking-tighter text-gray-900 dark:text-white uppercase">Live Ingress Forensics</h3>
+           </div>
+           <div className="flex items-center gap-4">
+              <Badge variant="outline" className="bg-destructive/10 border-destructive/30 text-destructive text-[10px] font-mono px-3 py-1 uppercase tracking-widest">
+                {threatMarkers.length} ACTIVE THREATS DETECTED
+              </Badge>
+              <span className="text-[10px] font-mono text-gray-400 dark:text-muted-foreground opacity-50 uppercase tracking-[0.3em]">Edge Node: 12.4.92</span>
+           </div>
+        </div>
+
+        {/* Map Legend */}
+        <div className="absolute bottom-8 right-10 z-20 glass-card bg-black/40 p-4 rounded-2xl border border-white/5 space-y-3 min-w-[200px]">
+           <p className="text-[10px] font-black text-white/40 uppercase tracking-widest border-b border-white/5 pb-2">Intelligence Legend</p>
+           <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                 <div className="h-2 w-2 rounded-full bg-destructive shadow-[0_0_10px_#ef4444]" />
+                 <span className="text-[9px] font-black text-gray-300 uppercase tracking-tighter">Attack Origin (Pulse)</span>
+              </div>
+              <div className="flex items-center gap-3">
+                 <div className="h-0.5 w-6 bg-gradient-to-r from-destructive to-transparent rounded-full" />
+                 <span className="text-[9px] font-black text-gray-300 uppercase tracking-tighter">Vector Path (Arc)</span>
+              </div>
+              <div className="flex items-center gap-3">
+                 <Server className="h-3 w-3 text-emerald-500" />
+                 <span className="text-[9px] font-black text-gray-300 uppercase tracking-tighter">Protected HQ Node</span>
+              </div>
+           </div>
         </div>
         
-        <CardContent className="h-[450px] w-full flex items-center justify-center p-0 relative">
-          <svg viewBox="0 0 800 400" className="w-full h-full max-w-full max-h-full opacity-60 transition-all">
+        <CardContent className="h-[550px] w-full flex items-center justify-center p-0 relative bg-[#020408]">
+          <svg viewBox="0 0 800 400" className="w-full h-full max-w-full max-h-full opacity-80" preserveAspectRatio="xMidYMid meet">
+            {/* World Map Background (Styled to match Dark Matter theme) */}
             <path 
               d={WORLD_MAP_PATH} 
-              fill="currentColor" 
-              className="text-gray-100 dark:text-[#0d101a]" 
-              stroke="currentColor" 
+              fill="#111827" 
+              stroke="#1f2937" 
               strokeWidth="0.5"
-              className="text-gray-300 dark:text-[#2a2d3e]" 
             />
             
-            {threatMarkers.map(marker => (
-              <g 
-                key={marker.id} 
-                className="cursor-pointer group/pin"
-                onClick={() => setSelectedThreat(marker)}
-              >
-                {/* Pulse Aura */}
-                <circle cx={marker.x} cy={marker.y} r="12" fill="#ef4444" className="animate-pulse" opacity="0.2" />
-                
-                {/* Threat Marker Pin */}
-                <g transform={`translate(${marker.x - 8}, ${marker.y - 16}) scale(0.8)`}>
-                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" fill="#ef4444" />
-                   <circle cx="12" cy="10" r="3" fill="white" />
+            {/* HQ Node */}
+            <g transform={`translate(${CENTRAL_SERVER.x - 10}, ${CENTRAL_SERVER.y - 10})`}>
+               <circle cx="10" cy="10" r="15" fill="#10b981" opacity="0.1" className="animate-pulse" />
+               <circle cx="10" cy="10" r="4" fill="#10b981" shadow="0 0 15px #10b981" />
+               <text x="20" y="14" fill="#10b981" fontSize="8" fontWeight="black" className="uppercase font-mono tracking-widest">Global HQ</text>
+            </g>
+
+            {/* Attack Arcs & Markers */}
+            {threatMarkers.map((marker, i) => {
+              // Arc calculation
+              const midX = (marker.x + CENTRAL_SERVER.x) / 2;
+              const midY = (marker.y + CENTRAL_SERVER.y) / 2 - 40; // Offset Y for curve
+              const arcPath = `M ${marker.x} ${marker.y} Q ${midX} ${midY} ${CENTRAL_SERVER.x} ${CENTRAL_SERVER.y}`;
+
+              return (
+                <g key={marker.id} className="cursor-pointer group/threat" onClick={() => setSelectedThreat(marker)}>
+                  {/* Curved Attack Path */}
+                  <path 
+                    d={arcPath} 
+                    fill="none" 
+                    stroke="url(#attackGradient)" 
+                    strokeWidth="1.5" 
+                    strokeDasharray="1000" 
+                    strokeDashoffset="1000"
+                    className="animate-[dash_3s_linear_infinite]"
+                    style={{ animationDelay: `${i * 0.5}s` }}
+                    opacity="0.6"
+                  />
+                  
+                  {/* Origin Radar Pulse */}
+                  <circle cx={marker.x} cy={marker.y} r="1" fill="none" stroke="#ef4444" strokeWidth="1" className="animate-ping" style={{ animationDuration: '3s' }} />
+                  <circle cx={marker.x} cy={marker.y} r="12" fill="#ef4444" opacity="0.1" className="animate-pulse" />
+                  
+                  {/* Threat Node */}
+                  <circle cx={marker.x} cy={marker.y} r="4" fill="#ef4444" className="hover:scale-150 transition-transform cursor-pointer shadow-[0_0_10px_#ef4444]" />
                 </g>
-              </g>
-            ))}
+              );
+            })}
+
+            {/* Definitions for Gradients and Filters */}
+            <defs>
+              <linearGradient id="attackGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#ef4444" stopOpacity="0.8" />
+                <stop offset="100%" stopColor="#ef4444" stopOpacity="0" />
+              </linearGradient>
+              <filter id="glow">
+                <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+                <feMerge>
+                  <feMergeNode in="coloredBlur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
           </svg>
 
-          {/* Interactive Threat Popup */}
+          {/* Interactive Forensic Details Popup */}
           {selectedThreat && (
-            <div className="absolute z-50 animate-in zoom-in-95 fade-in duration-300 pointer-events-none" style={{ left: `${(selectedThreat.x / 800) * 100}%`, top: `${(selectedThreat.y / 400) * 100}%` }}>
-               <Card className="w-64 glass-card p-4 translate-y-[-110%] translate-x-[-50%] border-destructive/40 shadow-2xl pointer-events-auto">
-                 <div className="flex justify-between items-start mb-3">
-                    <Badge variant="destructive" className="text-[8px] font-black uppercase tracking-widest">Threat Detected</Badge>
-                    <button onClick={() => setSelectedThreat(null)} className="p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded">
-                      <X className="h-3 w-3 text-muted-foreground" />
+            <div className="absolute z-50 animate-in zoom-in-95 fade-in duration-300" style={{ left: `${(selectedThreat.x / 800) * 100}%`, top: `${(selectedThreat.y / 400) * 100}%` }}>
+               <Card className="w-80 glass-card p-6 translate-y-[-115%] translate-x-[-50%] border-destructive shadow-[0_0_50px_rgba(239,68,68,0.2)] bg-[#0a0c14]/95 backdrop-blur-3xl">
+                 <div className="flex justify-between items-start mb-5">
+                    <Badge variant="destructive" className="text-[9px] font-black uppercase tracking-[0.2em] px-3 py-1 border-destructive/40 shadow-[0_0_15px_rgba(239,68,68,0.3)]">Critical Ingress</Badge>
+                    <button onClick={() => setSelectedThreat(null)} className="p-1.5 hover:bg-white/5 rounded-full transition-colors">
+                      <X className="h-4 w-4 text-white/50" />
                     </button>
                  </div>
-                 <div className="space-y-3">
-                    <div>
-                       <p className="text-[10px] font-black text-gray-900 dark:text-white uppercase tracking-tighter">{selectedThreat.city}, {selectedThreat.country}</p>
-                       <p className="text-[9px] font-mono text-muted-foreground">{selectedThreat.ip}</p>
-                    </div>
-                    <div className="pt-2 border-t border-black/5 dark:border-white/5 space-y-1">
-                       <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-widest">
-                          <span className="text-muted-foreground">Vector:</span>
-                          <span className="text-destructive">{selectedThreat.attackType}</span>
+                 <div className="space-y-4">
+                    <div className="flex items-center gap-4">
+                       <div className="p-3 bg-destructive/10 rounded-xl border border-destructive/20">
+                          <ShieldAlert className="h-6 w-6 text-destructive" />
                        </div>
-                       <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-widest">
-                          <span className="text-muted-foreground">Confidence:</span>
-                          <span className="text-emerald-500">{Math.round(selectedThreat.score * 100)}%</span>
-                       </div>
-                       <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-widest">
-                          <span className="text-muted-foreground">Timestamp:</span>
-                          <span className="text-gray-400">Just Now</span>
+                       <div>
+                          <p className="text-sm font-black text-white uppercase tracking-tighter">{selectedThreat.city}, {selectedThreat.country}</p>
+                          <p className="text-[10px] font-mono text-muted-foreground opacity-60">Source IP: {selectedThreat.ip}</p>
                        </div>
                     </div>
-                    <Button variant="ghost" className="w-full h-7 text-[8px] font-black uppercase tracking-widest bg-destructive/5 hover:bg-destructive/10 text-destructive mt-1">
-                      View Detailed Log
-                    </Button>
+                    
+                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/5">
+                       <div className="space-y-1">
+                          <p className="text-[8px] font-black text-white/40 uppercase tracking-widest">Vector Class</p>
+                          <p className="text-[11px] font-bold text-destructive uppercase">{selectedThreat.attackType}</p>
+                       </div>
+                       <div className="space-y-1">
+                          <p className="text-[8px] font-black text-white/40 uppercase tracking-widest">Intelligence Match</p>
+                          <p className="text-[11px] font-bold text-emerald-500">{Math.round(selectedThreat.score * 100)}% Match</p>
+                       </div>
+                    </div>
+
+                    <div className="space-y-2 pt-4">
+                       <div className="flex justify-between text-[8px] font-black text-white/40 uppercase tracking-widest">
+                          <span>Payload Analysis</span>
+                          <span className="text-destructive">MALICIOUS</span>
+                       </div>
+                       <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                          <div className="h-full bg-destructive w-[94%] animate-pulse" />
+                       </div>
+                    </div>
+
+                    <div className="flex gap-2 pt-4">
+                       <Button size="sm" className="flex-1 bg-destructive hover:bg-destructive/90 text-white text-[9px] font-black uppercase tracking-widest h-9 rounded-xl">
+                         Isolate Source
+                       </Button>
+                       <Button size="sm" variant="outline" className="flex-1 border-white/10 text-white text-[9px] font-black uppercase tracking-widest h-9 rounded-xl">
+                         View Logs
+                       </Button>
+                    </div>
                  </div>
+                 <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#0a0c14] border-r border-b border-destructive rotate-45" />
                </Card>
             </div>
           )}
-
-          <div className="absolute bottom-8 right-10 flex gap-4">
-             <div className="flex items-center gap-2 bg-white/60 dark:bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl border border-black/5 dark:border-white/5 text-[9px] font-mono font-black text-gray-500 dark:text-muted-foreground">
-               <div className="h-1.5 w-1.5 rounded-full bg-destructive" /> ATTACK DETECTED
-             </div>
-             <div className="flex items-center gap-2 bg-white/60 dark:bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl border border-black/5 dark:border-white/5 text-[9px] font-mono font-black text-gray-500 dark:text-muted-foreground">
-               <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> NODE SECURE
-             </div>
-          </div>
         </CardContent>
+
+        {/* CSS Keyframes for Map Animations */}
+        <style jsx global>{`
+          @keyframes dash {
+            from { stroke-dashoffset: 1000; }
+            to { stroke-dashoffset: 0; }
+          }
+          @keyframes dash-reverse {
+            from { stroke-dashoffset: 0; }
+            to { stroke-dashoffset: 1000; }
+          }
+          .animate-dash {
+            animation: dash 3s linear infinite;
+          }
+        `}</style>
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
@@ -274,7 +367,7 @@ export default function AnalyticsPage() {
                 </thead>
                 <tbody className="text-[11px] font-medium">
                   {topIps.map((row, i) => (
-                    <tr key={i} className="border-b border-black/5 dark:border-white/5 last:border-0 hover:bg-black/5 dark:hover:bg-white/[0.02] transition-colors">
+                    <tr key={i} className="border-b border-black/5 dark:border-white/5 last:border-0 hover:bg-black/5 dark:hover:bg-white/[0.02] transition-colors text-gray-700 dark:text-foreground">
                       <td className="px-6 py-4">
                          <div className="flex items-center gap-2 font-mono">
                            <span className="text-gray-500 dark:text-muted-foreground">[{row.country}]</span>
@@ -301,8 +394,8 @@ export default function AnalyticsPage() {
             <AreaChart data={Array.from({ length: 30 }, (_, i) => ({ time: i, val: Math.random() * 50 }))}>
                <defs>
                  <linearGradient id="colorVal" x1="0" y1="0" x2="0" y2="1">
-                   <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
-                   <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+                   <stop offset="5%" stopColor="#ef4444" stopOpacity="0.3"/>
+                   <stop offset="95%" stopColor="#ef4444" stopOpacity="0"/>
                  </linearGradient>
                </defs>
                <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-gray-100 dark:text-[#1a1d2e]" vertical={false} />
