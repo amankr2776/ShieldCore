@@ -12,7 +12,7 @@ import {
   sendPasswordResetEmail 
 } from 'firebase/auth';
 import { auth } from '@/firebase/config';
-import { Shield, Github, Mail, Lock, User, Loader2, CheckCircle2 } from 'lucide-react';
+import { Shield, Github, Mail, Lock, User, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -59,7 +59,25 @@ export default function AuthPage() {
     try {
       await signInWithPopup(auth, provider);
     } catch (err: any) {
-      setError(err.message.replace('Firebase: ', ''));
+      const errorCode = err.code;
+      let userMessage = err.message.replace('Firebase: ', '');
+
+      switch (errorCode) {
+        case 'auth/unauthorized-domain':
+          userMessage = "THIS DOMAIN IS NOT AUTHORIZED — ADD IT IN FIREBASE CONSOLE AUTHORIZED DOMAINS";
+          break;
+        case 'auth/popup-blocked':
+          userMessage = "ADD THIS SITE TO ALLOWED POPUPS IN YOUR BROWSER";
+          break;
+        case 'auth/account-exists-with-different-credential':
+          userMessage = "AN ACCOUNT ALREADY EXISTS WITH THIS EMAIL USING A DIFFERENT LOGIN METHOD";
+          break;
+        case 'auth/popup-closed-by-user':
+        case 'auth/cancelled-popup-request':
+          userMessage = "Sign-in cancelled or interrupted.";
+          break;
+      }
+      setError(userMessage);
     } finally {
       setLoading(false);
     }
@@ -115,7 +133,11 @@ export default function AuthPage() {
                 <FloatingInput label="Security Email" id="email" type="email" icon={Mail} required />
                 <FloatingInput label="Access Password" id="password" type="password" icon={Lock} required />
                 
-                {error && <p className="text-[10px] font-bold text-destructive uppercase tracking-widest text-center">{error}</p>}
+                {error && !loading && (
+                  <p className="text-[10px] font-bold text-destructive uppercase tracking-widest text-center animate-in fade-in slide-in-from-top-1">
+                    {error}
+                  </p>
+                )}
 
                 <Button type="submit" disabled={loading} className="w-full h-14 bg-destructive hover:bg-destructive/90 rounded-xl font-black uppercase text-xs tracking-widest shadow-lg shadow-destructive/20 mt-4 transition-all hover:scale-[1.02]">
                   {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Initiate Connection"}
@@ -129,7 +151,11 @@ export default function AuthPage() {
                 <FloatingInput label="Security Email" id="email" type="email" icon={Mail} required />
                 <FloatingInput label="Access Password" id="password" type="password" icon={Lock} required />
 
-                {error && <p className="text-[10px] font-bold text-destructive uppercase tracking-widest text-center">{error}</p>}
+                {error && !loading && (
+                  <p className="text-[10px] font-bold text-destructive uppercase tracking-widest text-center animate-in fade-in slide-in-from-top-1">
+                    {error}
+                  </p>
+                )}
 
                 <Button type="submit" disabled={loading} className="w-full h-14 bg-destructive hover:bg-destructive/90 rounded-xl font-black uppercase text-xs tracking-widest shadow-lg shadow-destructive/20 mt-4 transition-all hover:scale-[1.02]">
                   {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Establish Credentials"}
@@ -145,7 +171,7 @@ export default function AuthPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <Button variant="outline" onClick={() => handleSocialAuth('google')} className="h-12 border-white/10 bg-white/5 hover:bg-white/10 rounded-xl font-bold uppercase text-[9px] tracking-widest">
+                <Button variant="outline" onClick={() => handleSocialAuth('google')} disabled={loading} className="h-12 border-white/10 bg-white/5 hover:bg-white/10 rounded-xl font-bold uppercase text-[9px] tracking-widest">
                   <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24">
                     <path fill="#EA4335" d="M12 5.04c1.94 0 3.51.67 4.7 1.77L20.1 3.4C17.65 1.41 14.51.5 12 .5 7.42.5 3.56 3.12 1.5 6.94l3.88 3.01c.91-2.73 3.51-4.91 6.62-4.91z"/>
                     <path fill="#4285F4" d="M23.49 12.27c0-.81-.07-1.59-.2-2.34H12v4.42h6.44c-.28 1.48-1.08 2.74-2.33 3.58l3.62 2.81c2.12-1.95 3.76-4.83 3.76-8.47z"/>
@@ -154,11 +180,20 @@ export default function AuthPage() {
                   </svg>
                   Google
                 </Button>
-                <Button variant="outline" onClick={() => handleSocialAuth('github')} className="h-12 border-white/10 bg-white/5 hover:bg-white/10 rounded-xl font-bold uppercase text-[9px] tracking-widest">
+                <Button variant="outline" onClick={() => handleSocialAuth('github')} disabled={loading} className="h-12 border-white/10 bg-white/5 hover:bg-white/10 rounded-xl font-bold uppercase text-[9px] tracking-widest">
                   <Github className="h-4 w-4 mr-2" />
                   GitHub
                 </Button>
               </div>
+
+              {error && !loading && (
+                <div className="flex items-center justify-center gap-2 p-3 rounded-lg bg-destructive/5 border border-destructive/10 animate-in fade-in slide-in-from-top-1">
+                  <AlertCircle className="h-3 w-3 text-destructive shrink-0" />
+                  <p className="text-[9px] font-bold text-destructive uppercase tracking-widest leading-tight">
+                    {error}
+                  </p>
+                </div>
+              )}
 
               <div className="text-center">
                 <button onClick={handleForgotPassword} className="text-[9px] font-black uppercase tracking-widest text-cyan-500 hover:text-cyan-400 transition-colors">
