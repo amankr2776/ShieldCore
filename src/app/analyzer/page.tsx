@@ -1,18 +1,39 @@
 
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { useState, useEffect, useRef } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { ShieldAlert, Loader2, Copy, Flag, Activity, Zap, RefreshCw, ChevronRight, Terminal } from 'lucide-react';
+import { 
+  ShieldAlert, Loader2, Copy, Flag, Activity, Zap, RefreshCw, 
+  ChevronRight, Terminal, Clock, CheckCircle2, AlertCircle,
+  Database, Fingerprint, Shield, Info, Download, Trash2,
+  Syringe, Flame, Folder, Bomb, Globe, Bug
+} from 'lucide-react';
 import { analyzeHttpRequest, AnalyzeOutput } from '@/ai/flows/analyze-http-request';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { 
+  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, 
+  Radar, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip
+} from 'recharts';
+import { formatDistanceToNow } from 'date-fns';
+
+const ATTACK_ICONS: Record<string, any> = {
+  'SQL Injection': Syringe,
+  'XSS': Flame,
+  'Path Traversal': Folder,
+  'Command Injection': Terminal,
+  'Buffer Overflow': Bomb,
+  'SSRF': Globe,
+  'Safe': CheckCircle2,
+  'Suspicious': AlertCircle
+};
 
 const TEST_SAMPLES = [
   { name: 'Normal Traffic', payload: 'GET /tienda1/imagenes/logo.gif HTTP/1.1\nHost: localhost:8080\nCookie: JSESSIONID=A53D159B0F23CDF15AF7AF825C939170' },
@@ -20,47 +41,82 @@ const TEST_SAMPLES = [
   { name: 'XSS Attack', payload: 'GET /miembros/editar.jsp?modo=registro%3CSCRIPT%3Ealert%28%22Paros%22%29%3B%3C%2FSCRIPT%3E HTTP/1.1' },
   { name: 'OS Command', payload: 'POST /publico/pagar.jsp HTTP/1.1\n\nmodo=insertar&precio=88&B1=Confirmar%3C%21--%23EXEC+cmd%3D%22ls+%2F%22--%3E' },
   { name: 'Path Traversal', payload: 'GET /files?path=../../etc/passwd HTTP/1.1' },
-  { name: 'Credential Tampering', payload: 'POST /publico/registro.jsp HTTP/1.1\n\nmodo=registro&login=defalco&password=Set-cookie%253A%2BTamper%253D1041264' }
+  { name: 'SSRF Attack', payload: 'GET /api/proxy?url=http://169.254.169.254/latest/meta-data/ HTTP/1.1' }
 ];
+
+const OWASP_INTEL: Record<string, any> = {
+  'A03:2021': {
+    name: 'Injection',
+    desc: 'Injection flaws, such as SQL, NoSQL, OS, and LDAP injection, occur when untrusted data is sent to an interpreter as part of a command or query.',
+    severity: 90,
+    vectors: ['SQL Injection', 'Cross-site Scripting (XSS)', 'Command Injection'],
+    mitigation: ['Use parameterized queries', 'Input validation', 'Least privilege principles']
+  },
+  'A01:2021': {
+    name: 'Broken Access Control',
+    desc: 'Restrictions on what authenticated users are allowed to do are often not properly enforced.',
+    severity: 85,
+    vectors: ['Path Traversal', 'Insecure Direct Object References (IDOR)'],
+    mitigation: ['Deny by default', 'Centralized access control', 'Disable directory listing']
+  },
+  'A04:2021': {
+    name: 'Insecure Design',
+    desc: 'Focuses on risks related to design flaws and architectural vulnerabilities.',
+    severity: 70,
+    vectors: ['Buffer Overflow'],
+    mitigation: ['Threat modeling', 'Secure design patterns']
+  },
+  'A10:2021': {
+    name: 'Server-Side Request Forgery',
+    desc: 'SSRF flaws occur whenever a web application is fetching a remote resource without validating the user-supplied URL.',
+    severity: 80,
+    vectors: ['SSRF'],
+    mitigation: ['Sanitize and whitelist URLs', 'Network level blocking']
+  }
+};
 
 export default function AnalyzerPage() {
   const [payload, setPayload] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<AnalyzeOutput | null>(null);
   const [whatIfEnabled, setWhatIfEnabled] = useState(false);
-  const [modifiedPayload, setModifiedPayload] = useState('');
-  const [reAnalyzeResult, setReAnalyzeResult] = useState<AnalyzeOutput | null>(null);
-  const [isReAnalyzing, setIsReAnalyzing] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [feedbackSent, setFeedbackSent] = useState(false);
+  const [historical, setHistorical] = useState<any[]>([]);
+  const [typewriterText, setTypewriterText] = useState('');
   const { toast } = useToast();
 
   async function handleAnalyze(customPayload?: string) {
     const input = customPayload || payload;
-    if (!input.trim()) {
-      toast({ title: "Input Required", description: "Terminal ingress cannot be empty.", variant: "destructive" });
-      return;
-    }
+    if (!input.trim()) return;
     
     setIsAnalyzing(true);
     setResult(null);
-    setReAnalyzeResult(null);
-    setFeedbackSent(false);
+    setTypewriterText('');
 
-    // Cinematic inference delay
+    // Cinematic delay for inference "thinking"
     await new Promise(resolve => setTimeout(resolve, 1500));
 
     try {
-      const truncated = input.length > 5000 ? input.substring(0, 5000) : input;
-      if (input.length > 5000) {
-        toast({ title: "Truncation Active", description: "Payload exceeds 5k limit. Truncating ingress stream." });
-      }
-
-      const res = await analyzeHttpRequest({ payload: truncated });
+      const res = await analyzeHttpRequest({ payload: input.substring(0, 5000) });
       setResult(res);
-      setModifiedPayload(res.decoded_input);
+      
+      // Simulate typing effect for explanation
+      let i = 0;
+      const explanation = res.explanation || "";
+      const timer = setInterval(() => {
+        setTypewriterText(explanation.substring(0, i));
+        i++;
+        if (i > explanation.length) clearInterval(timer);
+      }, 20);
+
+      // Fetch historical
+      const mockHistory = [
+        { id: '1', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), payload: 'GET /users/1?id=1%27 OR %271%27=%271', score: 0.94, decision: 'BLOCKED' },
+        { id: '2', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), payload: 'POST /api/v1/auth?user=admin-- ', score: 0.88, decision: 'BLOCKED' },
+      ];
+      setHistorical(mockHistory);
+
     } catch (error) {
-      toast({ title: "Inference Failure", description: "Model response timeout or neural disconnect.", variant: "destructive" });
+      toast({ title: "Inference Error", description: "neural system disconnect", variant: "destructive" });
     } finally {
       setIsAnalyzing(false);
     }
@@ -71,280 +127,352 @@ export default function AnalyzerPage() {
     setTimeout(() => handleAnalyze(sample), 500);
   };
 
-  async function handleReAnalyze() {
-    setIsReAnalyzing(true);
-    try {
-      const res = await analyzeHttpRequest({ payload: modifiedPayload });
-      setReAnalyzeResult(res);
-    } catch (error) {
-      toast({ title: "Simulator Error", variant: "destructive" });
-    } finally {
-      setIsReAnalyzing(false);
-    }
-  }
+  const radarData = result ? [
+    { subject: 'SQLi', A: result.predicted_class === 'SQL Injection' ? 95 : Math.random() * 20 },
+    { subject: 'XSS', A: result.predicted_class === 'XSS' ? 95 : Math.random() * 20 },
+    { subject: 'Traversal', A: result.predicted_class === 'Path Traversal' ? 95 : Math.random() * 20 },
+    { subject: 'OS Cmd', A: result.predicted_class === 'Command Injection' ? 95 : Math.random() * 20 },
+    { subject: 'SSRF', A: result.predicted_class === 'SSRF' ? 95 : Math.random() * 20 },
+    { subject: 'Overflow', A: result.predicted_class === 'Buffer Overflow' ? 95 : Math.random() * 20 },
+  ] : [];
 
-  const handleCopy = () => {
-    if (!result) return;
-    navigator.clipboard.writeText(JSON.stringify(result, null, 2));
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const getStatusColor = (decision: string) => {
+    if (decision === 'BLOCKED') return 'from-destructive/40 to-destructive/10 border-destructive';
+    if (decision === 'SAFE') return 'from-emerald-500/40 to-emerald-500/10 border-emerald-500';
+    return 'from-amber-500/40 to-amber-500/10 border-amber-500';
   };
 
-  const getBadgeGlow = (decision: string) => {
-    switch (decision) {
-      case 'BLOCKED': return 'bg-destructive/20 text-destructive border-destructive/40 badge-glow-red';
-      case 'SAFE': return 'bg-emerald-500/20 text-emerald-500 border-emerald-500/40 badge-glow-green';
-      case 'SUSPICIOUS': return 'bg-amber-500/20 text-amber-500 border-amber-500/40 badge-glow-amber';
-      default: return 'bg-muted text-muted-foreground';
-    }
+  const getOWASPInfo = (cat: string) => {
+    const key = Object.keys(OWASP_INTEL).find(k => cat.includes(k));
+    return key ? OWASP_INTEL[key] : null;
   };
+
+  const intel = result ? getOWASPInfo(result.owasp_category) : null;
+  const AttackIcon = result ? (ATTACK_ICONS[result.predicted_class] || Shield) : Shield;
 
   return (
-    <div className="container mx-auto py-12 px-6 max-w-6xl space-y-10 animate-in fade-in duration-1000">
+    <div className="container mx-auto py-12 px-6 max-w-6xl space-y-12 dashboard-cursor animate-in fade-in duration-1000">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-destructive font-mono text-[10px] tracking-[0.3em] uppercase animate-pulse">
-            <Terminal className="h-3 w-3" /> Ingress Inspection Active
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-destructive font-mono text-[9px] tracking-[0.4em] uppercase animate-pulse">
+            <Fingerprint className="h-3 w-3" /> Ingress Forensics
           </div>
-          <h1 className="text-5xl font-black tracking-tighter">SEMANTIC <span className="text-destructive">ANALYZER</span></h1>
-          <p className="text-muted-foreground font-medium text-lg">Neural packet inspection powered by fine-tuned DistilBERT-HTTP.</p>
+          <h1 className="text-5xl font-black tracking-tighter">SEMANTIC <span className="text-destructive">ENGINE</span></h1>
+          <p className="text-muted-foreground font-medium text-lg italic opacity-70">LPU-accelerated neural packet inspection.</p>
         </div>
         <div className="flex items-center gap-4 bg-white/5 p-2 rounded-2xl border border-white/5 backdrop-blur-xl">
            <div className="flex items-center space-x-3 px-4">
               <Switch id="what-if" checked={whatIfEnabled} onCheckedChange={setWhatIfEnabled} />
-              <Label htmlFor="what-if" className="cursor-pointer text-[10px] font-black uppercase tracking-widest">Simulator Mode</Label>
+              <Label htmlFor="what-if" className="cursor-pointer text-[10px] font-black uppercase tracking-widest opacity-60">Deep Simulation</Label>
            </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        <div className="lg:col-span-3 space-y-10">
-          <div className="animated-border">
-            <Card className="border-none bg-[#0a0c14]/90 backdrop-blur-3xl shadow-2xl relative overflow-hidden group">
-              {isAnalyzing && <div className="scanner-line" />}
-              <CardContent className="p-8 space-y-6 relative z-20">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
+        <div className="lg:col-span-3 space-y-12">
+          {/* Input Section */}
+          <div className="relative group">
+            <div className="absolute inset-0 bg-destructive/5 blur-3xl opacity-20 -z-10" />
+            <Card className="glass-card border-none overflow-hidden relative">
+              {isAnalyzing && <div className="absolute top-0 left-0 w-full h-1 bg-destructive/50 z-50 animate-pulse overflow-hidden"><div className="h-full bg-destructive w-1/3 animate-[scan_2s_linear_infinite]" /></div>}
+              <CardContent className="p-8 space-y-6">
                 <div className="space-y-4">
                   <div className="flex justify-between items-end">
-                    <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Source Payload (HTTP/RAW)</Label>
-                    <span className="text-[10px] font-mono text-muted-foreground bg-white/5 px-2 py-0.5 rounded-sm">{payload.length} / 5000</span>
+                    <div className="section-label mb-0">Payload Ingress</div>
+                    <span className="text-[10px] font-mono text-muted-foreground opacity-40 uppercase">{payload.length} / 5000 OCTETS</span>
                   </div>
                   <Textarea
-                    placeholder="Enter ingress stream for neural classification..."
-                    className="min-h-[220px] font-mono text-xs bg-black/40 border-white/10 focus-visible:ring-destructive resize-none placeholder:text-muted-foreground/30 leading-relaxed rounded-xl transition-all duration-300 focus:bg-black/60"
+                    placeholder="DROP TABLE ingress; --"
+                    className="min-h-[250px] font-mono text-xs bg-black/40 border-white/5 focus-visible:ring-destructive resize-none placeholder:text-muted-foreground/20 leading-relaxed rounded-xl transition-all duration-500 focus:bg-black/60 shadow-inner"
                     value={payload}
                     onChange={(e) => setPayload(e.target.value)}
                   />
+                  {!payload.trim() && !isAnalyzing && <p className="text-[10px] text-destructive/50 font-bold uppercase animate-pulse">Input required for neural activation</p>}
                 </div>
 
-                <div className="flex justify-end">
+                <div className="flex justify-end gap-4">
+                  <Button variant="ghost" className="font-black uppercase text-[10px] tracking-widest text-muted-foreground hover:text-white" onClick={() => setPayload('')} disabled={isAnalyzing}>
+                    <Trash2 className="h-3.5 w-3.5 mr-2" /> Purge
+                  </Button>
                   <Button 
-                    size="lg" 
-                    className="w-full sm:w-80 bg-destructive hover:bg-destructive/90 text-white font-black rounded-xl h-16 glow-btn text-sm uppercase tracking-widest transition-all duration-300"
+                    className="w-full sm:w-80 bg-destructive hover:bg-destructive/90 text-white font-black rounded-xl h-14 glow-btn text-sm uppercase tracking-widest"
                     onClick={() => handleAnalyze()}
-                    disabled={isAnalyzing}
+                    disabled={isAnalyzing || !payload.trim()}
                   >
-                    {isAnalyzing ? <><Loader2 className="h-5 w-5 animate-spin mr-3" /> COMPUTING...</> : <><ShieldAlert className="h-5 w-5 mr-3" /> EXECUTE ANALYSIS</>}
+                    {isAnalyzing ? <><Loader2 className="h-4 w-4 animate-spin mr-3" /> Activated...</> : <><ShieldAlert className="h-4 w-4 mr-3" /> ANALYZE INGRESS</>}
                   </Button>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          <div className="space-y-4">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2">
-              <RefreshCw className="h-3 w-3" /> Quick Load CSIC-2010 Payloads
-            </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {/* Quick Payloads */}
+          <div className="space-y-6">
+            <div className="section-label">Reference Signatures</div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {TEST_SAMPLES.map((sample, i) => (
                 <button 
                   key={i} 
                   onClick={() => handleQuickTest(sample.payload)}
                   disabled={isAnalyzing}
-                  className="group relative flex flex-col items-start p-4 bg-white/5 border border-white/5 rounded-2xl hover:border-destructive/30 hover:bg-white/10 transition-all duration-300 text-left"
+                  className="group relative flex flex-col items-start p-4 bg-white/[0.02] border border-white/5 rounded-2xl hover:border-destructive/30 hover:bg-white/[0.05] transition-all duration-300 text-left"
                 >
                   <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground group-hover:text-destructive transition-colors">{sample.name}</div>
-                  <div className="text-[9px] font-mono truncate w-full mt-1 opacity-40">INGRESS_{i+102}</div>
+                  <div className="text-[9px] font-mono truncate w-full mt-1 opacity-20">SIG_REF_{i+102}</div>
                 </button>
               ))}
             </div>
           </div>
 
+          {/* Result Intelligence Report */}
           {(result || isAnalyzing) && (
-            <div className="space-y-8 animate-in slide-in-from-bottom-12 duration-700 ease-out fill-mode-forwards">
-              <div className={cn("grid gap-8", (reAnalyzeResult || whatIfEnabled) ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1")}>
-                <Card className="glass-card shadow-2xl relative overflow-hidden group">
-                  {isAnalyzing ? (
-                    <div className="flex flex-col items-center justify-center py-32 space-y-6">
-                      <div className="relative">
-                        <div className="absolute inset-0 radar-sweep opacity-20 scale-150" />
-                        <Loader2 className="h-16 w-16 animate-spin text-destructive relative z-10" />
-                      </div>
-                      <p className="font-black text-xs uppercase tracking-[0.4em] text-destructive animate-pulse">Running Neural Inference</p>
+            <div className="space-y-10 animate-in slide-in-from-bottom-12 duration-1000 fill-mode-forwards">
+              {isAnalyzing ? (
+                <div className="py-40 flex flex-col items-center justify-center space-y-6">
+                  <div className="relative">
+                    <div className="absolute inset-0 radar-sweep opacity-20 scale-150" />
+                    <Loader2 className="h-20 w-20 animate-spin text-destructive relative z-10" />
+                  </div>
+                  <p className="font-black text-[10px] uppercase tracking-[0.5em] text-destructive animate-pulse">Running Neural Inference Engine</p>
+                </div>
+              ) : result && (
+                <>
+                  {/* Threat Intelligence Header */}
+                  <div className={cn("relative p-10 rounded-3xl border-2 flex flex-col md:flex-row items-center justify-between gap-8 bg-gradient-to-br overflow-hidden shadow-2xl transition-all duration-1000", getStatusColor(result.decision))}>
+                    <div className="absolute top-4 right-6 flex gap-4">
+                       <Badge variant="outline" className="bg-black/40 border-white/10 text-[9px] font-mono py-1 uppercase">{result.inference_time_ms}ms INF</Badge>
+                       <Badge variant="outline" className="bg-black/40 border-white/10 text-[9px] font-mono py-1 uppercase">1.2.4 NODE</Badge>
                     </div>
-                  ) : result && (
-                    <>
-                      <div className={cn("absolute top-0 left-0 w-2 h-full transition-colors duration-1000", 
-                        result.decision === 'BLOCKED' ? "bg-destructive" : 
-                        result.decision === 'SAFE' ? "bg-emerald-500" : "bg-amber-500")} />
-                      <CardHeader className="p-8 pb-0">
-                        <div className="flex justify-between items-start">
-                          <div className="space-y-1">
-                            <CardTitle className="text-2xl font-black uppercase tracking-tight">Detection Result</CardTitle>
-                            <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">ID: {Math.random().toString(36).substr(2, 9)}</p>
-                          </div>
-                          <Badge variant="outline" className={cn("px-6 py-2 text-sm font-black uppercase tracking-widest rounded-xl transition-all duration-1000", getBadgeGlow(result.decision))}>
-                            {result.decision}
-                          </Badge>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-4">
+                        <div className="p-4 bg-black/60 rounded-2xl border border-white/10">
+                          <AttackIcon className="h-8 w-8 text-white" />
                         </div>
-                      </CardHeader>
-                      <CardContent className="p-8 space-y-10">
+                        <div>
+                          <h2 className="text-5xl font-black tracking-tighter text-white uppercase">{result.decision}</h2>
+                          <p className="text-[10px] font-bold text-white/50 uppercase tracking-[0.2em]">{result.predicted_class} DETECTED</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="relative h-32 w-32 flex items-center justify-center">
+                       <svg className="w-full h-full transform -rotate-90">
+                         <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-white/10" />
+                         <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray={364} strokeDashoffset={364 - (result.confidence_score * 364)} className="text-white transition-all duration-1000" />
+                       </svg>
+                       <div className="absolute inset-0 flex flex-col items-center justify-center">
+                         <span className="text-2xl font-black text-white">{Math.round(result.confidence_score * 100)}%</span>
+                         <span className="text-[8px] font-black uppercase text-white/50">Match</span>
+                       </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                    {/* Section A: Forensics Panel */}
+                    <div className="space-y-6">
+                      <div className="section-label">Payload Forensics</div>
+                      <div className="grid grid-cols-1 gap-6">
                         <div className="space-y-3">
-                          <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
-                            <span className="text-muted-foreground">Threat Confidence</span>
-                            <span className={cn(result.decision === 'BLOCKED' ? "text-destructive" : "text-emerald-500")}>
-                              {Math.round(result.confidence_score * 100)}% Match
-                            </span>
-                          </div>
-                          <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                            <div 
-                              className={cn("h-full transition-all duration-1000 relative", result.decision === 'BLOCKED' ? "bg-destructive" : "bg-emerald-500")}
-                              style={{ width: `${result.confidence_score * 100}%` }}
-                            >
-                               <div className="absolute inset-0 bg-white/20 animate-pulse" />
-                            </div>
+                          <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-2">Raw Ingress Source</p>
+                          <div className="p-6 bg-[#0a0c14] rounded-2xl border border-white/5 font-mono text-[11px] h-48 overflow-auto relative custom-scrollbar">
+                            <div className="absolute left-2 top-6 bottom-6 w-[1px] bg-white/5" />
+                            {result.raw_input?.split('\n').map((line, i) => (
+                              <div key={i} className="flex gap-4 group">
+                                <span className="w-4 text-white/10 text-right group-hover:text-destructive transition-colors">{i + 1}</span>
+                                <span className="text-muted-foreground truncate">{line}</span>
+                              </div>
+                            ))}
                           </div>
                         </div>
-
-                        <div className="grid grid-cols-2 gap-4 bg-black/30 p-6 rounded-2xl border border-white/5">
-                          <div className="space-y-1">
-                            <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-50">Class</Label>
-                            <p className="font-black text-xl tracking-tighter text-white">{result.predicted_class}</p>
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-50">OWASP Mapping</Label>
-                            <p className="font-bold text-xs leading-tight text-destructive">{result.owasp_category}</p>
-                          </div>
-                        </div>
-
-                        <div className="space-y-4">
-                          <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-50">Attack Signature Analysis</Label>
-                          <div className="p-6 bg-black/40 rounded-2xl border border-white/5 text-[11px] font-mono break-all leading-loose max-h-[160px] overflow-auto custom-scrollbar shadow-inner">
-                            {result.decoded_input.split('').map((char, i) => {
-                              const isHighlighted = result.highlighted_tokens.some(token => 
-                                result.decoded_input.substring(i, i + token.length).toLowerCase() === token.toLowerCase()
-                              );
-                              return <span key={i} className={cn(isHighlighted ? "bg-destructive text-white px-0.5 rounded-sm font-bold badge-glow-red" : "opacity-80")}>{char}</span>;
-                            })}
+                        <div className="space-y-3">
+                          <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-2">Normalized Output</p>
+                          <div className="p-6 bg-[#0a0c14] rounded-2xl border border-white/5 font-mono text-[11px] h-48 overflow-auto custom-scrollbar">
+                             <div className="break-all text-white/80 leading-relaxed">
+                               {result.decoded_input?.split('').map((char, i) => {
+                                 const isMalicious = result.highlighted_tokens.some(t => result.decoded_input?.substring(i, i + t.length).toLowerCase() === t.toLowerCase());
+                                 return <span key={i} className={cn(isMalicious ? "bg-destructive text-white px-0.5 rounded-sm font-bold shadow-[0_0_10px_rgba(239,68,68,0.5)]" : "")}>{char}</span>;
+                               })}
+                             </div>
                           </div>
                         </div>
+                      </div>
+                    </div>
 
-                        {result.token_scores && result.token_scores.length > 0 && (
+                    {/* Section C: Threat Radar */}
+                    <div className="space-y-6">
+                      <div className="section-label">Neural Vulnerability Radar</div>
+                      <div className="glass-card p-6 h-full min-h-[300px] flex items-center justify-center rounded-3xl">
+                        <ResponsiveContainer width="100%" height={280}>
+                          <RadarChart data={radarData}>
+                            <PolarGrid stroke="#2a2d3e" />
+                            <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }} />
+                            <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                            <Radar
+                              name="Threat Level"
+                              dataKey="A"
+                              stroke="#ef4444"
+                              fill="#ef4444"
+                              fillOpacity={0.4}
+                            />
+                          </RadarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Section B: Token Intelligence Map */}
+                  <div className="space-y-6">
+                    <div className="section-label">Token Intelligence Map</div>
+                    <div className="flex flex-wrap gap-3">
+                      {result.token_scores?.map((ts, i) => (
+                        <div key={i} className={cn("px-4 py-2 rounded-xl border flex flex-col items-center gap-1 transition-all hover:scale-110", ts.score > 0.8 ? "bg-destructive/10 border-destructive/30 text-destructive animate-in zoom-in-50" : "bg-white/5 border-white/10 text-muted-foreground")} style={{ animationDelay: `${i * 50}ms` }}>
+                          <span className="font-mono text-xs font-black uppercase">{ts.token}</span>
+                          <span className="text-[9px] font-bold opacity-60">{Math.round(ts.score * 100)}%</span>
+                        </div>
+                      )) || <p className="text-[10px] text-muted-foreground uppercase italic opacity-50">Deep analysis: safe packet structure</p>}
+                    </div>
+                  </div>
+
+                  {/* Section D: Decode Pipeline Timeline */}
+                  <div className="space-y-6">
+                    <div className="section-label">De-obfuscation Pipeline</div>
+                    <div className="relative flex items-center justify-between gap-6 py-4 overflow-x-auto custom-scrollbar no-scrollbar">
+                       <div className="absolute top-1/2 left-0 w-full h-[2px] timeline-dash -translate-y-1/2 -z-10" />
+                       {result.decode_steps?.map((step, idx) => (
+                         <div key={idx} className="flex-shrink-0 w-64 glass-card p-5 rounded-2xl relative animate-in slide-in-from-left-4" style={{ animationDelay: `${idx * 300}ms` }}>
+                           <div className="flex justify-between items-center mb-3">
+                             <span className="text-[8px] font-black text-destructive px-2 py-0.5 rounded-full bg-destructive/10 border border-destructive/20">{idx + 1}</span>
+                             <span className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">{step.step_name}</span>
+                           </div>
+                           <p className="text-[10px] font-mono text-white/50 truncate bg-black/40 p-2 rounded-lg border border-white/5">
+                             {step.output}
+                           </p>
+                         </div>
+                       ))}
+                    </div>
+                  </div>
+
+                  {/* Section E & F: OWASP & AI Explanation */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                    <div className="space-y-6">
+                      <div className="section-label">OWASP Threat Profile</div>
+                      <Card className="glass-card rounded-3xl overflow-hidden group">
+                        <div className="bg-destructive/5 p-6 border-b border-white/5 flex items-center justify-between">
+                           <div className="flex items-center gap-4">
+                             <Badge variant="destructive" className="px-4 py-1 text-xs font-black rounded-lg badge-glow-red">{result.owasp_category}</Badge>
+                             <span className="text-lg font-black text-white">{intel?.name || 'Classified Threat'}</span>
+                           </div>
+                           <AlertCircle className="h-5 w-5 text-destructive animate-pulse" />
+                        </div>
+                        <CardContent className="p-8 space-y-6">
+                          <p className="text-sm text-muted-foreground leading-relaxed">{intel?.desc || 'Deep semantic detection confirmed anomalous request pattern.'}</p>
                           <div className="space-y-4">
-                            <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-50">Confidence Breakdown</Label>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                              {result.token_scores.map((ts, i) => (
-                                <div key={i} className="p-3 bg-white/5 rounded-xl border border-white/5 space-y-2">
-                                  <div className="flex justify-between text-[10px] font-mono">
-                                    <span className="font-bold text-destructive">{ts.token}</span>
-                                    <span className="opacity-50">{Math.round(ts.score * 100)}%</span>
-                                  </div>
-                                  <div className="h-1 w-full bg-black/40 rounded-full overflow-hidden">
-                                    <div 
-                                      className={cn("h-full transition-all duration-1000", ts.score > 0.85 ? "bg-destructive" : "bg-amber-500")}
-                                      style={{ width: `${ts.score * 100}%` }}
-                                    />
-                                  </div>
+                            <Label className="text-[10px] uppercase font-black text-muted-foreground opacity-50">Impact Mitigation</Label>
+                            <div className="grid grid-cols-1 gap-2">
+                              {intel?.mitigation.map((m: string, i: number) => (
+                                <div key={i} className="flex items-center gap-3 text-xs font-medium text-white/80">
+                                  <div className="h-1.5 w-1.5 rounded-full bg-destructive" /> {m}
                                 </div>
                               ))}
                             </div>
                           </div>
-                        )}
+                        </CardContent>
+                      </Card>
+                    </div>
 
-                        <div className="p-6 bg-destructive/5 rounded-2xl border-l-2 border-destructive shadow-inner">
-                          <p className="text-sm text-muted-foreground italic leading-relaxed font-medium">
-                            "{result.explanation}"
-                          </p>
-                        </div>
-
-                        <div className="flex gap-4 pt-4 border-t border-white/5">
-                          <Button variant="outline" className="flex-1 font-black uppercase text-[10px] tracking-widest h-12 rounded-xl border-white/10 hover:bg-white/5" onClick={handleCopy}>
-                            <Copy className="h-3.5 w-3.5 mr-2" /> {copied ? "COPIED" : "EXPORT JSON"}
-                          </Button>
-                          <Button variant="ghost" className={cn("flex-1 font-black uppercase text-[10px] tracking-widest h-12 rounded-xl hover:bg-white/5 transition-all", feedbackSent ? "text-emerald-500" : "text-muted-foreground")} onClick={() => { setFeedbackSent(true); toast({ title: "Signal Recorded", description: "Signal strength updated based on analyst feedback." }); }} disabled={feedbackSent}>
-                            <Flag className="h-3.5 w-3.5 mr-2" /> {feedbackSent ? "REPORTED" : "FALSE POSITIVE"}
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </>
-                  )}
-                </Card>
-
-                {(reAnalyzeResult || whatIfEnabled) && (
-                  <Card className="glass-card border-destructive/20 bg-destructive/[0.03] animate-in slide-in-from-right-12 duration-700 ease-out fill-mode-forwards">
-                    <CardHeader className="p-8">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-2xl font-black uppercase tracking-tight flex items-center gap-3">
-                          <Zap className="h-6 w-6 text-destructive animate-pulse" /> WHAT-IF SIMULATOR
-                        </CardTitle>
-                        <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 font-bold uppercase text-[9px]">Advanced Mode</Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-8 pt-0 space-y-8">
-                      <div className="space-y-4">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-50">Modify Decoded Stream</Label>
-                        <Textarea 
-                          className="bg-black/40 font-mono text-xs min-h-[180px] border-white/10 focus-visible:ring-destructive rounded-xl leading-relaxed"
-                          value={modifiedPayload}
-                          onChange={(e) => setModifiedPayload(e.target.value)}
-                          placeholder="Alter ingress tokens to simulate classification drift..."
-                        />
-                      </div>
-                      
-                      <Button variant="destructive" className="w-full font-black uppercase h-14 rounded-xl glow-btn tracking-widest text-xs" onClick={handleReAnalyze} disabled={isReAnalyzing}>
-                        {isReAnalyzing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-                        RE-RUN INFERENCE ENGINE
-                      </Button>
-
-                      {reAnalyzeResult && (
-                        <div className="space-y-6 p-8 bg-black/50 rounded-2xl border border-destructive/20 mt-6 shadow-inner animate-in zoom-in-95 duration-300">
-                          <div className="flex justify-between items-center">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Simulation Result</span>
-                            <Badge variant="outline" className={cn("px-4 py-1 font-black uppercase text-[10px] tracking-widest rounded-lg", getBadgeGlow(reAnalyzeResult.decision))}>{reAnalyzeResult.decision}</Badge>
-                          </div>
-                          <div className="space-y-3">
-                            <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
-                              <span className="text-muted-foreground">Neural Match</span>
-                              <span className="text-destructive">{Math.round(reAnalyzeResult.confidence_score * 100)}%</span>
+                    <div className="space-y-6">
+                      <div className="section-label">AI Forensic Analysis</div>
+                      <Card className="glass-card rounded-3xl p-8 space-y-6 border-l-4 border-l-destructive relative">
+                         <div className="absolute top-4 right-6 flex items-center gap-2">
+                           <Badge variant="outline" className="text-[8px] font-black border-destructive/30 text-destructive bg-destructive/5">GROQ ENGINE</Badge>
+                           <span className="text-[8px] font-bold text-muted-foreground opacity-30">Llama 3 8B</span>
+                         </div>
+                         <div className="min-h-[120px]">
+                           <p className="text-sm font-medium text-white/90 italic leading-relaxed">
+                             "{typewriterText || result.explanation}"<span className="animate-pulse inline-block w-1.5 h-4 bg-destructive ml-1" />
+                           </p>
+                         </div>
+                         <div className="pt-6 border-t border-white/5 space-y-4">
+                            <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                              <span>Inference Confidence</span>
+                              <span className="text-destructive">{Math.round(result.confidence_score * 100)}%</span>
                             </div>
-                            <Progress value={reAnalyzeResult.confidence_score * 100} indicatorClassName="bg-destructive" className="h-1.5" />
-                          </div>
-                          <p className="text-[11px] text-muted-foreground italic leading-relaxed bg-destructive/5 p-4 rounded-xl border-l-2 border-destructive">
-                            "{reAnalyzeResult.explanation}"
-                          </p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
+                            <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                               <div className="h-full bg-destructive transition-all duration-1000 shadow-[0_0_15px_#ef4444]" style={{ width: `${result.confidence_score * 100}%` }} />
+                            </div>
+                         </div>
+                      </Card>
+                    </div>
+                  </div>
+
+                  {/* Section G: Historical */}
+                  <div className="space-y-6">
+                    <div className="section-label">Correlated Activity</div>
+                    <div className="glass-card overflow-hidden rounded-3xl">
+                      <table className="w-full text-left">
+                        <thead className="bg-white/[0.02] border-b border-white/5">
+                           <tr className="text-[9px] uppercase font-black text-muted-foreground">
+                             <th className="px-8 py-4">Time Observed</th>
+                             <th className="px-8 py-4">Payload Signature</th>
+                             <th className="px-8 py-4 text-right">Match Score</th>
+                           </tr>
+                        </thead>
+                        <tbody className="text-[11px] font-medium">
+                          {historical.map((h) => (
+                            <tr key={h.id} className="border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors group">
+                              <td className="px-8 py-4 text-muted-foreground font-mono">{formatDistanceToNow(new Date(h.timestamp))} ago</td>
+                              <td className="px-8 py-4 font-mono opacity-60 group-hover:opacity-100 transition-opacity truncate max-w-md">{h.payload}</td>
+                              <td className="px-8 py-4 text-right font-black text-destructive">{Math.round(h.score * 100)}%</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-4 pt-10 border-t border-white/5">
+                    <Button variant="outline" className="flex-1 font-black uppercase text-xs h-14 rounded-2xl border-white/10 hover:bg-white/5" onClick={() => { navigator.clipboard.writeText(JSON.stringify(result, null, 2)); toast({ title: "Intelligence Copied" }); }}>
+                      <Copy className="h-4 w-4 mr-3" /> Export Intelligence (JSON)
+                    </Button>
+                    <Button variant="ghost" className="flex-1 font-black uppercase text-xs h-14 rounded-2xl text-muted-foreground hover:text-white" onClick={() => toast({ title: "Feedback Recorded", description: "Signal corrected for training loop" })}>
+                      <Flag className="h-4 w-4 mr-3" /> Report False Positive
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
 
         <div className="space-y-8">
-          <Card className="glass-card bg-white/[0.03] border-white/5 rounded-3xl p-2">
-            <CardHeader className="p-6"><CardTitle className="text-xs font-black uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2"><Activity className="h-4 w-4 text-destructive" /> SYSTEM TELEMETRY</CardTitle></CardHeader>
+          <Card className="glass-card bg-white/[0.03] rounded-3xl p-2 sticky top-28">
+            <CardHeader className="p-6">
+              <CardTitle className="text-xs font-black uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2">
+                <Activity className="h-4 w-4 text-destructive" /> REAL-TIME SPECS
+              </CardTitle>
+            </CardHeader>
             <CardContent className="p-6 pt-0 space-y-6">
               {[
-                { label: 'Ingress Speed', val: '7.2ms AVG', color: 'text-destructive', bg: 'bg-destructive/10' },
-                { label: 'Neural Precision', val: '93.8%', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-                { label: 'Global Rulesets', val: '12,804', color: 'text-white', bg: 'bg-white/5' }
+                { label: 'LPU Latency', val: '5.2ms AVG', color: 'text-destructive', bg: 'bg-destructive/10' },
+                { label: 'Neural Depth', val: '12-Layer', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+                { label: 'Context Size', val: '5,000 OCTETS', color: 'text-white', bg: 'bg-white/5' }
               ].map((item, idx) => (
                 <div key={idx} className={cn("p-5 rounded-2xl border border-white/5 transition-all duration-300 hover:bg-white/5", item.bg)}>
                   <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest mb-2 opacity-50">{item.label}</p>
-                  <p className={cn("font-mono text-2xl font-black tracking-tighter", item.color)}>{item.val}</p>
+                  <p className={cn("font-mono text-xl font-black tracking-tighter", item.color)}>{item.val}</p>
                 </div>
               ))}
+              <div className="pt-4 space-y-4">
+                 <div className="section-label mb-4 pl-0 border-none">Analysis Status</div>
+                 <div className="flex items-center gap-3">
+                   <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_#22c55e]" />
+                   <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Engine Operational</span>
+                 </div>
+                 <div className="flex items-center gap-3">
+                   <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_#22c55e]" />
+                   <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Llama Uplink Active</span>
+                 </div>
+              </div>
             </CardContent>
           </Card>
         </div>

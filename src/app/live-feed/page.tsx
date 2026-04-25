@@ -1,23 +1,34 @@
 
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
-import { 
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
-} from '@/components/ui/select';
 import { 
   Play, Pause, Activity, ShieldAlert, ShieldCheck, AlertTriangle, 
-  Clock, Search, Trash2, X, Info, Globe, ChevronRight, Terminal 
+  Clock, Search, Trash2, X, Info, Globe, ChevronRight, Terminal,
+  Fingerprint, Zap, Shield, ShieldX, CheckCircle2, AlertCircle,
+  Syringe, Flame, Folder, Bomb, Bug, ExternalLink
 } from 'lucide-react';
 import { generateFakeRequest, getSeededData } from '@/lib/mock-data';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { formatDistanceToNow } from 'date-fns';
+import { LineChart, Line, ResponsiveContainer } from 'recharts';
+
+const ATTACK_ICONS: Record<string, any> = {
+  'SQL Injection': Syringe,
+  'XSS': Flame,
+  'Path Traversal': Folder,
+  'Command Injection': Terminal,
+  'Buffer Overflow': Bomb,
+  'SSRF': Globe,
+  'Safe': CheckCircle2,
+  'Suspicious': AlertCircle
+};
 
 export default function LiveFeedPage() {
   const [requests, setRequests] = useState<any[]>([]);
@@ -27,68 +38,59 @@ export default function LiveFeedPage() {
   const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
   const [isConnected, setIsConnected] = useState(true);
   const [replayStep, setReplayStep] = useState(-1);
-  const [newRequestIds, setNewRequestIds] = useState<Set<string>>(new Set());
   const [stats, setStats] = useState({
     total: 0,
     blocked: 0,
-    safe: 0,
-    suspicious: 0,
-    avgInference: 0
+    avgScore: 0,
+    history: Array.from({ length: 60 }, () => ({ val: Math.random() * 20 }))
   });
 
   const { toast } = useToast();
-  const statsRef = useRef(stats);
-
-  useEffect(() => { statsRef.current = stats; }, [stats]);
 
   useEffect(() => {
     const seed = getSeededData();
     setRequests(seed);
-    const counts = seed.reduce((acc, r) => {
-      acc[r.decision]++;
-      acc.total++;
-      acc.totalLat += r.inferenceTime;
-      return acc;
-    }, { SAFE: 0, BLOCKED: 0, SUSPICIOUS: 0, total: 0, totalLat: 0 });
-    setStats({ total: counts.total, blocked: counts.BLOCKED, safe: counts.SAFE, suspicious: counts.SUSPICIOUS, avgInference: parseFloat((counts.totalLat / counts.total).toFixed(2)) });
+    const blocked = seed.filter(r => r.decision === 'BLOCKED').length;
+    const scores = seed.map(r => r.score);
+    const avgScore = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+    setStats(prev => ({ ...prev, total: seed.length, blocked, avgScore }));
   }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
       if (!isPaused && isConnected) {
         const newReq = generateFakeRequest();
-        const newTotal = statsRef.current.total + 1;
-        setStats({ ...statsRef.current, total: newTotal, blocked: statsRef.current.blocked + (newReq.decision === 'BLOCKED' ? 1 : 0), safe: statsRef.current.safe + (newReq.decision === 'SAFE' ? 1 : 0), suspicious: statsRef.current.suspicious + (newReq.decision === 'SUSPICIOUS' ? 1 : 0), avgInference: parseFloat(((statsRef.current.avgInference * statsRef.current.total + newReq.inferenceTime) / newTotal).toFixed(2)) });
         setRequests(prev => [newReq, ...prev].slice(0, 100));
-        setNewRequestIds(prev => new Set(prev).add(newReq.id));
-        setTimeout(() => setNewRequestIds(prev => {
-          const next = new Set(prev);
-          next.delete(newReq.id);
-          return next;
-        }), 2000);
+        
+        setStats(prev => {
+          const newTotal = prev.total + 1;
+          const newBlocked = prev.blocked + (newReq.decision === 'BLOCKED' ? 1 : 0);
+          const newHistory = [...prev.history.slice(1), { val: newReq.score * 100 }];
+          return { ...prev, total: newTotal, blocked: newBlocked, history: newHistory };
+        });
 
         if (newReq.decision === 'BLOCKED') {
           toast({ 
-            title: "CRITICAL ALERT", 
-            description: `${newReq.attackType} intercepted from ${newReq.ip}`, 
+            title: "THREAT NEUTRALIZED", 
+            description: `${newReq.attackType} from ${newReq.ip}`, 
             variant: "destructive",
-            className: "glass-card border-destructive/50 badge-glow-red"
+            className: "glass-card border-destructive/50 animate-blocked-shimmer"
           });
         }
       }
-    }, 2000);
+    }, 2500);
     return () => clearInterval(interval);
   }, [isPaused, isConnected, toast]);
 
   useEffect(() => {
-    if (selectedRequest && selectedRequest.decode_steps) {
+    if (selectedRequest) {
       setReplayStep(-1);
       let step = 0;
       const interval = setInterval(() => {
         setReplayStep(step);
         step++;
-        if (step >= selectedRequest.decode_steps.length) clearInterval(interval);
-      }, 600);
+        if (step >= 5) clearInterval(interval);
+      }, 500);
       return () => clearInterval(interval);
     }
   }, [selectedRequest]);
@@ -101,178 +103,191 @@ export default function LiveFeedPage() {
     });
   }, [requests, filter, search]);
 
-  const getDecisionGlow = (decision: string) => {
-    switch (decision) {
-      case 'BLOCKED': return 'bg-destructive/20 text-destructive border-destructive/30 badge-glow-red';
-      case 'SAFE': return 'bg-emerald-500/20 text-emerald-500 border-emerald-500/30 badge-glow-green';
-      case 'SUSPICIOUS': return 'bg-amber-500/20 text-amber-500 border-amber-500/30 badge-glow-amber';
-      default: return '';
-    }
-  };
-
   return (
-    <div className="relative min-h-screen">
-      <div className="fixed inset-0 matrix-grid opacity-30 pointer-events-none" />
+    <div className="relative min-h-screen dashboard-cursor">
+      <div className="fixed inset-0 matrix-grid opacity-20 pointer-events-none" />
       
-      <div className="container mx-auto py-12 px-6 max-w-7xl space-y-8 animate-in fade-in duration-1000 relative z-10">
+      <div className="container mx-auto py-12 px-6 max-w-7xl space-y-10 animate-in fade-in duration-1000 relative z-10">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
           <div className="space-y-2">
-            <div className="flex items-center gap-2 text-destructive font-mono text-[10px] tracking-[0.3em] uppercase animate-pulse">
-              <Activity className="h-3 w-3" /> Live Telemetry Feed
+            <div className="flex items-center gap-2 text-destructive font-mono text-[10px] tracking-[0.4em] uppercase animate-pulse">
+              <Activity className="h-3 w-3" /> Live Forensic Feed
             </div>
-            <h1 className="text-5xl font-black tracking-tighter uppercase">TRAFFIC <span className="text-destructive">ENGINE</span></h1>
-            <p className="text-muted-foreground font-medium text-lg italic">Continuous neural monitoring of global ingress streams.</p>
+            <h1 className="text-5xl font-black tracking-tighter uppercase">TRAFFIC <span className="text-destructive">STREAM</span></h1>
+            <p className="text-muted-foreground font-medium text-lg italic opacity-60">Edge-wide telemetry across global ingress nodes.</p>
           </div>
           <div className="flex items-center gap-4 bg-white/5 p-2 rounded-2xl border border-white/5 backdrop-blur-xl">
             <div className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-white/5 border border-white/5 text-[10px] font-black uppercase tracking-widest">
               <div className={cn("h-2 w-2 rounded-full", isConnected ? "bg-emerald-500 animate-pulse shadow-[0_0_10px_#22c55e]" : "bg-destructive")} />
-              <span className="text-muted-foreground">{isConnected ? "Uplink Established" : "Uplink Severed"}</span>
+              <span className="text-muted-foreground">{isConnected ? "Uplink Secure" : "Uplink Lost"}</span>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        {/* Top Metric Panels */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            { label: 'Ingress Node', value: stats.total, color: 'text-white' },
-            { label: 'Neutralized', value: stats.blocked, color: 'text-destructive', glow: 'badge-glow-red' },
-            { label: 'Validated', value: stats.safe, color: 'text-emerald-500', glow: 'badge-glow-green' },
-            { label: 'Anomalous', value: stats.suspicious, color: 'text-amber-500', glow: 'badge-glow-amber' },
-            { label: 'Latency', value: `${stats.avgInference}ms`, color: 'text-primary' },
+            { label: 'Total Ingress', value: stats.total, color: 'text-white', trend: '+12%', icon: Globe },
+            { label: 'Neutralized', value: stats.blocked, color: 'text-destructive', trend: '+4%', icon: ShieldX },
+            { label: 'Avg Threat Index', value: `${Math.round(stats.avgScore * 100)}%`, color: 'text-amber-500', trend: '-2%', icon: AlertCircle },
           ].map((s, i) => (
-            <Card key={i} className="glass-card bg-white/[0.02] border-white/5 group">
-              <CardContent className="p-6 flex flex-col items-center justify-center text-center space-y-1">
-                <span className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground font-black opacity-50 group-hover:opacity-100 transition-opacity">{s.label}</span>
-                <span className={cn("text-3xl font-black tracking-tighter", s.color)}>{s.value}</span>
+            <Card key={i} className="glass-card rounded-3xl overflow-hidden group p-1">
+              <CardContent className="p-8 flex items-center justify-between">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-50">
+                    <s.icon className="h-3 w-3" /> {s.label}
+                  </div>
+                  <div className={cn("text-4xl font-black tracking-tighter", s.color)}>{s.value}</div>
+                  <div className="text-[10px] font-bold text-emerald-500">{s.trend} <span className="text-muted-foreground opacity-40">vs prev epoch</span></div>
+                </div>
+                <div className="w-24 h-12 opacity-50 group-hover:opacity-100 transition-opacity">
+                   <ResponsiveContainer width="100%" height="100%">
+                     <LineChart data={stats.history}>
+                        <Line type="monotone" dataKey="val" stroke={i === 1 ? '#ef4444' : '#94a3b8'} strokeWidth={2} dot={false} />
+                     </LineChart>
+                   </ResponsiveContainer>
+                </div>
               </CardContent>
             </Card>
           ))}
         </div>
 
-        <Card className="glass-card bg-[#0a0c14]/80 shadow-2xl border-white/5 flex flex-col min-h-[650px] overflow-hidden rounded-3xl">
-          <div className="p-6 border-b border-white/5 flex flex-col md:flex-row items-center justify-between gap-6 bg-white/[0.02]">
-            <div className="flex items-center gap-4 w-full md:w-auto">
-              <Button variant="outline" size="sm" onClick={() => setIsPaused(!isPaused)} className={cn("h-11 px-8 font-black uppercase text-[10px] tracking-widest rounded-xl transition-all border-white/10 hover:bg-white/5", isPaused ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : "")}>
-                {isPaused ? <Play className="h-4 w-4 mr-2" /> : <Pause className="h-4 w-4 mr-2" />}
-                {isPaused ? "Resume Feed" : "Suspend Feed"}
-              </Button>
-              <div className="relative flex-1 md:w-80">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground opacity-50" />
-                <Input placeholder="Filter IP or Attack Class..." className="h-11 pl-12 bg-black/40 rounded-xl border-white/10 focus-visible:ring-destructive font-mono text-xs" value={search} onChange={(e) => setSearch(e.target.value)} />
-              </div>
-            </div>
-            <div className="flex items-center gap-4 w-full md:w-auto">
-              <Select value={filter} onValueChange={setFilter}>
-                <SelectTrigger className="w-[180px] h-11 rounded-xl bg-black/40 border-white/10 font-black text-[10px] uppercase tracking-widest">
-                  <SelectValue placeholder="All Streams" />
-                </SelectTrigger>
-                <SelectContent className="glass-card border-white/10 p-2">
-                  <SelectItem value="ALL">All Streams</SelectItem>
-                  <SelectItem value="BLOCKED">Blocked Only</SelectItem>
-                  <SelectItem value="SAFE">Safe Only</SelectItem>
-                  <SelectItem value="SUSPICIOUS">Suspicious Only</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button variant="ghost" size="sm" className="h-11 px-6 font-black uppercase text-[10px] tracking-widest text-muted-foreground hover:text-destructive hover:bg-white/5 rounded-xl" onClick={() => setRequests([])}>
-                <Trash2 className="h-4 w-4 mr-2" /> Purge
-              </Button>
+        {/* Controls */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6 bg-white/[0.02] p-6 rounded-3xl border border-white/5">
+          <div className="flex items-center gap-4 w-full md:w-auto">
+            <Button variant="outline" size="lg" onClick={() => setIsPaused(!isPaused)} className={cn("h-14 px-8 font-black uppercase text-[10px] tracking-widest rounded-2xl transition-all border-white/10 hover:bg-white/5", isPaused ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : "bg-destructive/10 text-destructive border-destructive/20")}>
+              {isPaused ? <Play className="h-4 w-4 mr-2" /> : <Pause className="h-4 w-4 mr-2" />}
+              {isPaused ? "Activate Feed" : "Suspend Feed"}
+            </Button>
+            <div className="relative flex-1 md:w-96">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground opacity-30" />
+              <Input placeholder="Search IP or Attack Class..." className="h-14 pl-12 bg-black/40 rounded-2xl border-white/5 focus-visible:ring-destructive font-mono text-xs" value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
           </div>
-
-          <div className="flex-1 overflow-auto max-h-[600px] relative scrollbar-hide">
-            <Table>
-              <TableHeader className="sticky top-0 bg-[#0a0c14] z-50 shadow-xl border-b border-white/5">
-                <TableRow className="border-none hover:bg-transparent">
-                  <TableHead className="w-[120px] text-[10px] uppercase font-black tracking-[0.2em] text-muted-foreground pl-8">Epoch</TableHead>
-                  <TableHead className="text-[10px] uppercase font-black tracking-[0.2em] text-muted-foreground">Ingress Source</TableHead>
-                  <TableHead className="text-[10px] uppercase font-black tracking-[0.2em] text-muted-foreground">Protocol/Path</TableHead>
-                  <TableHead className="text-[10px] uppercase font-black tracking-[0.2em] text-muted-foreground">Neural Class</TableHead>
-                  <TableHead className="text-right text-[10px] uppercase font-black tracking-[0.2em] text-muted-foreground pr-8">Match</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredRequests.map((req) => (
-                  <TableRow 
-                    key={req.id} 
-                    className={cn(
-                      "transition-all duration-500 border-white/5 cursor-pointer group hover:bg-white/[0.03]",
-                      newRequestIds.has(req.id) && req.decision === 'BLOCKED' && "bg-destructive/40 transition-none",
-                      req.decision === 'BLOCKED' && "bg-destructive/[0.02]",
-                      req.decision === 'SAFE' && "bg-emerald-500/[0.01]"
-                    )}
-                    onClick={() => setSelectedRequest(req)}
-                  >
-                    <TableCell className="font-mono text-[10px] font-black text-muted-foreground opacity-50 pl-8">{new Date(req.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</TableCell>
-                    <TableCell className="font-mono text-xs font-bold tracking-tight">
-                      <div className="flex items-center gap-2">
-                         <span className="text-[10px] opacity-40">[{req.country}]</span>
-                         {req.ip}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-[10px] font-mono opacity-80 uppercase tracking-tighter">
-                      <span className="text-destructive font-black mr-2">{req.method}</span>
-                      {req.endpoint}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Badge variant="outline" className={cn("px-4 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg transition-all duration-500", getDecisionGlow(req.decision))}>
-                          {req.attackType}
-                        </Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right font-black text-xs tracking-tighter pr-8">
-                      <span className={cn(req.score > 0.8 && "text-destructive")}>{Math.round(req.score * 100)}%</span>
-                    </TableCell>
-                  </TableRow>
+          <div className="flex items-center gap-4">
+             <div className="flex gap-2 bg-black/40 p-1.5 rounded-2xl border border-white/5">
+                {['ALL', 'BLOCKED', 'SAFE'].map(f => (
+                  <button key={f} onClick={() => setFilter(f)} className={cn("px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all", filter === f ? "bg-destructive text-white shadow-lg" : "text-muted-foreground hover:text-white")}>
+                    {f}
+                  </button>
                 ))}
-              </TableBody>
-            </Table>
-            {filteredRequests.length === 0 && (
-              <div className="py-32 flex flex-col items-center justify-center space-y-6 opacity-30">
-                <Terminal className="h-20 w-20 text-destructive animate-pulse" />
-                <p className="font-black uppercase tracking-[0.4em] text-xs">Waiting for ingress signal</p>
-              </div>
-            )}
+             </div>
+             <Button variant="ghost" size="icon" className="h-14 w-14 rounded-2xl border border-white/5 hover:bg-destructive/10 hover:text-destructive text-muted-foreground" onClick={() => setRequests([])}>
+                <Trash2 className="h-5 w-5" />
+             </Button>
           </div>
-        </Card>
+        </div>
 
+        {/* Card Stream */}
+        <div className="space-y-4 max-h-[1200px] overflow-auto pr-2 custom-scrollbar">
+          {filteredRequests.map((req) => {
+            const Icon = ATTACK_ICONS[req.attackType] || Shield;
+            return (
+              <Card 
+                key={req.id} 
+                onClick={() => setSelectedRequest(req)}
+                className={cn(
+                  "glass-card border-l-4 group cursor-pointer animate-in slide-in-from-top-4 duration-500",
+                  req.decision === 'BLOCKED' ? "border-l-destructive bg-destructive/[0.02]" : "border-l-emerald-500 bg-emerald-500/[0.01]",
+                )}
+              >
+                <CardContent className="p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+                  <div className="flex items-center gap-6 flex-1 min-w-0">
+                    <div className={cn("p-4 rounded-2xl border border-white/5 transition-transform group-hover:scale-110", req.decision === 'BLOCKED' ? "bg-destructive/10 text-destructive" : "bg-emerald-500/10 text-emerald-500")}>
+                      <Icon className="h-6 w-6" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                         <span className="text-[12px] font-mono font-black text-white">{req.ip}</span>
+                         <span className="text-[10px] opacity-40">[{req.country}]</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-[10px] font-mono text-muted-foreground">
+                        <span className="text-destructive font-black">{req.method}</span>
+                        <span className="truncate">{req.endpoint}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col items-end gap-3 w-full md:w-auto">
+                    <div className="flex items-center gap-4">
+                       <div className="text-right">
+                          <p className="text-[9px] font-black uppercase text-muted-foreground opacity-50 mb-1">Intelligence Match</p>
+                          <div className="flex items-center gap-3">
+                             <div className="w-24 h-1 bg-white/5 rounded-full overflow-hidden">
+                                <div className={cn("h-full transition-all", req.decision === 'BLOCKED' ? "bg-destructive" : "bg-emerald-500")} style={{ width: `${req.score * 100}%` }} />
+                             </div>
+                             <span className={cn("text-xs font-black font-mono", req.decision === 'BLOCKED' ? "text-destructive" : "text-emerald-500")}>{Math.round(req.score * 100)}%</span>
+                          </div>
+                       </div>
+                       <Badge variant="outline" className={cn("px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-xl", req.decision === 'BLOCKED' ? "bg-destructive/10 text-destructive border-destructive/20" : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20")}>
+                         {req.attackType}
+                       </Badge>
+                    </div>
+                    <div className="flex items-center gap-4 text-[9px] font-black text-muted-foreground opacity-40 uppercase tracking-widest">
+                       <span>{req.inferenceTime}ms LAT</span>
+                       <span>{formatDistanceToNow(new Date(req.timestamp))} ago</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+          
+          {filteredRequests.length === 0 && (
+            <div className="py-40 flex flex-col items-center justify-center space-y-6 opacity-20">
+              <Terminal className="h-24 w-24 text-destructive animate-pulse" />
+              <p className="font-black uppercase tracking-[0.5em] text-sm">Synchronizing edge telemetry...</p>
+            </div>
+          )}
+        </div>
+
+        {/* Detailed Drawer */}
         <Sheet open={!!selectedRequest} onOpenChange={(open) => !open && setSelectedRequest(null)}>
-          <SheetContent className="w-full sm:max-w-xl glass-card border-l border-white/10 shadow-2xl p-0 overflow-hidden flex flex-col">
+          <SheetContent className="w-full sm:max-w-2xl glass-card border-l border-white/10 shadow-2xl p-0 overflow-hidden flex flex-col">
             {selectedRequest && (
               <>
-                <div className={cn("h-2 w-full transition-colors duration-1000", selectedRequest.decision === 'BLOCKED' ? "bg-destructive shadow-[0_0_15px_#ef4444]" : selectedRequest.decision === 'SAFE' ? "bg-emerald-500 shadow-[0_0_15px_#22c55e]" : "bg-amber-500 shadow-[0_0_15px_#f59e0b]")} />
-                <div className="p-10 space-y-10 flex-1 overflow-auto custom-scrollbar">
+                <div className={cn("h-2 w-full", selectedRequest.decision === 'BLOCKED' ? "bg-destructive" : "bg-emerald-500")} />
+                <div className="p-12 space-y-12 flex-1 overflow-auto custom-scrollbar no-scrollbar">
                   <SheetHeader>
-                    <div className="flex items-center justify-between">
-                      <Badge variant="outline" className={cn("px-6 py-2 text-[10px] font-black uppercase tracking-[0.2em] rounded-xl", getDecisionGlow(selectedRequest.decision))}>{selectedRequest.decision} DETECTED</Badge>
-                      <div className="text-[10px] font-mono opacity-50 uppercase tracking-widest">INCIDENT_{selectedRequest.id.toUpperCase()}</div>
+                    <div className="flex items-center justify-between mb-4">
+                      <Badge variant="outline" className="text-[10px] font-black uppercase px-4 py-1 border-white/10">{selectedRequest.id.toUpperCase()}</Badge>
+                      <span className="text-[10px] font-mono opacity-50 uppercase">{selectedRequest.timestamp}</span>
                     </div>
-                    <SheetTitle className="text-4xl font-black tracking-tighter mt-6 uppercase leading-none">{selectedRequest.attackType}</SheetTitle>
-                    <SheetDescription className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-2">Neural Forensic Trace Analysis</SheetDescription>
+                    <SheetTitle className="text-5xl font-black tracking-tighter uppercase leading-none">{selectedRequest.attackType}</SheetTitle>
+                    <SheetDescription className="font-mono text-[10px] uppercase tracking-[0.3em] text-destructive mt-3 font-black">Forensic Replay Timeline</SheetDescription>
                   </SheetHeader>
 
-                  <div className="space-y-6">
-                    <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground border-b border-white/10 pb-4">De-obfuscation Pipeline Replay</h4>
-                    <div className="space-y-6">
-                      {selectedRequest.decode_steps?.map((step: any, idx: number) => (
-                        <div key={idx} className={cn("transition-all duration-700 transform", idx > replayStep ? "opacity-0 translate-y-8" : "opacity-100 translate-y-0")}>
-                          <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-destructive mb-3">
-                            <div className="h-6 w-6 rounded-lg bg-destructive/10 border border-destructive/30 flex items-center justify-center text-[10px]">{idx + 1}</div>
-                            {step.step_name}
+                  <div className="space-y-10">
+                    <div className="section-label">De-obfuscation Pipeline</div>
+                    <div className="space-y-8 relative">
+                      <div className="absolute left-4 top-4 bottom-4 w-[2px] border-l-2 border-dashed border-white/10" />
+                      {[
+                        { name: 'Raw Ingress', val: selectedRequest.payload || 'Initial telemetry capture' },
+                        { name: 'Recursive Decode', val: 'Stripped 2 nested URL layers' },
+                        { name: 'Semantic Tokenization', val: 'Identified 12 high-risk signatures' },
+                        { name: 'Neural Inference', val: 'Llama 3 classification complete' },
+                        { name: 'Action: ' + selectedRequest.decision, val: 'Ingress node isolated' }
+                      ].map((step, idx) => (
+                        <div key={idx} className={cn("pl-12 relative transition-all duration-700", idx > replayStep ? "opacity-0 translate-x-4" : "opacity-100 translate-x-0")}>
+                          <div className={cn("absolute left-0 top-0 h-8 w-8 rounded-full flex items-center justify-center border-2 z-10", idx === replayStep ? "bg-destructive border-destructive scale-110" : "bg-[#0a0c14] border-white/10")}>
+                            <span className="text-[10px] font-black">{idx + 1}</span>
                           </div>
-                          <div className="p-6 bg-black/40 rounded-2xl border border-white/5 font-mono text-[11px] break-all leading-relaxed shadow-inner text-muted-foreground">
-                            {step.output}
+                          <div className="glass-card p-6 rounded-2xl">
+                             <h4 className="text-[10px] font-black uppercase tracking-widest text-white mb-2">{step.name}</h4>
+                             <p className="text-[11px] font-mono text-muted-foreground break-all bg-black/40 p-3 rounded-lg border border-white/5">{step.val}</p>
                           </div>
-                          {idx < selectedRequest.decode_steps.length - 1 && idx <= replayStep && (
-                            <div className="flex justify-center mt-6"><ChevronRight className="h-5 w-5 text-destructive/30 rotate-90 animate-bounce" /></div>
-                          )}
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-4 pt-12 border-t border-white/5">
-                     <Button className="w-full bg-destructive hover:bg-destructive/90 font-black uppercase text-xs tracking-widest rounded-2xl h-16 glow-btn shadow-2xl transition-all duration-300">Blacklist Origin Node</Button>
-                     <Button variant="ghost" className="w-full font-black uppercase text-[10px] tracking-widest h-12 text-muted-foreground hover:bg-white/5">Ignore Signal</Button>
+                  <div className="flex gap-4 pt-12 border-t border-white/5">
+                     <Button className="flex-1 bg-destructive hover:bg-destructive/90 font-black uppercase text-xs h-16 rounded-2xl glow-btn">
+                       Blacklist Origin
+                     </Button>
+                     <Button variant="outline" className="flex-1 font-black uppercase text-xs h-16 rounded-2xl border-white/10">
+                       Dismiss Signal
+                     </Button>
                   </div>
                 </div>
               </>
