@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -19,7 +19,7 @@ import {
   ShieldAlert, Loader2, CheckCircle2, AlertCircle, 
   Trash2, FileJson, Flag, Activity, Zap, 
   Shield, Info, RefreshCw, ArrowRight, Search,
-  Terminal, Fingerprint, Database, Lock, Unlock,
+  Terminal, Fingerprint, Database as DatabaseIcon, Lock, Unlock,
   Layers, FileText, Download, ExternalLink,
   Gavel, MousePointer2, AlertTriangle, Cpu,
   Pause, Play
@@ -235,8 +235,8 @@ export default function AnalyzerPage() {
     setSessionLog(prev => [res, ...prev].slice(0, 5));
   };
 
-  const loadFromLibrary = (p: string) => {
-    setPayload(p);
+  const loadFromLibrary = (p?: string) => {
+    setPayload(p || '');
     setResult(null);
     setPipelineStep(-1);
     // Use a small timeout to ensure state update before focus
@@ -310,7 +310,7 @@ export default function AnalyzerPage() {
                        {cat.data.map((item, idx) => (
                          <button 
                           key={idx} 
-                          onClick={() => loadFromLibrary(item.payload)}
+                          onClick={() => loadFromLibrary(item.payload || item.url)}
                           className="w-full text-left p-2 rounded hover:bg-white/5 transition-all border-l-2 border-transparent hover:border-cyan-500 group"
                          >
                             <div className="flex justify-between items-center mb-1">
@@ -319,7 +319,7 @@ export default function AnalyzerPage() {
                                   <div className="h-full bg-cyan-500" style={{ width: `${(item as any).score ? (item as any).score * 100 : 5}%` }} />
                                </div>
                             </div>
-                            <p className="text-[10px] font-mono text-white/60 truncate italic opacity-80 group-hover:text-white">{(item.payload || (item as any).url).substring(0, 45)}...</p>
+                            <p className="text-[10px] font-mono text-white/60 truncate italic opacity-80 group-hover:text-white">{(item.payload || (item as any).url || "").substring(0, 45)}...</p>
                          </button>
                        ))}
                     </AccordionContent>
@@ -415,10 +415,11 @@ export default function AnalyzerPage() {
               <div className="flex gap-3 overflow-hidden py-1">
                  {[0, 1, 2].map(offset => {
                    const item = CSIC_ANOMALOUS_SAMPLES[(feedIndex + offset) % CSIC_ANOMALOUS_SAMPLES.length];
+                   const displayContent = item.payload || item.url || "";
                    return (
                      <Card 
                        key={`${item.id}-${feedIndex}-${offset}`}
-                       onClick={() => loadFromLibrary(item.payload)}
+                       onClick={() => loadFromLibrary(item.payload || item.url)}
                        className="flex-1 bg-white/5 border-white/5 hover:border-red-500/50 cursor-pointer transition-all animate-in slide-in-from-right-4 group"
                      >
                        <CardContent className="p-3 space-y-2">
@@ -426,7 +427,7 @@ export default function AnalyzerPage() {
                              <Badge className="text-[7px] font-black h-4 bg-red-500/20 text-red-400 border-red-500/30 uppercase">{item.attackType}</Badge>
                              <span className="text-[9px] font-mono text-red-400 font-bold">{Math.round(item.score * 100)}%</span>
                           </div>
-                          <p className="text-[9px] font-mono text-white/40 truncate opacity-80 group-hover:text-white transition-colors">{item.payload.substring(0, 50)}...</p>
+                          <p className="text-[9px] font-mono text-white/40 truncate opacity-80 group-hover:text-white transition-colors">{displayContent.substring(0, 50)}...</p>
                        </CardContent>
                      </Card>
                    );
@@ -483,7 +484,7 @@ export default function AnalyzerPage() {
 
           <div className="grid grid-cols-5 gap-3 h-20">
              {[
-               { id: 'INGRESS RECEIVED', icon: Database },
+               { id: 'INGRESS RECEIVED', icon: DatabaseIcon },
                { id: 'URL DECODE', icon: Layers },
                { id: 'BASE64 DECODE', icon: Lock },
                { id: 'TOKENIZATION', icon: Fingerprint },
