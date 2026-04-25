@@ -21,7 +21,8 @@ import {
   Shield, Info, RefreshCw, ArrowRight, Search,
   Terminal, Fingerprint, Database, Lock, Unlock,
   Layers, FileText, Download, ExternalLink,
-  Gavel, MousePointer2, AlertTriangle, Cpu
+  Gavel, MousePointer2, AlertTriangle, Cpu,
+  Pause, Play
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -192,7 +193,20 @@ export default function AnalyzerPage() {
   const [searchLibrary, setSearchLibrary] = useState('');
   const [sessionStats, setSessionStats] = useState({ analyzed: 0, blocked: 0, safe: 0, fp: 0 });
   const [sessionLog, setSessionLog] = useState<AnalysisResult[]>([]);
+  const [isFeedPaused, setIsFeedPaused] = useState(false);
+  const [feedIndex, setFeedIndex] = useState(0);
+  
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
+
+  // Attack Feed Timer
+  useEffect(() => {
+    if (isFeedPaused) return;
+    const interval = setInterval(() => {
+      setFeedIndex(prev => (prev + 1) % CSIC_ANOMALOUS_SAMPLES.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [isFeedPaused]);
 
   const handleAnalyze = async () => {
     if (!payload.trim()) return;
@@ -225,6 +239,12 @@ export default function AnalyzerPage() {
     setPayload(p);
     setResult(null);
     setPipelineStep(-1);
+    // Use a small timeout to ensure state update before focus
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+      }
+    }, 50);
   };
 
   const exportPDF = () => {
@@ -375,6 +395,45 @@ export default function AnalyzerPage() {
         <div className="flex-1 flex flex-col p-6 space-y-6 overflow-y-auto no-scrollbar">
           
           <div className="space-y-4">
+            {/* LIVE INCOMING ATTACK FEED */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-[10px] font-bold text-red-500 font-mono tracking-widest">
+                  <div className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
+                  LIVE INCOMING ATTACKS
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => setIsFeedPaused(!isFeedPaused)}
+                  className="h-6 w-6 text-white/40 hover:text-white"
+                >
+                  {isFeedPaused ? <Play className="h-3 w-3" /> : <Pause className="h-3 w-3" />}
+                </Button>
+              </div>
+              
+              <div className="flex gap-3 overflow-hidden py-1">
+                 {[0, 1, 2].map(offset => {
+                   const item = CSIC_ANOMALOUS_SAMPLES[(feedIndex + offset) % CSIC_ANOMALOUS_SAMPLES.length];
+                   return (
+                     <Card 
+                       key={`${item.id}-${feedIndex}-${offset}`}
+                       onClick={() => loadFromLibrary(item.payload)}
+                       className="flex-1 bg-white/5 border-white/5 hover:border-red-500/50 cursor-pointer transition-all animate-in slide-in-from-right-4 group"
+                     >
+                       <CardContent className="p-3 space-y-2">
+                          <div className="flex justify-between items-center">
+                             <Badge className="text-[7px] font-black h-4 bg-red-500/20 text-red-400 border-red-500/30 uppercase">{item.attackType}</Badge>
+                             <span className="text-[9px] font-mono text-red-400 font-bold">{Math.round(item.score * 100)}%</span>
+                          </div>
+                          <p className="text-[9px] font-mono text-white/40 truncate opacity-80 group-hover:text-white transition-colors">{item.payload.substring(0, 50)}...</p>
+                       </CardContent>
+                     </Card>
+                   );
+                 })}
+              </div>
+            </div>
+
             <div className={cn(
               "relative rounded-xl border-2 transition-all duration-500 bg-[#05070a]",
               getHighlightBorder()
@@ -383,6 +442,7 @@ export default function AnalyzerPage() {
                 {Array.from({ length: 8 }).map((_, i) => <div key={i}>{i+1}</div>)}
               </div>
               <Textarea 
+                ref={textareaRef}
                 placeholder="INGRESS SOURCE PAYLOAD..."
                 className="min-h-[220px] pl-10 pt-4 bg-transparent border-none font-mono text-xs text-white placeholder:text-white/10 focus-visible:ring-0 resize-none leading-relaxed"
                 value={payload}
