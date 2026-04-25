@@ -107,7 +107,7 @@ export function WafNavbar() {
                     "relative flex items-center gap-2 px-6 py-2.5 text-xs font-bold uppercase tracking-widest transition-all rounded-xl",
                     isActive 
                       ? "bg-destructive text-white shadow-lg shadow-destructive/20" 
-                      : "text-gray-500 dark:text-muted-foreground hover:text-gray-900 dark:hover:text-foreground hover:bg-white/10"
+                      : "text-gray-500 dark:text-muted-foreground hover:text-gray-900 dark:hover:text-foreground hover:bg-black/5 dark:hover:bg-white/10"
                   )}
                 >
                   <item.icon className="h-3.5 w-3.5" />

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
@@ -7,20 +6,19 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { 
   ShieldAlert, Loader2, Copy, Flag, Activity, Zap, RefreshCw, 
-  ChevronRight, Terminal, Clock, CheckCircle2, AlertCircle,
-  Database, Fingerprint, Shield, Info, Download, Trash2,
-  Syringe, Flame, Folder, Bomb, Globe, Bug
+  Terminal, CheckCircle2, AlertCircle,
+  Fingerprint, Shield, Trash2,
+  Syringe, Flame, Folder, Bomb, Globe
 } from 'lucide-react';
 import { analyzeHttpRequest, AnalyzeOutput } from '@/ai/flows/analyze-http-request';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { 
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, 
-  Radar, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip
+  Radar, ResponsiveContainer
 } from 'recharts';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -92,14 +90,12 @@ export default function AnalyzerPage() {
     setResult(null);
     setTypewriterText('');
 
-    // Cinematic delay for inference "thinking"
     await new Promise(resolve => setTimeout(resolve, 1500));
 
     try {
       const res = await analyzeHttpRequest({ payload: input.substring(0, 5000) });
       setResult(res);
       
-      // Simulate typing effect for explanation
       let i = 0;
       const explanation = res.explanation || "";
       const timer = setInterval(() => {
@@ -108,7 +104,6 @@ export default function AnalyzerPage() {
         if (i > explanation.length) clearInterval(timer);
       }, 20);
 
-      // Fetch historical
       const mockHistory = [
         { id: '1', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), payload: 'GET /users/1?id=1%27 OR %271%27=%271', score: 0.94, decision: 'BLOCKED' },
         { id: '2', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), payload: 'POST /api/v1/auth?user=admin-- ', score: 0.88, decision: 'BLOCKED' },
@@ -157,13 +152,13 @@ export default function AnalyzerPage() {
           <div className="flex items-center gap-2 text-destructive font-mono text-[9px] tracking-[0.4em] uppercase animate-pulse">
             <Fingerprint className="h-3 w-3" /> Ingress Forensics
           </div>
-          <h1 className="text-5xl font-black tracking-tighter">SEMANTIC <span className="text-destructive">ENGINE</span></h1>
-          <p className="text-muted-foreground font-medium text-lg italic opacity-70">LPU-accelerated neural packet inspection.</p>
+          <h1 className="text-5xl font-black tracking-tighter text-gray-900 dark:text-white">SEMANTIC <span className="text-destructive">ENGINE</span></h1>
+          <p className="text-gray-500 dark:text-muted-foreground font-medium text-lg italic opacity-70">LPU-accelerated neural packet inspection.</p>
         </div>
-        <div className="flex items-center gap-4 bg-white/5 p-2 rounded-2xl border border-white/5 backdrop-blur-xl">
+        <div className="flex items-center gap-4 bg-black/5 dark:bg-white/5 p-2 rounded-2xl border border-black/5 dark:border-white/5 backdrop-blur-xl">
            <div className="flex items-center space-x-3 px-4">
               <Switch id="what-if" checked={whatIfEnabled} onCheckedChange={setWhatIfEnabled} />
-              <Label htmlFor="what-if" className="cursor-pointer text-[10px] font-black uppercase tracking-widest opacity-60">Deep Simulation</Label>
+              <Label htmlFor="what-if" className="cursor-pointer text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white opacity-60">Deep Simulation</Label>
            </div>
         </div>
       </div>
@@ -179,11 +174,11 @@ export default function AnalyzerPage() {
                 <div className="space-y-4">
                   <div className="flex justify-between items-end">
                     <div className="section-label mb-0">Payload Ingress</div>
-                    <span className="text-[10px] font-mono text-muted-foreground opacity-40 uppercase">{payload.length} / 5000 OCTETS</span>
+                    <span className="text-[10px] font-mono text-gray-400 dark:text-muted-foreground opacity-40 uppercase">{payload.length} / 5000 OCTETS</span>
                   </div>
                   <Textarea
                     placeholder="DROP TABLE ingress; --"
-                    className="min-h-[250px] font-mono text-xs bg-black/40 border-white/5 focus-visible:ring-destructive resize-none placeholder:text-muted-foreground/20 leading-relaxed rounded-xl transition-all duration-500 focus:bg-black/60 shadow-inner"
+                    className="min-h-[250px] font-mono text-xs bg-gray-50 dark:bg-black/40 border-black/5 dark:border-white/5 focus-visible:ring-destructive resize-none placeholder:text-gray-300 dark:placeholder:text-muted-foreground/20 leading-relaxed rounded-xl transition-all duration-500 focus:bg-white dark:focus:bg-black/60 shadow-inner"
                     value={payload}
                     onChange={(e) => setPayload(e.target.value)}
                   />
@@ -191,7 +186,7 @@ export default function AnalyzerPage() {
                 </div>
 
                 <div className="flex justify-end gap-4">
-                  <Button variant="ghost" className="font-black uppercase text-[10px] tracking-widest text-muted-foreground hover:text-white" onClick={() => setPayload('')} disabled={isAnalyzing}>
+                  <Button variant="ghost" className="font-black uppercase text-[10px] tracking-widest text-gray-400 dark:text-muted-foreground hover:text-gray-900 dark:hover:text-white" onClick={() => setPayload('')} disabled={isAnalyzing}>
                     <Trash2 className="h-3.5 w-3.5 mr-2" /> Purge
                   </Button>
                   <Button 
@@ -215,10 +210,10 @@ export default function AnalyzerPage() {
                   key={i} 
                   onClick={() => handleQuickTest(sample.payload)}
                   disabled={isAnalyzing}
-                  className="group relative flex flex-col items-start p-4 bg-white/[0.02] border border-white/5 rounded-2xl hover:border-destructive/30 hover:bg-white/[0.05] transition-all duration-300 text-left"
+                  className="group relative flex flex-col items-start p-4 bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 rounded-2xl hover:border-destructive/30 hover:bg-black/[0.05] dark:hover:bg-white/[0.05] transition-all duration-300 text-left"
                 >
-                  <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground group-hover:text-destructive transition-colors">{sample.name}</div>
-                  <div className="text-[9px] font-mono truncate w-full mt-1 opacity-20">SIG_REF_{i+102}</div>
+                  <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-muted-foreground group-hover:text-destructive transition-colors">{sample.name}</div>
+                  <div className="text-[9px] font-mono truncate w-full mt-1 opacity-20 text-gray-400 dark:text-white">SIG_REF_{i+102}</div>
                 </button>
               ))}
             </div>
@@ -240,17 +235,17 @@ export default function AnalyzerPage() {
                   {/* Threat Intelligence Header */}
                   <div className={cn("relative p-10 rounded-3xl border-2 flex flex-col md:flex-row items-center justify-between gap-8 bg-gradient-to-br overflow-hidden shadow-2xl transition-all duration-1000", getStatusColor(result.decision))}>
                     <div className="absolute top-4 right-6 flex gap-4">
-                       <Badge variant="outline" className="bg-black/40 border-white/10 text-[9px] font-mono py-1 uppercase">{result.inference_time_ms}ms INF</Badge>
-                       <Badge variant="outline" className="bg-black/40 border-white/10 text-[9px] font-mono py-1 uppercase">1.2.4 NODE</Badge>
+                       <Badge variant="outline" className="bg-black/20 dark:bg-black/40 border-white/10 text-[9px] font-mono py-1 uppercase text-white">{result.inference_time_ms}ms INF</Badge>
+                       <Badge variant="outline" className="bg-black/20 dark:bg-black/40 border-white/10 text-[9px] font-mono py-1 uppercase text-white">1.2.4 NODE</Badge>
                     </div>
                     <div className="space-y-3">
                       <div className="flex items-center gap-4">
-                        <div className="p-4 bg-black/60 rounded-2xl border border-white/10">
+                        <div className="p-4 bg-black/40 dark:bg-black/60 rounded-2xl border border-white/10">
                           <AttackIcon className="h-8 w-8 text-white" />
                         </div>
                         <div>
                           <h2 className="text-5xl font-black tracking-tighter text-white uppercase">{result.decision}</h2>
-                          <p className="text-[10px] font-bold text-white/50 uppercase tracking-[0.2em]">{result.predicted_class} DETECTED</p>
+                          <p className="text-[10px] font-bold text-white/70 uppercase tracking-[0.2em]">{result.predicted_class} DETECTED</p>
                         </div>
                       </div>
                     </div>
@@ -261,32 +256,31 @@ export default function AnalyzerPage() {
                        </svg>
                        <div className="absolute inset-0 flex flex-col items-center justify-center">
                          <span className="text-2xl font-black text-white">{Math.round(result.confidence_score * 100)}%</span>
-                         <span className="text-[8px] font-black uppercase text-white/50">Match</span>
+                         <span className="text-[8px] font-black uppercase text-white/70">Match</span>
                        </div>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                    {/* Section A: Forensics Panel */}
                     <div className="space-y-6">
                       <div className="section-label">Payload Forensics</div>
                       <div className="grid grid-cols-1 gap-6">
                         <div className="space-y-3">
-                          <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-2">Raw Ingress Source</p>
-                          <div className="p-6 bg-[#0a0c14] rounded-2xl border border-white/5 font-mono text-[11px] h-48 overflow-auto relative custom-scrollbar">
-                            <div className="absolute left-2 top-6 bottom-6 w-[1px] bg-white/5" />
+                          <p className="text-[9px] font-black text-gray-500 dark:text-muted-foreground uppercase tracking-widest pl-2">Raw Ingress Source</p>
+                          <div className="p-6 bg-gray-50 dark:bg-[#0a0c14] rounded-2xl border border-black/5 dark:border-white/5 font-mono text-[11px] h-48 overflow-auto relative custom-scrollbar">
+                            <div className="absolute left-2 top-6 bottom-6 w-[1px] bg-black/5 dark:bg-white/5" />
                             {result.raw_input?.split('\n').map((line, i) => (
                               <div key={i} className="flex gap-4 group">
-                                <span className="w-4 text-white/10 text-right group-hover:text-destructive transition-colors">{i + 1}</span>
-                                <span className="text-muted-foreground truncate">{line}</span>
+                                <span className="w-4 text-gray-300 dark:text-white/10 text-right group-hover:text-destructive transition-colors">{i + 1}</span>
+                                <span className="text-gray-600 dark:text-muted-foreground truncate">{line}</span>
                               </div>
                             ))}
                           </div>
                         </div>
                         <div className="space-y-3">
-                          <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-2">Normalized Output</p>
-                          <div className="p-6 bg-[#0a0c14] rounded-2xl border border-white/5 font-mono text-[11px] h-48 overflow-auto custom-scrollbar">
-                             <div className="break-all text-white/80 leading-relaxed">
+                          <p className="text-[9px] font-black text-gray-500 dark:text-muted-foreground uppercase tracking-widest pl-2">Normalized Output</p>
+                          <div className="p-6 bg-gray-50 dark:bg-[#0a0c14] rounded-2xl border border-black/5 dark:border-white/5 font-mono text-[11px] h-48 overflow-auto custom-scrollbar">
+                             <div className="break-all text-gray-800 dark:text-white/80 leading-relaxed">
                                {result.decoded_input?.split('').map((char, i) => {
                                  const isMalicious = result.highlighted_tokens.some(t => result.decoded_input?.substring(i, i + t.length).toLowerCase() === t.toLowerCase());
                                  return <span key={i} className={cn(isMalicious ? "bg-destructive text-white px-0.5 rounded-sm font-bold shadow-[0_0_10px_rgba(239,68,68,0.5)]" : "")}>{char}</span>;
@@ -297,13 +291,12 @@ export default function AnalyzerPage() {
                       </div>
                     </div>
 
-                    {/* Section C: Threat Radar */}
                     <div className="space-y-6">
                       <div className="section-label">Neural Vulnerability Radar</div>
                       <div className="glass-card p-6 h-full min-h-[300px] flex items-center justify-center rounded-3xl">
                         <ResponsiveContainer width="100%" height={280}>
                           <RadarChart data={radarData}>
-                            <PolarGrid stroke="#2a2d3e" />
+                            <PolarGrid stroke="#e2e8f0" className="dark:stroke-[#2a2d3e]" />
                             <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }} />
                             <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
                             <Radar
@@ -319,20 +312,18 @@ export default function AnalyzerPage() {
                     </div>
                   </div>
 
-                  {/* Section B: Token Intelligence Map */}
                   <div className="space-y-6">
                     <div className="section-label">Token Intelligence Map</div>
                     <div className="flex flex-wrap gap-3">
                       {result.token_scores?.map((ts, i) => (
-                        <div key={i} className={cn("px-4 py-2 rounded-xl border flex flex-col items-center gap-1 transition-all hover:scale-110", ts.score > 0.8 ? "bg-destructive/10 border-destructive/30 text-destructive animate-in zoom-in-50" : "bg-white/5 border-white/10 text-muted-foreground")} style={{ animationDelay: `${i * 50}ms` }}>
+                        <div key={i} className={cn("px-4 py-2 rounded-xl border flex flex-col items-center gap-1 transition-all hover:scale-110", ts.score > 0.8 ? "bg-destructive/10 border-destructive/30 text-destructive animate-in zoom-in-50" : "bg-gray-50 dark:bg-white/5 border-black/5 dark:border-white/10 text-gray-500 dark:text-muted-foreground")} style={{ animationDelay: `${i * 50}ms` }}>
                           <span className="font-mono text-xs font-black uppercase">{ts.token}</span>
                           <span className="text-[9px] font-bold opacity-60">{Math.round(ts.score * 100)}%</span>
                         </div>
-                      )) || <p className="text-[10px] text-muted-foreground uppercase italic opacity-50">Deep analysis: safe packet structure</p>}
+                      )) || <p className="text-[10px] text-gray-400 dark:text-muted-foreground uppercase italic opacity-50">Deep analysis: safe packet structure</p>}
                     </div>
                   </div>
 
-                  {/* Section D: Decode Pipeline Timeline */}
                   <div className="space-y-6">
                     <div className="section-label">De-obfuscation Pipeline</div>
                     <div className="relative flex items-center justify-between gap-6 py-4 overflow-x-auto custom-scrollbar no-scrollbar">
@@ -341,9 +332,9 @@ export default function AnalyzerPage() {
                          <div key={idx} className="flex-shrink-0 w-64 glass-card p-5 rounded-2xl relative animate-in slide-in-from-left-4" style={{ animationDelay: `${idx * 300}ms` }}>
                            <div className="flex justify-between items-center mb-3">
                              <span className="text-[8px] font-black text-destructive px-2 py-0.5 rounded-full bg-destructive/10 border border-destructive/20">{idx + 1}</span>
-                             <span className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">{step.step_name}</span>
+                             <span className="text-[9px] font-black uppercase text-gray-500 dark:text-muted-foreground tracking-widest">{step.step_name}</span>
                            </div>
-                           <p className="text-[10px] font-mono text-white/50 truncate bg-black/40 p-2 rounded-lg border border-white/5">
+                           <p className="text-[10px] font-mono text-gray-600 dark:text-white/50 truncate bg-gray-50 dark:bg-black/40 p-2 rounded-lg border border-black/5 dark:border-white/5">
                              {step.output}
                            </p>
                          </div>
@@ -351,25 +342,24 @@ export default function AnalyzerPage() {
                     </div>
                   </div>
 
-                  {/* Section E & F: OWASP & AI Explanation */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                     <div className="space-y-6">
                       <div className="section-label">OWASP Threat Profile</div>
                       <Card className="glass-card rounded-3xl overflow-hidden group">
-                        <div className="bg-destructive/5 p-6 border-b border-white/5 flex items-center justify-between">
+                        <div className="bg-destructive/5 p-6 border-b border-black/5 dark:border-white/5 flex items-center justify-between">
                            <div className="flex items-center gap-4">
                              <Badge variant="destructive" className="px-4 py-1 text-xs font-black rounded-lg badge-glow-red">{result.owasp_category}</Badge>
-                             <span className="text-lg font-black text-white">{intel?.name || 'Classified Threat'}</span>
+                             <span className="text-lg font-black text-gray-900 dark:text-white">{intel?.name || 'Classified Threat'}</span>
                            </div>
                            <AlertCircle className="h-5 w-5 text-destructive animate-pulse" />
                         </div>
                         <CardContent className="p-8 space-y-6">
-                          <p className="text-sm text-muted-foreground leading-relaxed">{intel?.desc || 'Deep semantic detection confirmed anomalous request pattern.'}</p>
+                          <p className="text-sm text-gray-500 dark:text-muted-foreground leading-relaxed">{intel?.desc || 'Deep semantic detection confirmed anomalous request pattern.'}</p>
                           <div className="space-y-4">
-                            <Label className="text-[10px] uppercase font-black text-muted-foreground opacity-50">Impact Mitigation</Label>
+                            <Label className="text-[10px] uppercase font-black text-gray-400 dark:text-muted-foreground opacity-50">Impact Mitigation</Label>
                             <div className="grid grid-cols-1 gap-2">
                               {intel?.mitigation.map((m: string, i: number) => (
-                                <div key={i} className="flex items-center gap-3 text-xs font-medium text-white/80">
+                                <div key={i} className="flex items-center gap-3 text-xs font-medium text-gray-700 dark:text-white/80">
                                   <div className="h-1.5 w-1.5 rounded-full bg-destructive" /> {m}
                                 </div>
                               ))}
@@ -384,19 +374,19 @@ export default function AnalyzerPage() {
                       <Card className="glass-card rounded-3xl p-8 space-y-6 border-l-4 border-l-destructive relative">
                          <div className="absolute top-4 right-6 flex items-center gap-2">
                            <Badge variant="outline" className="text-[8px] font-black border-destructive/30 text-destructive bg-destructive/5">GROQ ENGINE</Badge>
-                           <span className="text-[8px] font-bold text-muted-foreground opacity-30">Llama 3 8B</span>
+                           <span className="text-[8px] font-bold text-gray-400 dark:text-muted-foreground opacity-30">Llama 3 8B</span>
                          </div>
                          <div className="min-h-[120px]">
-                           <p className="text-sm font-medium text-white/90 italic leading-relaxed">
+                           <p className="text-sm font-medium text-gray-800 dark:text-white/90 italic leading-relaxed">
                              "{typewriterText || result.explanation}"<span className="animate-pulse inline-block w-1.5 h-4 bg-destructive ml-1" />
                            </p>
                          </div>
-                         <div className="pt-6 border-t border-white/5 space-y-4">
-                            <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                         <div className="pt-6 border-t border-black/5 dark:border-white/5 space-y-4">
+                            <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 dark:text-muted-foreground">
                               <span>Inference Confidence</span>
                               <span className="text-destructive">{Math.round(result.confidence_score * 100)}%</span>
                             </div>
-                            <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                            <div className="h-1.5 w-full bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
                                <div className="h-full bg-destructive transition-all duration-1000 shadow-[0_0_15px_#ef4444]" style={{ width: `${result.confidence_score * 100}%` }} />
                             </div>
                          </div>
@@ -404,13 +394,12 @@ export default function AnalyzerPage() {
                     </div>
                   </div>
 
-                  {/* Section G: Historical */}
                   <div className="space-y-6">
                     <div className="section-label">Correlated Activity</div>
                     <div className="glass-card overflow-hidden rounded-3xl">
                       <table className="w-full text-left">
-                        <thead className="bg-white/[0.02] border-b border-white/5">
-                           <tr className="text-[9px] uppercase font-black text-muted-foreground">
+                        <thead className="bg-black/[0.02] dark:bg-white/[0.02] border-b border-black/5 dark:border-white/5">
+                           <tr className="text-[9px] uppercase font-black text-gray-400 dark:text-muted-foreground">
                              <th className="px-8 py-4">Time Observed</th>
                              <th className="px-8 py-4">Payload Signature</th>
                              <th className="px-8 py-4 text-right">Match Score</th>
@@ -418,9 +407,9 @@ export default function AnalyzerPage() {
                         </thead>
                         <tbody className="text-[11px] font-medium">
                           {historical.map((h) => (
-                            <tr key={h.id} className="border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors group">
-                              <td className="px-8 py-4 text-muted-foreground font-mono">{formatDistanceToNow(new Date(h.timestamp))} ago</td>
-                              <td className="px-8 py-4 font-mono opacity-60 group-hover:opacity-100 transition-opacity truncate max-w-md">{h.payload}</td>
+                            <tr key={h.id} className="border-b border-black/5 dark:border-white/5 last:border-0 hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors group">
+                              <td className="px-8 py-4 text-gray-500 dark:text-muted-foreground font-mono">{formatDistanceToNow(new Date(h.timestamp))} ago</td>
+                              <td className="px-8 py-4 font-mono opacity-60 text-gray-700 dark:text-white group-hover:opacity-100 transition-opacity truncate max-w-md">{h.payload}</td>
                               <td className="px-8 py-4 text-right font-black text-destructive">{Math.round(h.score * 100)}%</td>
                             </tr>
                           ))}
@@ -429,12 +418,11 @@ export default function AnalyzerPage() {
                     </div>
                   </div>
 
-                  {/* Actions */}
-                  <div className="flex gap-4 pt-10 border-t border-white/5">
-                    <Button variant="outline" className="flex-1 font-black uppercase text-xs h-14 rounded-2xl border-white/10 hover:bg-white/5" onClick={() => { navigator.clipboard.writeText(JSON.stringify(result, null, 2)); toast({ title: "Intelligence Copied" }); }}>
+                  <div className="flex gap-4 pt-10 border-t border-black/5 dark:border-white/5">
+                    <Button variant="outline" className="flex-1 font-black uppercase text-xs h-14 rounded-2xl border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5" onClick={() => { navigator.clipboard.writeText(JSON.stringify(result, null, 2)); toast({ title: "Intelligence Copied" }); }}>
                       <Copy className="h-4 w-4 mr-3" /> Export Intelligence (JSON)
                     </Button>
-                    <Button variant="ghost" className="flex-1 font-black uppercase text-xs h-14 rounded-2xl text-muted-foreground hover:text-white" onClick={() => toast({ title: "Feedback Recorded", description: "Signal corrected for training loop" })}>
+                    <Button variant="ghost" className="flex-1 font-black uppercase text-xs h-14 rounded-2xl text-gray-400 dark:text-muted-foreground hover:text-gray-900 dark:hover:text-white" onClick={() => toast({ title: "Feedback Recorded", description: "Signal corrected for training loop" })}>
                       <Flag className="h-4 w-4 mr-3" /> Report False Positive
                     </Button>
                   </div>
@@ -445,9 +433,9 @@ export default function AnalyzerPage() {
         </div>
 
         <div className="space-y-8">
-          <Card className="glass-card bg-white/[0.03] rounded-3xl p-2 sticky top-28">
+          <Card className="glass-card bg-black/[0.01] dark:bg-white/[0.03] rounded-3xl p-2 sticky top-28">
             <CardHeader className="p-6">
-              <CardTitle className="text-xs font-black uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2">
+              <CardTitle className="text-xs font-black uppercase tracking-[0.3em] text-gray-400 dark:text-muted-foreground flex items-center gap-2">
                 <Activity className="h-4 w-4 text-destructive" /> REAL-TIME SPECS
               </CardTitle>
             </CardHeader>
@@ -455,10 +443,10 @@ export default function AnalyzerPage() {
               {[
                 { label: 'LPU Latency', val: '5.2ms AVG', color: 'text-destructive', bg: 'bg-destructive/10' },
                 { label: 'Neural Depth', val: '12-Layer', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-                { label: 'Context Size', val: '5,000 OCTETS', color: 'text-white', bg: 'bg-white/5' }
+                { label: 'Context Size', val: '5,000 OCTETS', color: 'text-gray-900 dark:text-white', bg: 'bg-black/5 dark:bg-white/5' }
               ].map((item, idx) => (
-                <div key={idx} className={cn("p-5 rounded-2xl border border-white/5 transition-all duration-300 hover:bg-white/5", item.bg)}>
-                  <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest mb-2 opacity-50">{item.label}</p>
+                <div key={idx} className={cn("p-5 rounded-2xl border border-black/5 dark:border-white/5 transition-all duration-300 hover:bg-black/5 dark:hover:bg-white/5", item.bg)}>
+                  <p className="text-[9px] text-gray-500 dark:text-muted-foreground uppercase font-black tracking-widest mb-2 opacity-50">{item.label}</p>
                   <p className={cn("font-mono text-xl font-black tracking-tighter", item.color)}>{item.val}</p>
                 </div>
               ))}
@@ -466,11 +454,11 @@ export default function AnalyzerPage() {
                  <div className="section-label mb-4 pl-0 border-none">Analysis Status</div>
                  <div className="flex items-center gap-3">
                    <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_#22c55e]" />
-                   <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Engine Operational</span>
+                   <span className="text-[10px] font-black uppercase tracking-widest opacity-60 text-gray-500 dark:text-white">Engine Operational</span>
                  </div>
                  <div className="flex items-center gap-3">
                    <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_#22c55e]" />
-                   <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Llama Uplink Active</span>
+                   <span className="text-[10px] font-black uppercase tracking-widest opacity-60 text-gray-500 dark:text-white">Llama Uplink Active</span>
                  </div>
               </div>
             </CardContent>

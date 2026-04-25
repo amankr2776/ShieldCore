@@ -1,23 +1,20 @@
-
 "use client";
 
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Shield, Zap, Database, Server, Cpu, Globe, Code2, Activity, Terminal, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Database, Server, Cpu, Zap, Code2, Activity, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function ArchitecturePage() {
   const [status, setStatus] = useState({ api: true, model: true, db: true, ws: true });
-  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const fetchHealth = async () => {
       try {
-        // Simulated health check to Next.js API route or health endpoint
         setStatus({
           api: true,
-          model: !!process.env.NEXT_PUBLIC_GROQ_ACTIVE || true,
+          model: true,
           db: true,
           ws: true
         });
@@ -53,24 +50,21 @@ export default function ArchitecturePage() {
             <Cpu className="h-3 w-3" />
             LPU Accelerated Architecture
           </div>
-          <h1 className="text-5xl font-black tracking-tighter">SYSTEM <span className="text-destructive">SPECS</span></h1>
-          <p className="text-muted-foreground text-lg font-medium italic">
+          <h1 className="text-5xl font-black tracking-tighter text-gray-900 dark:text-white">SYSTEM <span className="text-destructive">SPECS</span></h1>
+          <p className="text-gray-500 dark:text-muted-foreground text-lg font-medium italic">
             Groq LPU hardware moving beyond pattern matching into deep semantic security via hosted Llama 3.
           </p>
         </div>
 
-        {/* Pipeline Diagram */}
         <div className="overflow-x-auto pb-12 custom-scrollbar">
           <div className="flex items-center justify-between min-w-[1400px] px-8 py-10">
             {pipeline.map((step, i) => (
               <div key={i} className="flex items-center flex-1">
-                <Card className="flex-1 glass-card border-white/5 hover:border-destructive/40 transition-all duration-500 p-6 text-center group cursor-default relative">
+                <Card className="flex-1 glass-card border-black/5 dark:border-white/5 hover:border-destructive/40 transition-all duration-500 p-6 text-center group cursor-default relative">
                   <div className="text-3xl mb-4 group-hover:scale-125 transition-transform duration-300">{step.emoji}</div>
-                  <h3 className="font-black text-[12px] mb-2 uppercase tracking-tighter text-white">{step.name}</h3>
+                  <h3 className="font-black text-[12px] mb-2 uppercase tracking-tighter text-gray-900 dark:text-white">{step.name}</h3>
                   <p className="text-[10px] font-mono text-destructive mb-3 uppercase font-bold bg-destructive/5 py-1 rounded-md">{step.tech}</p>
-                  <p className="text-[10px] text-muted-foreground leading-tight font-medium opacity-70 group-hover:opacity-100 transition-opacity">{step.desc}</p>
-                  
-                  {/* Decorative glow line */}
+                  <p className="text-[10px] text-gray-500 dark:text-muted-foreground leading-tight font-medium opacity-70 group-hover:opacity-100 transition-opacity">{step.desc}</p>
                   <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/2 h-[1px] bg-gradient-to-r from-transparent via-destructive/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 </Card>
                 {i < pipeline.length - 1 && (
@@ -82,17 +76,16 @@ export default function ArchitecturePage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Tech Stack Table */}
-          <Card className="glass-card bg-[#0a0c14]/60 border-white/5 overflow-hidden">
-            <CardHeader className="border-b border-white/5 bg-white/[0.02]">
-              <CardTitle className="text-xs font-black uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2">
+          <Card className="glass-card bg-white/60 dark:bg-[#0a0c14]/60 border-black/5 dark:border-white/5 overflow-hidden">
+            <CardHeader className="border-b border-black/5 dark:border-white/5 bg-black/[0.01] dark:bg-white/[0.02]">
+              <CardTitle className="text-xs font-black uppercase tracking-[0.3em] text-gray-400 dark:text-muted-foreground flex items-center gap-2">
                 <Code2 className="h-4 w-4 text-destructive" /> TECHNOLOGY STACK
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-white/5 text-[9px] uppercase font-black text-muted-foreground/50">
+                  <tr className="border-b border-black/5 dark:border-white/5 text-[9px] uppercase font-black text-gray-400 dark:text-muted-foreground/50">
                     <th className="py-4 px-6">Layer</th>
                     <th className="py-4 px-6">Technology</th>
                     <th className="py-4 px-6">Purpose</th>
@@ -106,10 +99,10 @@ export default function ArchitecturePage() {
                     { l: "Database", t: "Firebase Firestore", p: "Audit Logging" },
                     { l: "Real-time", t: "Cloud WebSocket", p: "Telemetry Feed" }
                   ].map((row, i) => (
-                    <tr key={i} className="border-b border-white/5 last:border-0 hover:bg-white/[0.03] transition-colors group">
+                    <tr key={i} className="border-b border-black/5 dark:border-white/5 last:border-0 hover:bg-black/[0.01] dark:hover:bg-white/[0.03] transition-colors group text-gray-700 dark:text-foreground">
                       <td className="py-4 px-6 font-black text-destructive group-hover:translate-x-1 transition-transform">{row.l}</td>
                       <td className="py-4 px-6 font-mono opacity-80">{row.t}</td>
-                      <td className="py-4 px-6 text-muted-foreground">{row.p}</td>
+                      <td className="py-4 px-6 text-gray-500 dark:text-muted-foreground">{row.p}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -117,10 +110,9 @@ export default function ArchitecturePage() {
             </CardContent>
           </Card>
 
-          {/* Dataset Info Card */}
-          <Card className="glass-card bg-[#0a0c14]/60 border-white/5">
-            <CardHeader className="border-b border-white/5 bg-white/[0.02]">
-              <CardTitle className="text-xs font-black uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2">
+          <Card className="glass-card bg-white/60 dark:bg-[#0a0c14]/60 border-black/5 dark:border-white/5">
+            <CardHeader className="border-b border-black/5 dark:border-white/5 bg-black/[0.01] dark:bg-white/[0.02]">
+              <CardTitle className="text-xs font-black uppercase tracking-[0.3em] text-gray-400 dark:text-muted-foreground flex items-center gap-2">
                 <Database className="h-4 w-4 text-destructive" /> DATASET: CSIC 2010 HTTP
               </CardTitle>
             </CardHeader>
@@ -133,9 +125,9 @@ export default function ArchitecturePage() {
                 { label: "Model Latency", val: "Sub-5ms (LPU Accelerated)" },
                 { label: "Test Accuracy", val: "94.3% (Verified)" }
               ].map((row, i) => (
-                <div key={i} className="flex justify-between items-center border-b border-white/5 pb-3 last:border-0">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-50">{row.label}</span>
-                  <span className="text-xs font-mono font-black text-white">{row.val}</span>
+                <div key={i} className="flex justify-between items-center border-b border-black/5 dark:border-white/5 pb-3 last:border-0">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-muted-foreground opacity-50">{row.label}</span>
+                  <span className="text-xs font-mono font-black text-gray-900 dark:text-white">{row.val}</span>
                 </div>
               ))}
               <div className="pt-4">
@@ -147,10 +139,9 @@ export default function ArchitecturePage() {
           </Card>
         </div>
 
-        {/* System Status */}
-        <Card className="glass-card bg-[#0a0c14]/60 border-white/5 overflow-hidden relative">
-           <CardHeader className="bg-white/[0.02] border-b border-white/5">
-            <CardTitle className="text-xs font-black uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2">
+        <Card className="glass-card bg-white/60 dark:bg-[#0a0c14]/60 border-black/5 dark:border-white/5 overflow-hidden relative">
+           <CardHeader className="bg-black/[0.01] dark:bg-white/[0.02] border-b border-black/5 dark:border-white/5">
+            <CardTitle className="text-xs font-black uppercase tracking-[0.3em] text-gray-400 dark:text-muted-foreground flex items-center gap-2">
               <Activity className="h-4 w-4 text-destructive" /> REAL-TIME SYSTEM STATUS
             </CardTitle>
           </CardHeader>
@@ -161,15 +152,15 @@ export default function ArchitecturePage() {
               { label: "FIRESTORE", status: status.db, icon: Database },
               { label: "WEBSOCKET", status: status.ws, icon: Zap }
             ].map((sys, i) => (
-              <div key={i} className="flex flex-col items-center space-y-4 p-6 rounded-2xl bg-black/40 border border-white/5 transition-all hover:border-destructive/30">
+              <div key={i} className="flex flex-col items-center space-y-4 p-6 rounded-2xl bg-white/50 dark:bg-black/40 border border-black/5 dark:border-white/5 transition-all hover:border-destructive/30">
                 <div className={cn("p-4 rounded-full transition-all duration-500", sys.status ? "bg-emerald-500/10 text-emerald-500 shadow-[0_0_20px_rgba(34,197,94,0.1)]" : "bg-destructive/10 text-destructive")}>
                   <sys.icon className="h-7 w-7" />
                 </div>
                 <div className="text-center">
-                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2 opacity-50">{sys.label}</p>
+                  <p className="text-[10px] font-black text-gray-400 dark:text-muted-foreground uppercase tracking-[0.2em] mb-2 opacity-50">{sys.label}</p>
                   <div className="flex items-center justify-center gap-2">
                     <div className={cn("h-2 w-2 rounded-full", sys.status ? "bg-emerald-500 animate-pulse shadow-[0_0_10px_#22c55e]" : "bg-destructive")} />
-                    <span className="text-[10px] font-black font-mono tracking-widest">{sys.status ? "OPERATIONAL" : "FAILURE"}</span>
+                    <span className="text-[10px] font-black font-mono tracking-widest text-gray-900 dark:text-white">{sys.status ? "OPERATIONAL" : "FAILURE"}</span>
                   </div>
                 </div>
               </div>
@@ -183,7 +174,7 @@ export default function ArchitecturePage() {
         </Card>
 
         <div className="fixed bottom-6 right-6 pointer-events-none">
-          <Badge variant="outline" className="glass-card bg-background/80 border-white/10 py-2 px-6 rounded-full font-mono text-[10px] text-muted-foreground shadow-2xl opacity-50">
+          <Badge variant="outline" className="glass-card bg-background/80 border-black/10 dark:border-white/10 py-2 px-6 rounded-full font-mono text-[10px] text-gray-500 dark:text-muted-foreground shadow-2xl opacity-50">
             ENGINE: GROQ-LLAMA3-8B | LPU ACCELERATED
           </Badge>
         </div>

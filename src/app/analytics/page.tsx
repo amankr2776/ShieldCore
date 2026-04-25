@@ -1,21 +1,20 @@
-
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
-  PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip as ReTooltip,
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Area, AreaChart,
-  RadarChart, PolarGrid, PolarAngleAxis, Radar, BarChart, Bar
+  PieChart, Pie, Cell, ResponsiveContainer, Tooltip as ReTooltip,
+  RadarChart, PolarGrid, PolarAngleAxis, Radar, Area, AreaChart,
+  CartesianGrid, XAxis, YAxis
 } from 'recharts';
 import { 
-  Shield, ShieldAlert, Zap, ArrowUpRight, Download, Loader2, 
-  Globe, Flame, Activity, Clock, TrendingUp, AlertTriangle, Fingerprint,
-  Map as MapIcon, Database, Terminal
+  ShieldAlert, Zap, Download, Loader2, 
+  Activity, Clock, AlertTriangle, Fingerprint,
+  Globe
 } from 'lucide-react';
-import { getSeededData, IP_TO_COUNTRY } from '@/lib/mock-data';
+import { getSeededData } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
@@ -100,37 +99,36 @@ export default function AnalyticsPage() {
           <div className="flex items-center gap-2 text-destructive font-mono text-[9px] tracking-[0.4em] uppercase animate-pulse">
             <Activity className="h-3 w-3" /> SOC Operational Console
           </div>
-          <h1 className="text-5xl font-black tracking-tighter">THREAT <span className="text-destructive">INTELLIGENCE</span></h1>
-          <p className="text-muted-foreground font-medium text-lg italic opacity-70">Behavioral risk assessment and global signal mapping.</p>
+          <h1 className="text-5xl font-black tracking-tighter text-gray-900 dark:text-white">THREAT <span className="text-destructive">INTELLIGENCE</span></h1>
+          <p className="text-gray-500 dark:text-muted-foreground font-medium text-lg italic opacity-70">Behavioral risk assessment and global signal mapping.</p>
         </div>
-        <div className="flex items-center gap-2 bg-white/5 p-1.5 rounded-2xl border border-white/5 backdrop-blur-xl">
+        <div className="flex items-center gap-2 bg-black/5 dark:bg-white/5 p-1.5 rounded-2xl border border-black/5 dark:border-white/5 backdrop-blur-xl">
           {['1H', '6H', '24H', 'ALL'].map(range => (
-            <button key={range} onClick={() => setDateRange(range)} className={cn("px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", dateRange === range ? "bg-destructive text-white shadow-lg" : "text-muted-foreground hover:text-white")}>
+            <button key={range} onClick={() => setDateRange(range)} className={cn("px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", dateRange === range ? "bg-destructive text-white shadow-lg" : "text-gray-400 dark:text-muted-foreground hover:text-gray-900 dark:hover:text-white")}>
               {range}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Top Row: KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
         {[
-          { label: 'Ingress Node', value: stats.total, icon: Activity, trend: '+12.4%', color: 'text-white' },
+          { label: 'Ingress Node', value: stats.total, icon: Activity, trend: '+12.4%', color: 'text-gray-900 dark:text-white' },
           { label: 'Blocked Ingress', value: stats.blocked, icon: ShieldAlert, trend: '+2.1%', color: 'text-destructive' },
           { label: 'FP Ratio', value: '2.3%', icon: AlertTriangle, trend: '-0.4%', color: 'text-amber-500' },
           { label: 'Latency (Avg)', value: `${stats.avgLat}ms`, icon: Zap, trend: '-1.2ms', color: 'text-emerald-500' },
-          { label: 'Peak Hour', value: '14:00', icon: Clock, trend: 'STATIC', color: 'text-white' },
+          { label: 'Peak Hour', value: '14:00', icon: Clock, trend: 'STATIC', color: 'text-gray-900 dark:text-white' },
         ].map((kpi, i) => (
           <Card key={i} className="glass-card rounded-3xl p-6 group">
             <div className="space-y-4">
               <div className="flex justify-between items-start">
-                <div className={`p-2 rounded-xl bg-white/5 border border-white/5 ${kpi.color}`}>
+                <div className={`p-2 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 ${kpi.color}`}>
                   <kpi.icon className="h-4 w-4" />
                 </div>
                 <div className="text-[10px] font-bold text-emerald-500">{kpi.trend}</div>
               </div>
               <div className="space-y-1">
-                <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest opacity-40">{kpi.label}</p>
+                <p className="text-[9px] font-black text-gray-400 dark:text-muted-foreground uppercase tracking-widest opacity-40">{kpi.label}</p>
                 <p className={cn("text-2xl font-black tracking-tighter", kpi.color)}>{kpi.value}</p>
               </div>
             </div>
@@ -138,16 +136,15 @@ export default function AnalyticsPage() {
         ))}
       </div>
 
-      {/* Second Row: Map */}
       <div className="section-label">Global Signal Mapping</div>
       <Card className="glass-card rounded-[2rem] overflow-hidden relative min-h-[500px]">
         <div className="absolute top-8 left-10 z-20 space-y-2">
-           <h3 className="text-xl font-black tracking-tighter text-white uppercase">Live Threat Vector Map</h3>
-           <p className="text-[10px] font-mono text-muted-foreground opacity-50 uppercase tracking-widest">Active Ingress Monitoring</p>
+           <h3 className="text-xl font-black tracking-tighter text-gray-900 dark:text-white uppercase">Live Threat Vector Map</h3>
+           <p className="text-[10px] font-mono text-gray-400 dark:text-muted-foreground opacity-50 uppercase tracking-widest">Active Ingress Monitoring</p>
         </div>
         <CardContent className="h-[450px] flex items-center justify-center p-0">
           <svg viewBox="0 0 800 400" className="w-full h-full opacity-60">
-            <path d={WORLD_MAP_PATH} fill="#0d101a" stroke="#2a2d3e" strokeWidth="1" />
+            <path d={WORLD_MAP_PATH} fill="currentColor" className="text-gray-100 dark:text-[#0d101a]" stroke="currentColor" className="text-gray-200 dark:text-[#2a2d3e]" strokeWidth="1" />
             {activeDots.map(dot => (
               <g key={dot.id}>
                 <circle cx={dot.x} cy={dot.y} r="12" fill="#ef4444" className="animate-pulse" opacity="0.2" />
@@ -156,10 +153,10 @@ export default function AnalyticsPage() {
             ))}
           </svg>
           <div className="absolute bottom-8 right-10 flex gap-4">
-             <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl border border-white/5 text-[9px] font-mono font-black text-muted-foreground">
+             <div className="flex items-center gap-2 bg-white/60 dark:bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl border border-black/5 dark:border-white/5 text-[9px] font-mono font-black text-gray-500 dark:text-muted-foreground">
                <div className="h-1.5 w-1.5 rounded-full bg-destructive" /> ATTACK DETECTED
              </div>
-             <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl border border-white/5 text-[9px] font-mono font-black text-muted-foreground">
+             <div className="flex items-center gap-2 bg-white/60 dark:bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl border border-black/5 dark:border-white/5 text-[9px] font-mono font-black text-gray-500 dark:text-muted-foreground">
                <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> NODE SECURE
              </div>
           </div>
@@ -167,7 +164,6 @@ export default function AnalyticsPage() {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-        {/* Third Row: Charts */}
         <div className="space-y-6">
            <div className="section-label">Ingress Distribution</div>
            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -177,14 +173,14 @@ export default function AnalyticsPage() {
                     <Pie data={trafficBreakdown} innerRadius={60} outerRadius={80} paddingAngle={8} dataKey="value">
                       {trafficBreakdown.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                     </Pie>
-                    <ReTooltip contentStyle={{ background: '#0a0c14', border: '1px solid #2a2d3e', borderRadius: '12px' }} />
+                    <ReTooltip contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px' }} />
                   </PieChart>
                 </ResponsiveContainer>
               </Card>
               <Card className="glass-card p-6 rounded-3xl h-[350px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <RadarChart data={radarData}>
-                    <PolarGrid stroke="#2a2d3e" />
+                    <PolarGrid stroke="currentColor" className="text-gray-100 dark:text-[#2a2d3e]" />
                     <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 700 }} />
                     <Radar dataKey="A" stroke="#ef4444" fill="#ef4444" fillOpacity={0.5} />
                   </RadarChart>
@@ -193,13 +189,12 @@ export default function AnalyticsPage() {
            </div>
         </div>
 
-        {/* Top Attackers */}
         <div className="space-y-6">
           <div className="section-label">Top Threat Origins</div>
           <div className="glass-card rounded-3xl overflow-hidden h-[350px]">
              <table className="w-full text-left">
-                <thead className="bg-white/[0.02] border-b border-white/5">
-                   <tr className="text-[9px] uppercase font-black text-muted-foreground">
+                <thead className="bg-black/5 dark:bg-white/[0.02] border-b border-black/5 dark:border-white/5">
+                   <tr className="text-[9px] uppercase font-black text-gray-400 dark:text-muted-foreground">
                      <th className="px-6 py-4">Origin Node</th>
                      <th className="px-6 py-4">Blocked</th>
                      <th className="px-6 py-4 text-right">Primary Vector</th>
@@ -207,15 +202,19 @@ export default function AnalyticsPage() {
                 </thead>
                 <tbody className="text-[11px] font-medium">
                   {topIps.map((row, i) => (
-                    <tr key={i} className="border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors">
+                    <tr key={i} className="border-b border-black/5 dark:border-white/5 last:border-0 hover:bg-black/5 dark:hover:bg-white/[0.02] transition-colors">
                       <td className="px-6 py-4">
                          <div className="flex items-center gap-2 font-mono">
-                           <span>[{row.country}]</span>
-                           <span className="text-white">{row.ip}</span>
+                           <span className="text-gray-500 dark:text-muted-foreground">[{row.country}]</span>
+                           <span className="text-gray-900 dark:text-white">{row.ip}</span>
                          </div>
                       </td>
                       <td className="px-6 py-4 font-black text-destructive">{row.blocked}</td>
-                      <td className="px-6 py-4 text-right"><Badge variant="outline" className="text-[8px] font-black">{row.type}</Badge></td>
+                      <td className="px-6 py-4 text-right">
+                        <Badge variant="secondary" className="text-[9px] font-bold uppercase tracking-tighter bg-destructive/10 text-destructive border-destructive/20">
+                          {row.type}
+                        </Badge>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -224,7 +223,6 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Fourth Row: Timeline */}
       <div className="section-label">Temporal Threat Frequency</div>
       <Card className="glass-card rounded-[2rem] p-10 h-[400px]">
          <ResponsiveContainer width="100%" height="100%">
@@ -235,30 +233,13 @@ export default function AnalyticsPage() {
                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
                  </linearGradient>
                </defs>
-               <CartesianGrid strokeDasharray="3 3" stroke="#1a1d2e" vertical={false} />
+               <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-gray-100 dark:text-[#1a1d2e]" vertical={false} />
                <XAxis hide />
                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 10 }} />
                <ReTooltip />
                <Area type="monotone" dataKey="val" stroke="#ef4444" fillOpacity={1} fill="url(#colorVal)" strokeWidth={3} />
             </AreaChart>
          </ResponsiveContainer>
-      </Card>
-
-      {/* Fifth Row: Heatmap */}
-      <div className="section-label">Security Activity Heatmap</div>
-      <Card className="glass-card rounded-[2rem] p-10 overflow-auto no-scrollbar">
-         <div className="grid grid-cols-24 gap-1 min-w-[1000px]">
-            {heatmapData.hours.map(h => (
-              <div key={h} className="text-[8px] font-black text-center opacity-30 uppercase">{h}h</div>
-            ))}
-            {heatmapData.days.map(d => (
-              <>
-                {heatmapData.hours.map(h => (
-                  <div key={`${d}-${h}`} className="h-4 rounded-sm transition-all hover:scale-125" style={{ background: `rgba(239, 68, 68, ${Math.random()})`, border: '1px solid rgba(255,255,255,0.02)' }} />
-                ))}
-              </>
-            ))}
-         </div>
       </Card>
 
       <div className="pt-10">
