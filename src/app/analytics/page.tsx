@@ -161,7 +161,11 @@ export default function AnalyticsPage() {
       attributionControl: false
     });
 
-    L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}.png').addTo(mapRef.current);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '© OpenStreetMap contributors © CARTO',
+      subdomains: 'abcd',
+      maxZoom: 19
+    }).addTo(mapRef.current);
     
     // Custom Zoom Controls
     L.control.zoom({ position: 'topright' }).addTo(mapRef.current);
