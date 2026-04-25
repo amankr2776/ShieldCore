@@ -12,7 +12,7 @@ import { Shield, ShieldAlert, Zap, ArrowUpRight, Download, Loader2, Globe, Flame
 import { getSeededData, FAKE_IPS, IP_TO_COUNTRY } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
 import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
+import { jsPDF } from 'jsdf';
 
 const COUNTRY_COORDS: Record<string, { x: number, y: number }> = {
   'US': { x: 200, y: 140 }, 'UK': { x: 470, y: 110 }, 'Russia': { x: 580, y: 90 },
@@ -92,7 +92,7 @@ export default function AnalyticsPage() {
     const minutes = Array.from({ length: 60 }, (_, i) => {
       const time = new Date(now.getTime() - (59 - i) * 60000);
       return {
-        time: time.toLocaleTimeString([], { hour: '24-hour', minute: '2-digit' }),
+        time: time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
         count: data.filter(r => {
           const d = new Date(r.timestamp);
           return d.getMinutes() === time.getMinutes() && d.getHours() === time.getHours() && r.decision === 'BLOCKED';
