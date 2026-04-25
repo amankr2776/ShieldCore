@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useRef, useState } from 'react';
@@ -7,241 +8,323 @@ import { Shield, ArrowRight, Activity, Zap, BarChart3, Lock, Cpu, Globe } from '
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
+// --- Shader Constants ---
+const ATMOSPHERE_VERTEX = `
+  varying vec3 vNormal;
+  varying vec3 vEyeVector;
+  void main() {
+    vNormal = normalize(normalMatrix * normal);
+    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+    vEyeVector = -vec3(mvPosition.xyz);
+    gl_Position = projectionMatrix * mvPosition;
+  }
+`;
+
+const ATMOSPHERE_FRAGMENT = `
+  varying vec3 vNormal;
+  varying vec3 vEyeVector;
+  void main() {
+    float intensity = pow(0.6 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.0);
+    gl_FragColor = vec4(0.3, 0.6, 1.0, 1.0) * intensity;
+  }
+`;
+
+const AURORA_VERTEX = `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const AURORA_FRAGMENT = `
+  uniform float time;
+  varying vec2 vUv;
+  void main() {
+    float noise = sin(vUv.x * 20.0 + time) * cos(vUv.y * 10.0 + time * 0.5);
+    vec3 color = mix(vec3(0.0, 1.0, 0.4), vec3(0.5, 0.0, 1.0), vUv.y);
+    gl_FragColor = vec4(color, abs(noise) * (1.0 - vUv.y) * 0.4);
+  }
+`;
+
+// --- Global City Data (47 Cities) ---
+const CITIES = [
+  { name: "New York", lat: 40.7128, lon: -74.0060 },
+  { name: "London", lat: 51.5074, lon: -0.1278 },
+  { name: "Tokyo", lat: 35.6762, lon: 139.6503 },
+  { name: "Beijing", lat: 39.9042, lon: 116.4074 },
+  { name: "Moscow", lat: 55.7558, lon: 37.6173 },
+  { name: "Sydney", lat: -33.8688, lon: 151.2093 },
+  { name: "Rio", lat: -22.9068, lon: -43.1729 },
+  { name: "Cape Town", lat: -33.9249, lon: 18.4241 },
+  { name: "Dubai", lat: 25.2048, lon: 55.2708 },
+  { name: "Mumbai", lat: 19.0760, lon: 72.8777 },
+  { name: "Paris", lat: 48.8566, lon: 2.3522 },
+  { name: "Berlin", lat: 52.5200, lon: 13.4050 },
+  { name: "Los Angeles", lat: 34.0522, lon: -118.2437 },
+  { name: "Chicago", lat: 41.8781, lon: -87.6298 },
+  { name: "Sao Paulo", lat: -23.5505, lon: -46.6333 },
+  { name: "Mexico City", lat: 19.4326, lon: -99.1332 },
+  { name: "Cairo", lat: 30.0444, lon: 31.2357 },
+  { name: "Istanbul", lat: 41.0082, lon: 28.9784 },
+  { name: "Seoul", lat: 37.5665, lon: 126.9780 },
+  { name: "Jakarta", lat: -6.2088, lon: 106.8456 },
+  { name: "Lagos", lat: 6.5244, lon: 3.3792 },
+  { name: "Lima", lat: -12.0464, lon: -77.0428 },
+  { name: "Bangkok", lat: 13.7563, lon: 100.5018 },
+  { name: "Hong Kong", lat: 22.3193, lon: 114.1694 },
+  { name: "Singapore", lat: 1.3521, lon: 103.8198 },
+  { name: "Toronto", lat: 43.6532, lon: -79.3832 },
+  { name: "Madrid", lat: 40.4168, lon: -3.7038 },
+  { name: "Rome", lat: 41.9028, lon: 12.4964 },
+  { name: "Amsterdam", lat: 52.3676, lon: 4.9041 },
+  { name: "Stockholm", lat: 59.3293, lon: 18.0686 },
+  { name: "Oslo", lat: 59.9139, lon: 10.7522 },
+  { name: "Helsinki", lat: 60.1699, lon: 24.9384 },
+  { name: "Warsaw", lat: 52.2297, lon: 21.0122 },
+  { name: "Vienna", lat: 48.2082, lon: 16.3738 },
+  { name: "Prague", lat: 50.0755, lon: 14.4378 },
+  { name: "Budapest", lat: 47.4979, lon: 19.0402 },
+  { name: "Athens", lat: 37.9838, lon: 23.7275 },
+  { name: "Lisbon", lat: 38.7223, lon: -9.1393 },
+  { name: "Dublin", lat: 53.3498, lon: -6.2603 },
+  { name: "Tel Aviv", lat: 32.0853, lon: 34.7818 },
+  { name: "Riyadh", lat: 24.7136, lon: 46.6753 },
+  { name: "Tehran", lat: 35.6892, lon: 51.3890 },
+  { name: "Karachi", lat: 24.8607, lon: 67.0011 },
+  { name: "Delhi", lat: 28.6139, lon: 77.2090 },
+  { name: "Dhaka", lat: 23.8103, lon: 90.4125 },
+  { name: "Melbourne", lat: -37.8136, lon: 144.9631 },
+  { name: "Auckland", lat: -36.8485, lon: 174.7633 },
+];
+
+const ATTACK_COLORS = {
+  SQL: 0xef4444,
+  XSS: 0xf97316,
+  CMD: 0x22c55e,
+  SSRF: 0x8b5cf6,
+  ZERO: 0xffffff
+};
+
 export default function LandingPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [mounted, setVisible] = useState(false);
+  const [introFinished, setIntroFinished] = useState(false);
+  const [bootText, setBootText] = useState("");
 
   useEffect(() => {
     if (!canvasRef.current) return;
 
-    // --- 0. Scene Setup ---
+    // --- 1. Core Scene Setup ---
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
     const renderer = new THREE.WebGLRenderer({ 
       canvas: canvasRef.current, 
       antialias: true, 
       alpha: true 
     });
-    
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-    // --- 1. Starfield Particle System (50,000 Stars) ---
-    const starsCount = 50000;
-    const starPos = new Float32Array(starsCount * 3);
-    const starSizes = new Float32Array(starsCount);
-    for (let i = 0; i < starsCount * 3; i++) {
-      starPos[i] = (Math.random() - 0.5) * 40;
-    }
-    for (let i = 0; i < starsCount; i++) {
-      starSizes[i] = Math.random() * 0.02;
-    }
-    const starGeo = new THREE.BufferGeometry();
-    starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
-    const starMat = new THREE.PointsMaterial({
-      size: 0.015,
-      color: 0x00ffff,
-      transparent: true,
-      opacity: 0.6,
-      blending: THREE.AdditiveBlending,
-    });
-    const starMesh = new THREE.Points(starGeo, starMat);
-    scene.add(starMesh);
-
-    // --- 2. Volumetric Nebula Clouds ---
-    const createNebula = (color: number, x: number) => {
-      const group = new THREE.Group();
-      for (let i = 0; i < 5; i++) {
-        const geo = new THREE.PlaneGeometry(15, 15);
-        const mat = new THREE.MeshBasicMaterial({
-          color: color,
-          transparent: true,
-          opacity: 0.03,
-          blending: THREE.AdditiveBlending,
-          depthWrite: false,
-          side: THREE.DoubleSide
-        });
-        const p = new THREE.Mesh(geo, mat);
-        p.position.set(x + (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 5, -10 + Math.random() * 5);
-        p.rotation.z = Math.random() * Math.PI;
-        group.add(p);
-      }
-      return group;
-    };
-    const nebulaLeft = createNebula(0x581c87, -10);
-    const nebulaRight = createNebula(0x1e3a8a, 10);
-    scene.add(nebulaLeft, nebulaRight);
-
-    // --- 3. Hyper-Detailed Globe ---
+    // --- 2. Globe Layers ---
     const globeGroup = new THREE.Group();
-    
-    // Core Globe with Glow
-    const globeGeo = new THREE.SphereGeometry(2.5, 128, 128);
-    const globeMat = new THREE.MeshBasicMaterial({
-      color: 0x000205,
-      transparent: true,
-      opacity: 0.9
-    });
-    const globeCore = new THREE.Mesh(globeGeo, globeMat);
-    globeGroup.add(globeCore);
-
-    // Grid Atmosphere Layer
-    const gridGeo = new THREE.SphereGeometry(2.51, 64, 64);
-    const gridMat = new THREE.MeshBasicMaterial({
-      color: 0x00eaff,
-      wireframe: true,
-      transparent: true,
-      opacity: 0.05,
-      blending: THREE.AdditiveBlending
-    });
-    const globeGrid = new THREE.Mesh(gridGeo, gridMat);
-    globeGroup.add(globeGrid);
-
-    // City Dots (Thousands of Pulse Points)
-    const cities = [];
-    for(let i = 0; i < 200; i++) {
-      const lat = (Math.random() - 0.5) * 160;
-      const lon = (Math.random() - 0.5) * 360;
-      cities.push({ lat, lon });
-    }
-
-    const dotGeo = new THREE.SphereGeometry(0.015, 8, 8);
-    const cityDots: THREE.Mesh[] = [];
-    cities.forEach(city => {
-      const phi = (90 - city.lat) * (Math.PI / 180);
-      const theta = (city.lon + 180) * (Math.PI / 180);
-      const dot = new THREE.Mesh(dotGeo, new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.8 }));
-      dot.position.x = 2.5 * Math.sin(phi) * Math.cos(theta);
-      dot.position.y = 2.5 * Math.cos(phi);
-      dot.position.z = 2.5 * Math.sin(phi) * Math.sin(theta);
-      globeGroup.add(dot);
-      cityDots.push(dot);
-    });
-
+    globeGroup.rotation.y = -Math.PI / 2;
+    globeGroup.rotation.z = THREE.MathUtils.degToRad(23.5);
     scene.add(globeGroup);
 
-    // --- 4. Attack Trajectory Arcs ---
+    // Texture surface (Procedural Night Lights)
+    const globeGeo = new THREE.SphereGeometry(4, 128, 128);
+    const globeMat = new THREE.MeshStandardMaterial({
+      color: 0x010204,
+      roughness: 0.8,
+      metalness: 0.2,
+      emissive: 0x050a15,
+      emissiveIntensity: 0.5
+    });
+    const globeMesh = new THREE.Mesh(globeGeo, globeMat);
+    globeGroup.add(globeMesh);
+
+    // City Dots Instanced
+    const cityDotGeo = new THREE.SphereGeometry(0.015, 12, 12);
+    const cityDotMat = new THREE.MeshBasicMaterial({ color: 0x00eaff });
+    const cityDots = new THREE.InstancedMesh(cityDotGeo, cityDotMat, CITIES.length);
+    const dummy = new THREE.Object3D();
+
+    const cityPositions: THREE.Vector3[] = [];
+    CITIES.forEach((city, i) => {
+      const phi = (90 - city.lat) * (Math.PI / 180);
+      const theta = (city.lon + 180) * (Math.PI / 180);
+      const pos = new THREE.Vector3(
+        4 * Math.sin(phi) * Math.cos(theta),
+        4 * Math.cos(phi),
+        4 * Math.sin(phi) * Math.sin(theta)
+      );
+      dummy.position.copy(pos);
+      dummy.updateMatrix();
+      cityDots.setMatrixAt(i, dummy.matrix);
+      cityPositions.push(pos);
+    });
+    globeGroup.add(cityDots);
+
+    // Atmosphere Halo
+    const atmosGeo = new THREE.SphereGeometry(4.2, 128, 128);
+    const atmosMat = new THREE.ShaderMaterial({
+      vertexShader: ATMOSPHERE_VERTEX,
+      fragmentShader: ATMOSPHERE_FRAGMENT,
+      blending: THREE.AdditiveBlending,
+      side: THREE.BackSide,
+      transparent: true
+    });
+    const atmosMesh = new THREE.Mesh(atmosGeo, atmosMat);
+    globeGroup.add(atmosMesh);
+
+    // Clouds
+    const cloudGeo = new THREE.SphereGeometry(4.05, 64, 64);
+    const cloudMat = new THREE.MeshStandardMaterial({
+      transparent: true,
+      opacity: 0.2,
+      color: 0xffffff,
+      alphaTest: 0.01
+    });
+    const cloudMesh = new THREE.Mesh(cloudGeo, cloudMat);
+    globeGroup.add(cloudMesh);
+
+    // --- 3. Attack Arc Management ---
     const arcsGroup = new THREE.Group();
-    scene.add(arcsGroup);
+    globeGroup.add(arcsGroup);
+    let activeArcs: any[] = [];
 
     const createArc = () => {
-      const startCity = cityDots[Math.floor(Math.random() * cityDots.length)];
-      const endCity = cityDots[Math.floor(Math.random() * cityDots.length)];
+      const startIdx = Math.floor(Math.random() * CITIES.length);
+      const endIdx = Math.floor(Math.random() * CITIES.length);
+      if (startIdx === endIdx) return null;
+
+      const start = cityPositions[startIdx];
+      const end = cityPositions[endIdx];
+      const mid = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5).normalize().multiplyScalar(5.5);
       
-      const startPos = new THREE.Vector3().copy(startCity.position);
-      const endPos = new THREE.Vector3().copy(endCity.position);
+      const curve = new THREE.QuadraticBezierCurve3(start, mid, end);
+      const points = curve.getPoints(100);
+      const geo = new THREE.BufferGeometry().setFromPoints(points);
       
-      // Arc Curve
-      const mid = new THREE.Vector3().addVectors(startPos, endPos).multiplyScalar(0.5).normalize().multiplyScalar(4.5);
-      const curve = new THREE.QuadraticBezierCurve3(startPos, mid, endPos);
-      const points = curve.getPoints(50);
-      const geometry = new THREE.BufferGeometry().setFromPoints(points);
+      const types = Object.keys(ATTACK_COLORS);
+      const type = types[Math.floor(Math.random() * types.length)] as keyof typeof ATTACK_COLORS;
+      const color = ATTACK_COLORS[type];
+
+      const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0 });
+      const line = new THREE.Line(geo, mat);
       
-      const color = [0xff3333, 0xffaa00, 0x00ffff][Math.floor(Math.random() * 3)];
-      const material = new THREE.LineBasicMaterial({ 
-        color, 
-        transparent: true, 
-        opacity: 0,
-        blending: THREE.AdditiveBlending 
-      });
-      
-      const line = new THREE.Line(geometry, material);
-      (line as any).life = 0;
-      (line as any).maxLife = 1.0;
-      (line as any).speed = Math.random() * 0.01 + 0.008;
+      (line as any).progress = 0;
+      (line as any).speed = 0.01 + Math.random() * 0.01;
+      (line as any).type = type;
       return line;
     };
 
-    let activeArcs: THREE.Line[] = [];
+    // --- 4. Starfield & Nebulae ---
+    const starsCount = 100000;
+    const starGeo = new THREE.BufferGeometry();
+    const starPos = new Float32Array(starsCount * 3);
+    for (let i = 0; i < starsCount * 3; i++) starPos[i] = (Math.random() - 0.5) * 40;
+    starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+    const starMat = new THREE.PointsMaterial({ size: 0.01, color: 0xffffff, transparent: true, opacity: 0.5 });
+    const stars = new THREE.Points(starGeo, starMat);
+    scene.add(stars);
 
-    // --- 5. Data Ring & Hex Panels ---
-    const binaryGroup = new THREE.Group();
-    const binaryText = "0101011010100101111001";
-    for(let i = 0; i < 40; i++) {
-      const angle = (i / 40) * Math.PI * 2;
-      const x = Math.cos(angle) * 4.5;
-      const z = Math.sin(angle) * 4.5;
-      const geo = new THREE.BoxGeometry(0.05, 0.05, 0.01);
-      const mat = new THREE.MeshBasicMaterial({ color: 0x22c55e, transparent: true, opacity: 0.2 });
-      const b = new THREE.Mesh(geo, mat);
-      b.position.set(x, 0, z);
-      b.lookAt(0, 0, 0);
-      binaryGroup.add(b);
-    }
-    scene.add(binaryGroup);
-
-    const hexGroup = new THREE.Group();
-    for(let i = 0; i < 15; i++) {
-      const angle = (i / 15) * Math.PI * 2;
-      const x = Math.cos(angle) * 6;
-      const z = Math.sin(angle) * 6;
-      const geo = new THREE.CylinderGeometry(0.3, 0.3, 0.05, 6);
-      const mat = new THREE.MeshBasicMaterial({ color: 0x00ffff, wireframe: true, transparent: true, opacity: 0.1 });
-      const h = new THREE.Mesh(geo, mat);
-      h.position.set(x, (Math.random() - 0.5) * 2, z);
-      h.rotation.x = Math.PI / 2;
-      hexGroup.add(h);
-    }
-    scene.add(hexGroup);
-
-    // --- 6. Animation Logic ---
-    camera.position.z = 10;
-
-    let mouseX = 0;
-    let mouseY = 0;
-    const onMouseMove = (event: MouseEvent) => {
-      mouseX = (event.clientX / window.innerWidth - 0.5);
-      mouseY = (event.clientY / window.innerHeight - 0.5);
+    // --- 5. Data Rings ---
+    const ringGroup = new THREE.Group();
+    scene.add(ringGroup);
+    const createRing = (radius: number, count: number, color: number) => {
+      const g = new THREE.Group();
+      const geo = new THREE.PlaneGeometry(0.1, 0.05);
+      const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.3, side: THREE.DoubleSide });
+      for(let i=0; i<count; i++) {
+        const m = new THREE.Mesh(geo, mat);
+        const a = (i/count) * Math.PI * 2;
+        m.position.set(Math.cos(a)*radius, 0, Math.sin(a)*radius);
+        m.lookAt(0,0,0);
+        g.add(m);
+      }
+      return g;
     };
-    window.addEventListener('mousemove', onMouseMove);
+    const ring1 = createRing(5.5, 60, 0x22c55e);
+    const ring2 = createRing(6.5, 40, 0x00eaff);
+    ring2.rotation.x = Math.PI / 4;
+    ringGroup.add(ring1, ring2);
+
+    // --- 6. Intro Sequence Logic ---
+    let introStartTime = Date.now();
+    const INTRO_DURATION = 4000;
+    camera.position.z = 15;
+
+    // --- 7. Animation Loop ---
+    const clock = new THREE.Clock();
+    let mouseX = 0, mouseY = 0;
+    window.addEventListener('mousemove', (e) => {
+      mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
+      mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+    });
 
     const animate = () => {
       requestAnimationFrame(animate);
+      const delta = clock.getDelta();
+      const elapsed = Date.now() - introStartTime;
 
-      // Globe & Rings Rotation
-      globeGroup.rotation.y += 0.001;
-      binaryGroup.rotation.y -= 0.002;
-      hexGroup.rotation.y += 0.0005;
-
-      // Particle Drift
-      starMesh.rotation.y += 0.0002;
-      nebulaLeft.rotation.z += 0.0005;
-      nebulaRight.rotation.z -= 0.0005;
-
-      // Pulse City Dots
-      const time = Date.now() * 0.001;
-      cityDots.forEach((dot, idx) => {
-        const scale = 1 + Math.sin(time * 3 + idx) * 0.3;
-        dot.scale.set(scale, scale, scale);
-      });
-
-      // Manage Attack Arcs (Storm Logic)
-      if (Math.random() > 0.8 && activeArcs.length < 50) {
-        const arc = createArc();
-        arcsGroup.add(arc);
-        activeArcs.push(arc);
+      // Handle Intro Sequence
+      if (elapsed < INTRO_DURATION) {
+        const p = elapsed / INTRO_DURATION;
+        if (p < 0.25) {
+          // Supernova Shockwave (handled by CSS/Overlay)
+        } else {
+          setIntroFinished(true);
+          const assemblyP = (p - 0.25) / 0.75;
+          camera.position.z = THREE.MathUtils.lerp(30, 10, assemblyP);
+          globeMesh.scale.setScalar(assemblyP);
+        }
       }
 
-      activeArcs.forEach((arc, index) => {
-        (arc as any).life += (arc as any).speed;
-        const life = (arc as any).life;
-        // Fade in and out
-        (arc.material as THREE.LineBasicMaterial).opacity = life < 0.5 ? life * 2 : (1 - life) * 2;
-        
-        if (life >= (arc as any).maxLife) {
+      // Continuous Animations
+      globeGroup.rotation.y += 0.0005;
+      ring1.rotation.y += 0.002;
+      ring2.rotation.y -= 0.001;
+      stars.rotation.y += 0.0001;
+
+      // Attack Arcs
+      if (introFinished && Math.random() > 0.9 && activeArcs.length < 80) {
+        const arc = createArc();
+        if (arc) {
+          arcsGroup.add(arc);
+          activeArcs.push(arc);
+        }
+      }
+
+      activeArcs.forEach((arc, i) => {
+        arc.progress += arc.speed;
+        const mat = arc.material as THREE.LineBasicMaterial;
+        mat.opacity = arc.progress < 0.5 ? arc.progress * 2 : (1 - arc.progress) * 2;
+        if (arc.progress >= 1) {
           arcsGroup.remove(arc);
-          activeArcs.splice(index, 1);
+          activeArcs.splice(i, 1);
         }
       });
 
-      // Smooth Camera Parallax
-      camera.position.x += (mouseX * 5 - camera.position.x) * 0.05;
-      camera.position.y += (-mouseY * 5 - camera.position.y) * 0.05;
+      // Camera Parallax
+      camera.position.x += (mouseX * 2 - camera.position.x) * 0.02;
+      camera.position.y += (-mouseY * 2 - camera.position.y) * 0.02;
       camera.lookAt(0, 0, 0);
 
       renderer.render(scene, camera);
     };
     animate();
+
+    // Intro Text Sequence
+    const textSteps = [
+      { text: "BOOTING THREAT INTELLIGENCE CORE...", time: 500 },
+      { text: "CALIBRATING NEURAL NODES...", time: 1500 },
+      { text: "SHIELDCORE ONLINE.", time: 2500 },
+    ];
+    textSteps.forEach(step => {
+      setTimeout(() => setBootText(step.text), step.time);
+    });
+    setTimeout(() => setBootText(""), 3800);
 
     const handleResize = () => {
       camera.aspect = window.innerWidth / window.innerHeight;
@@ -250,10 +333,7 @@ export default function LandingPage() {
     };
     window.addEventListener('resize', handleResize);
 
-    setVisible(true);
-
     return () => {
-      window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('resize', handleResize);
     };
   }, []);
@@ -263,10 +343,20 @@ export default function LandingPage() {
       {/* 3D Cinematic Background Layer */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <canvas ref={canvasRef} className="w-full h-full opacity-90" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(88,28,135,0.2)_0%,transparent_80%)] animate-pulse pointer-events-none" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.6)_100%)] pointer-events-none" />
+        
+        {/* Postprocessing Overlays */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(88,28,135,0.1)_0%,transparent_80%)] pointer-events-none" />
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
-        <div className="absolute inset-0 opacity-[0.05] pointer-events-none" style={{ backgroundImage: 'linear-gradient(rgba(18,16,16,0) 50%,rgba(0,0,0,0.25) 50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))', backgroundSize: '100% 2px, 3px 100%' }} />
+        
+        {/* Intro Shockwave Effect */}
+        {!introFinished && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black z-[100]">
+             <div className="w-1 h-1 bg-white rounded-full animate-[supernova_2s_ease-out_forwards]" />
+             <div className="absolute font-mono text-destructive text-[10px] tracking-[0.5em] animate-pulse">
+               {bootText}
+             </div>
+          </div>
+        )}
       </div>
       
       <section className="relative z-10 container mx-auto px-6 pt-32 pb-24 flex flex-col items-center text-center space-y-12 min-h-screen justify-center">
@@ -361,6 +451,14 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
+      <style jsx global>{`
+        @keyframes supernova {
+          0% { transform: scale(0); opacity: 1; filter: blur(0px); }
+          50% { transform: scale(50); opacity: 0.5; filter: blur(20px); }
+          100% { transform: scale(100); opacity: 0; filter: blur(50px); }
+        }
+      `}</style>
     </div>
   );
 }
