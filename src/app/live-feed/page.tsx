@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { 
   Play, Pause, Activity, Search, Trash2, Globe, Terminal,
   Fingerprint, Zap, Shield, CheckCircle2, AlertCircle,
-  Syringe, Flame, Folder, Bomb, ShieldX
+  Syringe, Flame, Folder, Bomb, ShieldX, X
 } from 'lucide-react';
 import { generateFakeRequest, getSeededData } from '@/lib/mock-data';
 import { useToast } from '@/hooks/use-toast';
@@ -54,6 +54,12 @@ export default function LiveFeedPage() {
     history: Array.from({ length: 60 }, () => ({ val: Math.random() * 20 }))
   });
 
+  // Local notification queue system
+  const [notificationQueue, setNotificationQueue] = useState<any[]>([]);
+  const [activeNotification, setActiveNotification] = useState<any | null>(null);
+  const [isExiting, setIsExiting] = useState(false);
+  const [isCoolingDown, setIsCoolingDown] = useState(false);
+
   const { toast } = useToast();
 
   useEffect(() => {
@@ -79,15 +85,10 @@ export default function LiveFeedPage() {
         });
 
         if (newReq.decision === 'BLOCKED') {
-          toast({ 
-            title: "THREAT NEUTRALIZED", 
-            description: `${newReq.attackType} from ${newReq.ip}`, 
-            variant: "destructive",
-            className: "glass-card border-destructive/50 animate-blocked-shimmer"
-          });
+          // Push to the local alert queue instead of firing a toast immediately
+          setNotificationQueue(prev => [...prev, newReq]);
           
           // Trigger DNA Sequencer for blocked requests
-          // Delay slightly so toast is visible first
           setTimeout(() => {
             setSequencingAttack(newReq);
           }, 800);
@@ -95,7 +96,36 @@ export default function LiveFeedPage() {
       }
     }, 2500);
     return () => clearInterval(interval);
-  }, [isPaused, isConnected, toast]);
+  }, [isPaused, isConnected]);
+
+  // Queue Processor: Handles sequential display with mandatory cool-down gaps
+  useEffect(() => {
+    if (notificationQueue.length > 0 && !activeNotification && !isCoolingDown) {
+      const next = notificationQueue[0];
+      setNotificationQueue(prev => prev.slice(1));
+      setActiveNotification(next);
+      setIsExiting(false);
+      setIsCoolingDown(true);
+
+      // Visibility duration: 4 seconds
+      // Exit animation triggers 500ms before removal
+      const exitTrigger = setTimeout(() => setIsExiting(true), 3500);
+      
+      const hideTimer = setTimeout(() => {
+        setActiveNotification(null);
+        setIsExiting(false);
+      }, 4000);
+
+      // Mandatory 10-second gap between popup starts (4s show + 10s gap = 14s total cycle)
+      const coolTimer = setTimeout(() => setIsCoolingDown(false), 14000);
+
+      return () => {
+        clearTimeout(exitTrigger);
+        clearTimeout(hideTimer);
+        clearTimeout(coolTimer);
+      };
+    }
+  }, [notificationQueue, activeNotification, isCoolingDown]);
 
   useEffect(() => {
     if (selectedRequest) {
@@ -333,7 +363,60 @@ export default function LiveFeedPage() {
           genomeDatabase={genomeDatabase}
           onSave={handleSaveGenome}
         />
+
+        {/* --- CUSTOM QUEUED ATTACK NOTIFICATION --- */}
+        {activeNotification && (
+          <div className={cn(
+            "fixed bottom-6 right-6 z-[6000] w-80 glass-card border-destructive/50 bg-black/90 p-5 rounded-2xl shadow-2xl transition-all duration-500 overflow-hidden",
+            isExiting ? "animate-out slide-out-to-bottom fade-out" : "animate-in slide-in-from-right fade-in"
+          )}>
+            {/* Close Button */}
+            <button 
+              onClick={() => { setActiveNotification(null); setIsExiting(false); }}
+              className="absolute top-3 right-3 p-1 text-white/40 hover:text-white transition-colors z-10"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <div className="flex items-center gap-4 mb-4">
+              <div className="p-3 bg-destructive/20 rounded-xl border border-destructive/30">
+                <ShieldX className="h-6 w-6 text-destructive animate-pulse" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-black uppercase text-destructive tracking-[0.2em] leading-none mb-1">Threat Intercepted</p>
+                <p className="text-sm font-black text-white uppercase tracking-tighter truncate">{activeNotification.attackType}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 bg-white/5 p-3 rounded-xl border border-white/5 mb-4">
+              <div>
+                <p className="text-[8px] font-black uppercase text-white/40 mb-0.5">Origin IP</p>
+                <p className="text-[11px] font-mono text-white/80">{activeNotification.ip}</p>
+              </div>
+              <div>
+                <p className="text-[8px] font-black uppercase text-white/40 mb-0.5">Confidence</p>
+                <p className="text-[11px] font-mono text-destructive font-black">{Math.round(activeNotification.score * 100)}%</p>
+              </div>
+            </div>
+
+            {/* Draining Progress Bar (4s duration) */}
+            <div className="absolute bottom-0 left-0 w-full h-1 bg-white/10">
+              <div className="h-full bg-destructive animate-drain-progress" />
+            </div>
+          </div>
+        )}
       </div>
+
+      <style jsx global>{`
+        @keyframes drain {
+          from { width: 100%; }
+          to { width: 0%; }
+        }
+        .animate-drain-progress {
+          animation: drain 4s linear forwards;
+        }
+      `}</style>
     </div>
   );
 }
+
