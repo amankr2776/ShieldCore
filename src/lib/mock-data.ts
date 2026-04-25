@@ -40,7 +40,7 @@ export function generateFakeRequest(timestampOverride?: string) {
   let predictedClass = 'Safe';
   let score = parseFloat((Math.random() * 0.12 + 0.01).toFixed(2));
 
-  // Vary frequency by "simulated hour" - assume business hours are higher risk
+  // Vary frequency by "simulated hour"
   const now = timestampOverride ? new Date(timestampOverride) : new Date();
   const hour = now.getHours();
   const riskFactor = (hour >= 9 && hour <= 18) ? 0.35 : 0.15;
@@ -74,7 +74,6 @@ export function generateFakeRequest(timestampOverride?: string) {
   };
 }
 
-// Seed data for demo (200 requests spread over last 24h)
 export function getSeededData() {
   const data = [];
   const now = Date.now();

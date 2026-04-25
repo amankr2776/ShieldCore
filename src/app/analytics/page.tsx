@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from 'react';
@@ -9,8 +10,8 @@ import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, 
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend 
 } from 'recharts';
-import { Shield, ShieldAlert, Zap, Users, ArrowUpRight, BarChart3, Download, Calendar, Loader2 } from 'lucide-react';
-import { generateFakeRequest, FAKE_IPS, ATTACK_TYPES, getSeededData } from '@/lib/mock-data';
+import { Shield, ShieldAlert, Zap, ArrowUpRight, Download, Loader2 } from 'lucide-react';
+import { getSeededData, ATTACK_TYPES } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
@@ -51,11 +52,11 @@ export default function AnalyticsPage() {
     };
   }, [filteredData]);
 
-  const trafficBreakdown = useMemo(() => [
+  const trafficBreakdown = [
     { name: 'Safe', value: filteredData.filter(r => r.decision === 'SAFE').length, color: '#10b981' },
     { name: 'Blocked', value: filteredData.filter(r => r.decision === 'BLOCKED').length, color: '#ef4444' },
     { name: 'Suspicious', value: filteredData.filter(r => r.decision === 'SUSPICIOUS').length, color: '#f59e0b' }
-  ], [filteredData]);
+  ];
 
   const attackDistribution = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -84,7 +85,7 @@ export default function AnalyticsPage() {
       ipStats[r.ip].total++;
       if (r.decision === 'BLOCKED') ipStats[r.ip].blocked++;
     });
-    return Object.values(ipStats).sort((a, b) => b.blocked - a.blocked).slice(0, 5);
+    return Object.values(ipStats).sort((a: any, b: any) => b.blocked - a.blocked).slice(0, 5);
   }, [filteredData]);
 
   const handleExport = async () => {
@@ -108,19 +109,19 @@ export default function AnalyticsPage() {
 
   return (
     <div className="container mx-auto py-10 px-6 max-w-7xl space-y-10 animate-in fade-in duration-500" ref={reportRef}>
-      <div className="flex flex-col md:row items-center justify-between gap-6">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="space-y-1">
           <h1 className="text-4xl font-extrabold tracking-tight">Security Analytics</h1>
           <p className="text-muted-foreground">Comprehensive behavioral analysis and threat intelligence.</p>
         </div>
-        <div className="flex items-center gap-4 bg-secondary/30 p-1.5 rounded-full border border-border/50">
+        <div className="flex items-center gap-2 bg-secondary/30 p-1.5 rounded-full border border-border/50">
           {['1H', '6H', '24H', 'ALL'].map(range => (
             <button
               key={range}
               onClick={() => setDateRange(range)}
               className={cn(
                 "px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all",
-                dateRange === range ? "bg-destructive text-white shadow-lg shadow-destructive/20" : "text-muted-foreground hover:text-white"
+                dateRange === range ? "bg-destructive text-white shadow-lg" : "text-muted-foreground hover:text-white"
               )}
             >
               {range}
@@ -129,7 +130,6 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
         {[
           { label: 'Detection Rate', value: `${stats.rate}%`, icon: Shield, color: 'text-destructive', desc: 'Attack vs Safe traffic' },
@@ -153,43 +153,26 @@ export default function AnalyticsPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Traffic breakdown */}
         <Card className="border-border/50 bg-card">
           <CardHeader>
             <CardTitle className="text-lg font-bold uppercase tracking-widest">Traffic Classification</CardTitle>
-            <CardDescription>Semantic distribution of all ingress requests</CardDescription>
           </CardHeader>
           <CardContent className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie
-                  data={trafficBreakdown}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={80}
-                  outerRadius={100}
-                  paddingAngle={5}
-                  dataKey="value"
-                  animationDuration={1500}
-                >
-                  {trafficBreakdown.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
+                <Pie data={trafficBreakdown} cx="50%" cy="50%" innerRadius={80} outerRadius={100} paddingAngle={5} dataKey="value" animationDuration={1500}>
+                  {trafficBreakdown.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                 </Pie>
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#1a1d2e', border: 'none', borderRadius: '12px', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }}
-                />
+                <Tooltip contentStyle={{ backgroundColor: '#1a1d2e', border: 'none', borderRadius: '12px' }} />
                 <Legend verticalAlign="bottom" height={36}/>
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        {/* Attack type bar */}
         <Card className="border-border/50 bg-card">
           <CardHeader>
             <CardTitle className="text-lg font-bold uppercase tracking-widest">Threat Vector Distribution</CardTitle>
-            <CardDescription>Breakdown by semantic attack category</CardDescription>
           </CardHeader>
           <CardContent className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -197,10 +180,7 @@ export default function AnalyticsPage() {
                 <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#2a2d3e" />
                 <XAxis type="number" hide />
                 <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={10} width={100} axisLine={false} tickLine={false} />
-                <Tooltip 
-                  cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                  contentStyle={{ backgroundColor: '#1a1d2e', border: 'none', borderRadius: '12px' }}
-                />
+                <Tooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} contentStyle={{ backgroundColor: '#1a1d2e', border: 'none', borderRadius: '12px' }} />
                 <Bar dataKey="count" fill="#ef4444" radius={[0, 4, 4, 0]} barSize={20} animationDuration={1500} />
               </BarChart>
             </ResponsiveContainer>
@@ -208,7 +188,6 @@ export default function AnalyticsPage() {
         </Card>
       </div>
 
-      {/* Heatmap Section */}
       <Card className="border-border/50 bg-card">
         <CardHeader>
           <CardTitle className="text-lg font-bold uppercase tracking-widest">Attack Activity Heatmap</CardTitle>
@@ -233,22 +212,13 @@ export default function AnalyticsPage() {
               })}
             </div>
           </div>
-          <div className="flex justify-between mt-4 text-[10px] font-mono text-muted-foreground px-12 uppercase tracking-widest">
-            <span>00:00</span>
-            <span>06:00</span>
-            <span>12:00</span>
-            <span>18:00</span>
-            <span>23:00</span>
-          </div>
         </CardContent>
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Top Attacker IPs */}
         <Card className="lg:col-span-2 border-border/50 bg-card">
           <CardHeader>
             <CardTitle className="text-lg font-bold uppercase tracking-widest">High Risk Sources</CardTitle>
-            <CardDescription>Top sources of verified malicious payloads</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
@@ -261,13 +231,13 @@ export default function AnalyticsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {topIps.map((ip, i) => (
+                {topIps.map((ip: any, i: number) => (
                   <TableRow key={i} className="border-border/20">
                     <TableCell className="font-mono text-sm font-bold text-accent">{ip.ip}</TableCell>
                     <TableCell className="text-right font-mono text-sm">{ip.total}</TableCell>
                     <TableCell className="text-right font-mono text-sm font-extrabold text-destructive">{ip.blocked}</TableCell>
                     <TableCell>
-                      <Badge variant="secondary" className="text-[9px] font-bold uppercase tracking-tighter bg-destructive/10 text-destructive border-destructive/20">
+                      <Badge variant="secondary" className="text-[9px] font-bold uppercase tracking-tighter bg-destructive/10 text-destructive">
                         {ip.type}
                       </Badge>
                     </TableCell>
@@ -278,16 +248,13 @@ export default function AnalyticsPage() {
           </CardContent>
         </Card>
 
-        {/* Intelligence Card */}
         <Card className="border-border/50 bg-destructive/5 flex flex-col items-center justify-center text-center p-8 space-y-6">
           <div className="p-6 rounded-full bg-destructive/10 border border-destructive/20 text-destructive">
             <ShieldAlert className="h-12 w-12" />
           </div>
           <div className="space-y-2">
             <h3 className="text-xl font-extrabold tracking-tight">System Status: ALERT</h3>
-            <p className="text-xs text-muted-foreground leading-relaxed uppercase tracking-widest">
-              Peak attack activity detected on Tuesday between 14:00 - 16:00 UTC. Recommended firewall policy update.
-            </p>
+            <p className="text-xs text-muted-foreground uppercase tracking-widest">Recommended firewall policy update based on peak activity.</p>
           </div>
           <Button 
             className="w-full bg-destructive hover:bg-destructive/90 text-white font-bold h-12 uppercase tracking-widest"

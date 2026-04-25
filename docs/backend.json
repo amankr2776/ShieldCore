@@ -1,0 +1,50 @@
+
+{
+  "entities": {
+    "AttackLog": {
+      "title": "Attack Log",
+      "description": "A record of a security analysis performed by the WAF engine.",
+      "type": "object",
+      "properties": {
+        "timestamp": { "type": "string", "format": "date-time" },
+        "raw_input": { "type": "string" },
+        "decoded_input": { "type": "string" },
+        "predicted_class": { "type": "string" },
+        "confidence_score": { "type": "number" },
+        "decision": { "type": "string", "enum": ["BLOCKED", "SAFE", "SUSPICIOUS"] },
+        "owasp_category": { "type": "string" },
+        "inference_time_ms": { "type": "number" },
+        "ip_address": { "type": "string" },
+        "endpoint": { "type": "string" },
+        "country": { "type": "string" },
+        "method": { "type": "string" }
+      },
+      "required": ["timestamp", "raw_input", "predicted_class", "decision"]
+    },
+    "UserFeedback": {
+      "title": "User Feedback",
+      "description": "False positive reports from security analysts.",
+      "type": "object",
+      "properties": {
+        "timestamp": { "type": "string", "format": "date-time" },
+        "payload": { "type": "string" },
+        "predicted_class": { "type": "string" },
+        "user_label": { "type": "string" }
+      },
+      "required": ["timestamp", "payload", "user_label"]
+    }
+  },
+  "auth": {
+    "providers": ["password"]
+  },
+  "firestore": {
+    "/attacks/{attackId}": {
+      "schema": "AttackLog",
+      "description": "Collection of security analysis events."
+    },
+    "/feedback/{feedbackId}": {
+      "schema": "UserFeedback",
+      "description": "Collection of analyst feedback on classifications."
+    }
+  }
+}
