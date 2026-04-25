@@ -16,7 +16,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-// --- ADVANCED SHADERS ---
+// --- ADVANCED CINEMATIC SHADERS ---
 
 const EARTH_VERTEX = `
   varying vec2 vUv;
@@ -41,34 +41,46 @@ const EARTH_FRAGMENT = `
   }
 
   void main() {
-    float nightLights = pow(noise(vUv * 50.0), 10.0) * 2.0;
-    vec3 color = vec3(0.01, 0.02, 0.05); // Deep space blue
+    // Night lights simulation (NASA Black Marble style)
+    float nightLights = pow(noise(vUv * 60.0), 12.0) * 3.0;
+    vec3 color = vec3(0.005, 0.01, 0.03); // Deep space blue ocean
     
     // Simulate city clusters
-    float clusters = smoothstep(0.4, 0.5, noise(vUv * 10.0));
-    vec3 cityColor = vec3(1.0, 0.7, 0.3) * nightLights * clusters;
+    float clusters = smoothstep(0.35, 0.5, noise(vUv * 12.0));
+    vec3 cityColor = vec3(1.0, 0.8, 0.4) * nightLights * clusters;
     
-    // Atmosphere rim glow
-    float intensity = pow(0.7 - dot(vNormal, vec3(0, 0, 1.0)), 4.0);
-    vec3 glow = vec3(0.1, 0.4, 1.0) * intensity;
+    // Specular ocean shimmer
+    float spec = pow(max(dot(vNormal, vec3(0, 0, 1.0)), 0.0), 32.0);
+    vec3 specColor = vec3(0.1, 0.2, 0.5) * spec * 0.2;
     
-    gl_FragColor = vec4(color + cityColor + glow, 1.0);
+    gl_FragColor = vec4(color + cityColor + specColor, 1.0);
   }
 `;
 
 const ATMOSPHERE_VERTEX = `
   varying vec3 vNormal;
+  varying vec3 vPosition;
   void main() {
     vNormal = normalize(normalMatrix * normal);
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.1);
+    vPosition = position;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }
 `;
 
 const ATMOSPHERE_FRAGMENT = `
   varying vec3 vNormal;
+  varying vec3 vPosition;
+  uniform float time;
   void main() {
-    float intensity = pow(0.6 - dot(vNormal, vec3(0, 0, 1.0)), 2.0);
-    gl_FragColor = vec4(0.3, 0.6, 1.0, intensity * 0.6);
+    // Atmospheric rim glow
+    float intensity = pow(0.65 - dot(vNormal, vec3(0, 0, 1.0)), 3.5);
+    vec3 atmosphereColor = vec3(0.2, 0.5, 1.0);
+    
+    // Simulated God rays at poles
+    float rays = pow(max(0.0, 1.0 - abs(vPosition.y / 4.0)), 8.0);
+    float flicker = 1.0 + 0.1 * sin(time * 2.0);
+    
+    gl_FragColor = vec4(atmosphereColor, intensity * 0.7 * flicker);
   }
 `;
 
@@ -90,9 +102,26 @@ const NEBULA_FRAGMENT = `
   }
 
   void main() {
-    float n = noise(vUv + time * 0.02);
-    float alpha = smoothstep(0.2, 0.8, n) * (1.0 - length(vUv - 0.5) * 2.0);
-    gl_FragColor = vec4(color, alpha * 0.15);
+    float n = noise(vUv + time * 0.01);
+    float alpha = smoothstep(0.1, 0.9, n) * (1.0 - length(vUv - 0.5) * 2.5);
+    gl_FragColor = vec4(color, alpha * 0.2);
+  }
+`;
+
+const BINARY_VERTEX = `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const BINARY_FRAGMENT = `
+  uniform float time;
+  varying vec2 vUv;
+  void main() {
+    float flow = step(0.9, fract(vUv.x * 20.0 - time * 2.0)) * step(0.5, fract(vUv.y * 5.0));
+    gl_FragColor = vec4(0.0, 1.0, 0.4, flow * 0.3);
   }
 `;
 
@@ -104,17 +133,12 @@ const CITIES = [
   { name: "Tokyo", lat: 35.6762, lon: 139.6503 },
   { name: "Beijing", lat: 39.9042, lon: 116.4074 },
   { name: "Moscow", lat: 55.7558, lon: 37.6173 },
-  { name: "Tehran", lat: 35.6892, lon: 51.3890 },
-  { name: "Pyongyang", lat: 39.0392, lon: 125.7625 },
   { name: "São Paulo", lat: -23.5505, lon: -46.6333 },
-  { name: "Mumbai", lat: 19.0760, lon: 72.8777 },
   { name: "Sydney", lat: -33.8688, lon: 151.2093 },
-  { name: "Berlin", lat: 52.5200, lon: 13.4050 },
   { name: "Paris", lat: 48.8566, lon: 2.3522 },
   { name: "Dubai", lat: 25.2048, lon: 55.2708 },
   { name: "Singapore", lat: 1.3521, lon: 103.8198 },
-  { name: "Seoul", lat: 37.5665, lon: 126.9780 },
-  { name: "Johannesburg", lat: -26.2041, lon: 28.0473 }
+  { name: "Seoul", lat: 37.5665, lon: 126.9780 }
 ];
 
 const ATTACK_COLORS = [0xef4444, 0xf97316, 0x06b6d4]; // Red, Orange, Cyan
@@ -165,13 +189,14 @@ export default function LandingPage() {
     const earthMesh = new THREE.Mesh(earthGeo, earthMat);
     globeGroup.add(earthMesh);
 
-    const atmosGeo = new THREE.SphereGeometry(4.15, 64, 64);
+    const atmosGeo = new THREE.SphereGeometry(4.2, 64, 64);
     const atmosMat = new THREE.ShaderMaterial({
       vertexShader: ATMOSPHERE_VERTEX,
       fragmentShader: ATMOSPHERE_FRAGMENT,
       side: THREE.BackSide,
       transparent: true,
-      blending: THREE.AdditiveBlending
+      blending: THREE.AdditiveBlending,
+      uniforms: { time: { value: 0 } }
     });
     const atmosMesh = new THREE.Mesh(atmosGeo, atmosMat);
     globeGroup.add(atmosMesh);
@@ -186,33 +211,61 @@ export default function LandingPage() {
       starPos[i * 3 + 2] = (Math.random() - 0.5) * 1500;
     }
     starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
-    const starMat = new THREE.PointsMaterial({ size: 0.7, color: 0xffffff, transparent: true, opacity: 0.8 });
+    const starMat = new THREE.PointsMaterial({ size: 0.8, color: 0xffffff, transparent: true, opacity: 0.6 });
     const stars = new THREE.Points(starGeo, starMat);
     scene.add(stars);
 
     // --- NEBULAE ---
-    const createNebula = (color: number, x: number) => {
-      const geo = new THREE.PlaneGeometry(30, 30);
-      const mat = new THREE.ShaderMaterial({
-        vertexShader: NEBULA_VERTEX,
-        fragmentShader: NEBULA_FRAGMENT,
-        uniforms: {
-          time: { value: 0 },
-          color: { value: new THREE.Color(color) }
-        },
-        transparent: true,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false
-      });
-      const nebula = new THREE.Mesh(geo, mat);
-      nebula.position.set(x, 0, -50);
-      scene.add(nebula);
-      return mat;
-    };
-    const nebulaLeft = createNebula(0x4c1d95, -40); // Purple
-    const nebulaRight = createNebula(0x1e1b4b, 40); // Indigo
+    const nebulaLeft = new THREE.ShaderMaterial({
+      vertexShader: NEBULA_VERTEX,
+      fragmentShader: NEBULA_FRAGMENT,
+      uniforms: { time: { value: 0 }, color: { value: new THREE.Color(0x4c1d95) } },
+      transparent: true, blending: THREE.AdditiveBlending, depthWrite: false
+    });
+    const nebulaRight = new THREE.ShaderMaterial({
+      vertexShader: NEBULA_VERTEX,
+      fragmentShader: NEBULA_FRAGMENT,
+      uniforms: { time: { value: 0 }, color: { value: new THREE.Color(0x1e1b4b) } },
+      transparent: true, blending: THREE.AdditiveBlending, depthWrite: false
+    });
+    
+    const nebulaPlane = new THREE.PlaneGeometry(50, 50);
+    const nLeft = new THREE.Mesh(nebulaPlane, nebulaLeft);
+    nLeft.position.set(-30, 0, -40);
+    scene.add(nLeft);
+    
+    const nRight = new THREE.Mesh(nebulaPlane, nebulaRight);
+    nRight.position.set(30, 0, -40);
+    scene.add(nRight);
 
-    // --- ATTACK ARCS & PARTICLES ---
+    // --- BINARY RING ---
+    const binaryRingGeo = new THREE.RingGeometry(5.8, 6.0, 64);
+    const binaryRingMat = new THREE.ShaderMaterial({
+      vertexShader: BINARY_VERTEX,
+      fragmentShader: BINARY_FRAGMENT,
+      uniforms: { time: { value: 0 } },
+      transparent: true,
+      side: THREE.DoubleSide
+    });
+    const binaryRing = new THREE.Mesh(binaryRingGeo, binaryRingMat);
+    binaryRing.rotation.x = Math.PI / 2;
+    globeGroup.add(binaryRing);
+
+    // --- HEX ARMOR RING ---
+    const hexGroup = new THREE.Group();
+    const hexGeo = new THREE.CircleGeometry(0.3, 6);
+    const hexMat = new THREE.MeshBasicMaterial({ color: 0x06b6d4, wireframe: true, transparent: true, opacity: 0.2 });
+    for (let i = 0; i < 24; i++) {
+      const angle = (i / 24) * Math.PI * 2;
+      const hex = new THREE.Mesh(hexGeo, hexMat);
+      hex.position.set(Math.cos(angle) * 7, Math.sin(angle) * 7, 0);
+      hex.rotation.z = angle;
+      hexGroup.add(hex);
+    }
+    hexGroup.rotation.x = Math.PI / 2.5;
+    globeGroup.add(hexGroup);
+
+    // --- ARCS & IMPACTS ---
     const arcsGroup = new THREE.Group();
     globeGroup.add(arcsGroup);
     let activeArcs: any[] = [];
@@ -232,33 +285,18 @@ export default function LandingPage() {
       const end = cityPositions[Math.floor(Math.random() * cityPositions.length)];
       if (start.distanceTo(end) < 1) return;
 
-      const mid = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5).normalize().multiplyScalar(5.5);
+      const mid = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5).normalize().multiplyScalar(6);
       const curve = new THREE.QuadraticBezierCurve3(start, mid, end);
       const points = curve.getPoints(50);
       const geo = new THREE.BufferGeometry().setFromPoints(points);
-      const mat = new THREE.LineBasicMaterial({ 
-        color: ATTACK_COLORS[Math.floor(Math.random() * ATTACK_COLORS.length)],
-        transparent: true,
-        opacity: 0
-      });
+      const color = ATTACK_COLORS[Math.floor(Math.random() * ATTACK_COLORS.length)];
+      const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0 });
       const arc = new THREE.Line(geo, mat);
       (arc as any).progress = 0;
-      (arc as any).speed = 0.01 + Math.random() * 0.02;
+      (arc as any).speed = 0.008 + Math.random() * 0.015;
       arcsGroup.add(arc);
       activeArcs.push(arc);
     };
-
-    // --- DATA RINGS ---
-    const hexRing = new THREE.Group();
-    const hexGeo = new THREE.RingGeometry(6.5, 6.7, 6);
-    const hexMat = new THREE.MeshBasicMaterial({ color: 0x06b6d4, transparent: true, opacity: 0.1, side: THREE.DoubleSide });
-    for (let i = 0; i < 12; i++) {
-      const hex = new THREE.Mesh(hexGeo, hexMat);
-      hex.rotation.x = Math.PI / 2;
-      hex.rotation.y = (i / 12) * Math.PI * 2;
-      hexRing.add(hex);
-    }
-    globeGroup.add(hexRing);
 
     // --- ANIMATION LOOP ---
     camera.position.z = 12;
@@ -270,27 +308,30 @@ export default function LandingPage() {
       const time = clock.getElapsedTime();
 
       earthMat.uniforms.time.value = time;
+      atmosMat.uniforms.time.value = time;
       nebulaLeft.uniforms.time.value = time;
       nebulaRight.uniforms.time.value = time;
+      binaryRingMat.uniforms.time.value = time;
 
-      globeGroup.rotation.y += 0.0005;
-      hexRing.rotation.z -= 0.001;
+      globeGroup.rotation.y += 0.0006;
+      hexGroup.rotation.z -= 0.001;
+      stars.rotation.y += 0.0001;
 
       // Update Arcs
       activeArcs.forEach((arc, i) => {
         arc.progress += arc.speed;
-        arc.material.opacity = arc.progress < 0.5 ? arc.progress * 2 : (1 - arc.progress) * 2;
+        arc.material.opacity = arc.progress < 0.2 ? arc.progress * 5 : (1 - arc.progress) * 2;
         if (arc.progress >= 1) {
           arcsGroup.remove(arc);
           activeArcs.splice(i, 1);
         }
       });
 
-      if (Math.random() > 0.95 && activeArcs.length < 100) createArc();
+      if (Math.random() > 0.96 && activeArcs.length < 150) createArc();
 
-      // Mouse Parallax
-      const targetX = mouse.x * 0.2;
-      const targetY = mouse.y * 0.2;
+      // Mouse Parallax with smooth damping
+      const targetX = mouse.x * 0.15;
+      const targetY = mouse.y * 0.15;
       scene.rotation.y += (targetX - scene.rotation.y) * 0.05;
       scene.rotation.x += (targetY - scene.rotation.x) * 0.05;
 
@@ -325,8 +366,8 @@ export default function LandingPage() {
     <div className="relative min-h-screen bg-[#020408] overflow-hidden font-body text-white selection:bg-destructive/40">
       
       {/* Cinematic Letterbox */}
-      <div className="fixed top-0 left-0 w-full h-[8vh] bg-black z-[200] pointer-events-none opacity-80" />
-      <div className="fixed bottom-0 left-0 w-full h-[8vh] bg-black z-[200] pointer-events-none opacity-80" />
+      <div className="fixed top-0 left-0 w-full h-[8vh] bg-black z-[200] pointer-events-none opacity-60" />
+      <div className="fixed bottom-0 left-0 w-full h-[8vh] bg-black z-[200] pointer-events-none opacity-60" />
       
       <canvas 
         ref={canvasRef} 
@@ -336,9 +377,10 @@ export default function LandingPage() {
         )} 
       />
 
-      {/* HUD Reticle */}
-      <div className="fixed inset-0 pointer-events-none z-10 flex items-center justify-center opacity-10">
-        <div className="relative w-[600px] h-[600px] border border-cyan-500/20 rounded-full animate-[spin_30s_linear_infinite]" />
+      {/* Cinematic Overlays (Post-processing simulation) */}
+      <div className="fixed inset-0 pointer-events-none z-[50] pointer-events-none">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.8)_100%)]" />
+        <div className="absolute inset-0 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] pointer-events-none" />
       </div>
 
       {/* Telemetry Docks */}
@@ -435,4 +477,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
