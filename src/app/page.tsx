@@ -16,139 +16,287 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-// --- ADVANCED CINEMATIC SHADERS ---
+// --- CINEMATIC BACKGROUND COMPONENT ---
 
-const EARTH_VERTEX = `
-  varying vec2 vUv;
-  varying vec3 vNormal;
-  varying vec3 vPosition;
-  void main() {
-    vUv = uv;
-    vNormal = normalize(normalMatrix * normal);
-    vPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-  }
-`;
+const CinematicBackground = () => {
+  const threeCanvasRef = useRef<HTMLCanvasElement>(null);
+  const dataCanvasRef = useRef<HTMLCanvasElement>(null);
+  const [reducedMotion, setReducedMotion] = useState(false);
 
-const EARTH_FRAGMENT = `
-  varying vec2 vUv;
-  varying vec3 vNormal;
-  varying vec3 vPosition;
-  uniform float time;
-  
-  float noise(vec2 p) {
-    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
-  }
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setReducedMotion(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
 
-  void main() {
-    // Night lights simulation (NASA Black Marble style)
-    float nightLights = pow(noise(vUv * 60.0), 12.0) * 3.0;
-    vec3 color = vec3(0.005, 0.01, 0.03); // Deep space blue ocean
+  useEffect(() => {
+    if (!threeCanvasRef.current) return;
     
-    // Simulate city clusters
-    float clusters = smoothstep(0.35, 0.5, noise(vUv * 12.0));
-    vec3 cityColor = vec3(1.0, 0.8, 0.4) * nightLights * clusters;
+    // LAYER 1 & 2: THREE.JS
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ 
+      canvas: threeCanvasRef.current, 
+      alpha: true, 
+      antialias: true 
+    });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    // Shield (Layer 1)
+    const shieldShape = new THREE.Shape();
+    shieldShape.moveTo(0, 2);
+    shieldShape.lineTo(1.5, 1);
+    shieldShape.lineTo(1.5, -1);
+    shieldShape.lineTo(0, -2.5);
+    shieldShape.lineTo(-1.5, -1);
+    shieldShape.lineTo(-1.5, 1);
+    shieldShape.closePath();
     
-    // Specular ocean shimmer
-    float spec = pow(max(dot(vNormal, vec3(0, 0, 1.0)), 0.0), 32.0);
-    vec3 specColor = vec3(0.1, 0.2, 0.5) * spec * 0.2;
+    const shieldGeo = new THREE.ShapeGeometry(shieldShape);
+    const shieldEdges = new THREE.EdgesGeometry(shieldGeo);
+    const shieldMat = new THREE.LineBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.4 });
+    const shield = new THREE.LineSegments(shieldEdges, shieldMat);
+    shield.position.set(3, 0, -8);
+    shield.scale.set(2, 2, 2);
+    scene.add(shield);
+
+    // Particles (Layer 2)
+    const particleCount = 200;
+    const particlesGeo = new THREE.BufferGeometry();
+    const posArray = new Float32Array(particleCount * 3);
+    const colorArray = new Float32Array(particleCount * 3);
+    const velocities: { x: number; y: number; z: number }[] = [];
+
+    for (let i = 0; i < particleCount; i++) {
+      posArray[i * 3] = (Math.random() - 0.5) * 30;
+      posArray[i * 3 + 1] = (Math.random() - 0.5) * 20;
+      posArray[i * 3 + 2] = (Math.random() - 0.5) * 10;
+      
+      const isRed = Math.random() > 0.5;
+      colorArray[i * 3] = isRed ? 0.93 : 1;
+      colorArray[i * 3 + 1] = isRed ? 0.26 : 1;
+      colorArray[i * 3 + 2] = isRed ? 0.26 : 1;
+
+      velocities.push({
+        x: (Math.random() - 0.5) * 0.02,
+        y: (Math.random() - 0.5) * 0.02,
+        z: (Math.random() - 0.5) * 0.02
+      });
+    }
+
+    particlesGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+    particlesGeo.setAttribute('color', new THREE.BufferAttribute(colorArray, 3));
+    const pMat = new THREE.PointsMaterial({ size: 0.1, vertexColors: true, transparent: true, opacity: 0.6 });
+    const pPoints = new THREE.Points(particlesGeo, pMat);
+    scene.add(pPoints);
+
+    // Network Lines
+    const lineGeo = new THREE.BufferGeometry();
+    const lineMat = new THREE.LineBasicMaterial({ transparent: true, opacity: 0.15, vertexColors: true });
+    const lineMesh = new THREE.LineSegments(lineGeo, lineMat);
+    scene.add(lineMesh);
+
+    camera.position.z = 12;
+
+    let frameId: number;
+    const animate = () => {
+      frameId = requestAnimationFrame(animate);
+      if (reducedMotion) {
+        renderer.render(scene, camera);
+        return;
+      }
+
+      // Shield animation
+      shield.rotation.y += 0.003;
+      shieldMat.opacity = 0.3 + 0.3 * Math.abs(Math.sin(Date.now() * 0.0005));
+
+      // Particles movement
+      const positions = particlesGeo.attributes.position.array as Float32Array;
+      const networkPos = [];
+      const networkColors = [];
+
+      for (let i = 0; i < particleCount; i++) {
+        positions[i * 3] += velocities[i].x;
+        positions[i * 3 + 1] += velocities[i].y;
+        positions[i * 3 + 2] += velocities[i].z;
+
+        if (Math.abs(positions[i * 3]) > 20) velocities[i].x *= -1;
+        if (Math.abs(positions[i * 3 + 1]) > 15) velocities[i].y *= -1;
+        if (Math.abs(positions[i * 3 + 2]) > 10) velocities[i].z *= -1;
+
+        // Line threshold check
+        for (let j = i + 1; j < particleCount; j++) {
+          const dx = positions[i * 3] - positions[j * 3];
+          const dy = positions[i * 3 + 1] - positions[j * 3 + 1];
+          const dz = positions[i * 3 + 2] - positions[j * 3 + 2];
+          const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+          
+          if (dist < 4) {
+            networkPos.push(positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]);
+            networkPos.push(positions[j * 3], positions[j * 3 + 1], positions[j * 3 + 2]);
+            networkColors.push(colorArray[i * 3], colorArray[i * 3 + 1], colorArray[i * 3 + 2]);
+            networkColors.push(colorArray[i * 3], colorArray[i * 3 + 1], colorArray[i * 3 + 2]);
+          }
+        }
+      }
+      particlesGeo.attributes.position.needsUpdate = true;
+      lineGeo.setAttribute('position', new THREE.Float32BufferAttribute(networkPos, 3));
+      lineGeo.setAttribute('color', new THREE.Float32BufferAttribute(networkColors, 3));
+
+      renderer.render(scene, camera);
+    };
+    animate();
+
+    const resize = () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    };
+    window.addEventListener('resize', resize);
+
+    return () => {
+      cancelAnimationFrame(frameId);
+      window.removeEventListener('resize', resize);
+      shieldGeo.dispose();
+      shieldEdges.dispose();
+      shieldMat.dispose();
+      particlesGeo.dispose();
+      pMat.dispose();
+      lineGeo.dispose();
+      lineMat.dispose();
+      renderer.dispose();
+    };
+  }, [reducedMotion]);
+
+  useEffect(() => {
+    if (!dataCanvasRef.current) return;
     
-    gl_FragColor = vec4(color + cityColor + specColor, 1.0);
-  }
-`;
+    const canvas = dataCanvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-const ATMOSPHERE_VERTEX = `
-  varying vec3 vNormal;
-  varying vec3 vPosition;
-  void main() {
-    vNormal = normalize(normalMatrix * normal);
-    vPosition = position;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-  }
-`;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
-const ATMOSPHERE_FRAGMENT = `
-  varying vec3 vNormal;
-  varying vec3 vPosition;
-  uniform float time;
-  void main() {
-    // Atmospheric rim glow
-    float intensity = pow(0.65 - dot(vNormal, vec3(0, 0, 1.0)), 3.5);
-    vec3 atmosphereColor = vec3(0.2, 0.5, 1.0);
-    
-    // Simulated God rays at poles
-    float rays = pow(max(0.0, 1.0 - abs(vPosition.y / 4.0)), 8.0);
-    float flicker = 1.0 + 0.1 * sin(time * 2.0);
-    
-    gl_FragColor = vec4(atmosphereColor, intensity * 0.7 * flicker);
-  }
-`;
+    // Data Streams setup
+    const columnsCount = 15;
+    const chars = '01ABCDEF<>/={}';
+    const columns = Array.from({ length: columnsCount }).map((_, i) => ({
+      x: (canvas.width / columnsCount) * i + (canvas.width / columnsCount / 2),
+      y: Math.random() * canvas.height,
+      speed: 0.3 + Math.random() * 0.5
+    }));
 
-const NEBULA_VERTEX = `
-  varying vec2 vUv;
-  void main() {
-    vUv = uv;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-  }
-`;
+    let gridOffset = 0;
+    let frameId: number;
 
-const NEBULA_FRAGMENT = `
-  uniform float time;
-  uniform vec3 color;
-  varying vec2 vUv;
+    const animate = () => {
+      frameId = requestAnimationFrame(animate);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      const isStatic = reducedMotion;
 
-  float noise(vec2 p) {
-    return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
-  }
+      // Layer 4: Grid Floor
+      ctx.globalAlpha = 0.25;
+      ctx.strokeStyle = '#7f1d1d';
+      ctx.lineWidth = 1;
+      const horizon = canvas.height * 0.65;
+      const startY = canvas.height;
+      const gridCount = 20;
 
-  void main() {
-    float n = noise(vUv + time * 0.01);
-    float alpha = smoothstep(0.1, 0.9, n) * (1.0 - length(vUv - 0.5) * 2.5);
-    gl_FragColor = vec4(color, alpha * 0.2);
-  }
-`;
+      // Vertical lines
+      for (let i = -10; i <= 30; i++) {
+        const x = (canvas.width / 20) * i;
+        ctx.beginPath();
+        ctx.moveTo(canvas.width / 2 + (x - canvas.width / 2) * 0.05, horizon);
+        ctx.lineTo(x, startY);
+        ctx.stroke();
+      }
 
-const BINARY_VERTEX = `
-  varying vec2 vUv;
-  void main() {
-    vUv = uv;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-  }
-`;
+      // Horizontal lines
+      if (!isStatic) gridOffset = (gridOffset + 0.5) % 50;
+      for (let i = 0; i < gridCount; i++) {
+        const p = (i + gridOffset / 50) / gridCount;
+        const yPos = horizon + (startY - horizon) * Math.pow(p, 2);
+        ctx.beginPath();
+        ctx.moveTo(0, yPos);
+        ctx.lineTo(canvas.width, yPos);
+        ctx.stroke();
+      }
 
-const BINARY_FRAGMENT = `
-  uniform float time;
-  varying vec2 vUv;
-  void main() {
-    float flow = step(0.9, fract(vUv.x * 20.0 - time * 2.0)) * step(0.5, fract(vUv.y * 5.0));
-    gl_FragColor = vec4(0.0, 1.0, 0.4, flow * 0.3);
-  }
-`;
+      // Layer 3: Matrix Rain
+      ctx.font = '12px monospace';
+      ctx.textAlign = 'center';
+      ctx.globalAlpha = 0.2;
+      columns.forEach(col => {
+        const grad = ctx.createLinearGradient(col.x, col.y - 150, col.x, col.y);
+        grad.addColorStop(0, 'transparent');
+        grad.addColorStop(1, '#ef4444');
+        ctx.fillStyle = grad;
 
-// --- DATA & COORDINATES ---
+        for (let i = 0; i < 12; i++) {
+          const char = chars[Math.floor(Math.random() * chars.length)];
+          ctx.fillText(char, col.x, col.y - (i * 15));
+        }
 
-const CITIES = [
-  { name: "New York", lat: 40.7128, lon: -74.0060 },
-  { name: "London", lat: 51.5074, lon: -0.1278 },
-  { name: "Tokyo", lat: 35.6762, lon: 139.6503 },
-  { name: "Beijing", lat: 39.9042, lon: 116.4074 },
-  { name: "Moscow", lat: 55.7558, lon: 37.6173 },
-  { name: "São Paulo", lat: -23.5505, lon: -46.6333 },
-  { name: "Sydney", lat: -33.8688, lon: 151.2093 },
-  { name: "Paris", lat: 48.8566, lon: 2.3522 },
-  { name: "Dubai", lat: 25.2048, lon: 55.2708 },
-  { name: "Singapore", lat: 1.3521, lon: 103.8198 },
-  { name: "Seoul", lat: 37.5665, lon: 126.9780 }
-];
+        if (!isStatic) col.y += col.speed;
+        if (col.y > canvas.height + 150) col.y = -20;
+      });
+    };
 
-const ATTACK_COLORS = [0xef4444, 0xf97316, 0x06b6d4]; // Red, Orange, Cyan
+    animate();
+
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    window.addEventListener('resize', resize);
+
+    return () => {
+      cancelAnimationFrame(frameId);
+      window.removeEventListener('resize', resize);
+    };
+  }, [reducedMotion]);
+
+  return (
+    <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-[#000008]">
+      {/* Layer 5: Ambient Orbs */}
+      <div className="absolute inset-0 opacity-60">
+        <div className="orb orb-red" />
+        <div className="orb orb-blue" />
+        <div className="orb orb-purple" />
+      </div>
+      
+      {/* WebGL Layer (1 & 2) */}
+      <canvas ref={threeCanvasRef} className="absolute inset-0" />
+      
+      {/* 2D Layer (3 & 4) */}
+      <canvas ref={dataCanvasRef} className="absolute inset-0" />
+      
+      {/* Film Grain & Depth Overlay */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.8)_100%)]" />
+      <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")` }} />
+
+      <style jsx>{`
+        .orb { position: absolute; border-radius: 50%; filter: blur(80px); }
+        .orb-red { width: 600px; height: 600px; background: radial-gradient(circle, #991b1b 0%, transparent 70%); top: -100px; left: -100px; opacity: 0.15; animation: orbOrbit 20s linear infinite; }
+        .orb-blue { width: 800px; height: 800px; background: radial-gradient(circle, #1e3a5f 0%, transparent 70%); bottom: -200px; right: -200px; opacity: 0.12; animation: orbOrbit 25s linear reverse infinite; }
+        .orb-purple { width: 500px; height: 500px; background: radial-gradient(circle, #3b0764 0%, transparent 70%); top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.08; animation: orbPulse 15s ease-in-out infinite; }
+        @keyframes orbOrbit { 0% { transform: translate(0, 0); } 25% { transform: translate(100px, 50px); } 50% { transform: translate(50px, 100px); } 75% { transform: translate(-50px, 50px); } 100% { transform: translate(0, 0); } }
+        @keyframes orbPulse { 0%, 100% { opacity: 0.05; transform: translate(-50%, -50%) scale(1); } 50% { opacity: 0.1; transform: translate(-50%, -50%) scale(1.1); } }
+      `}</style>
+    </div>
+  );
+};
+
+// --- MAIN PAGE ---
 
 export default function LandingPage() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [introFinished, setIntroFinished] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
   const [stats, setStats] = useState({ blocked: 124902, analyzed: 2845920 });
-  const [mouse, setMouse] = useState({ x: 0, y: 0 });
+  const [isMuted, setIsMuted] = useState(true);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -160,234 +308,17 @@ export default function LandingPage() {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    if (!canvasRef.current) return;
-
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
-    const renderer = new THREE.WebGLRenderer({ 
-      canvas: canvasRef.current, 
-      antialias: true, 
-      alpha: true 
-    });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
-    const clock = new THREE.Clock();
-    const globeGroup = new THREE.Group();
-    globeGroup.rotation.y = -Math.PI / 2;
-    globeGroup.rotation.z = THREE.MathUtils.degToRad(23.5);
-    scene.add(globeGroup);
-
-    // --- EARTH & ATMOSPHERE ---
-    const earthGeo = new THREE.SphereGeometry(4, 128, 128);
-    const earthMat = new THREE.ShaderMaterial({
-      vertexShader: EARTH_VERTEX,
-      fragmentShader: EARTH_FRAGMENT,
-      uniforms: { time: { value: 0 } }
-    });
-    const earthMesh = new THREE.Mesh(earthGeo, earthMat);
-    globeGroup.add(earthMesh);
-
-    const atmosGeo = new THREE.SphereGeometry(4.2, 64, 64);
-    const atmosMat = new THREE.ShaderMaterial({
-      vertexShader: ATMOSPHERE_VERTEX,
-      fragmentShader: ATMOSPHERE_FRAGMENT,
-      side: THREE.BackSide,
-      transparent: true,
-      blending: THREE.AdditiveBlending,
-      uniforms: { time: { value: 0 } }
-    });
-    const atmosMesh = new THREE.Mesh(atmosGeo, atmosMat);
-    globeGroup.add(atmosMesh);
-
-    // --- STARFIELD (50,000 Particles) ---
-    const starsCount = 50000;
-    const starGeo = new THREE.BufferGeometry();
-    const starPos = new Float32Array(starsCount * 3);
-    for (let i = 0; i < starsCount; i++) {
-      starPos[i * 3] = (Math.random() - 0.5) * 1500;
-      starPos[i * 3 + 1] = (Math.random() - 0.5) * 1500;
-      starPos[i * 3 + 2] = (Math.random() - 0.5) * 1500;
-    }
-    starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
-    const starMat = new THREE.PointsMaterial({ size: 0.8, color: 0xffffff, transparent: true, opacity: 0.6 });
-    const stars = new THREE.Points(starGeo, starMat);
-    scene.add(stars);
-
-    // --- NEBULAE ---
-    const nebulaLeft = new THREE.ShaderMaterial({
-      vertexShader: NEBULA_VERTEX,
-      fragmentShader: NEBULA_FRAGMENT,
-      uniforms: { time: { value: 0 }, color: { value: new THREE.Color(0x4c1d95) } },
-      transparent: true, blending: THREE.AdditiveBlending, depthWrite: false
-    });
-    const nebulaRight = new THREE.ShaderMaterial({
-      vertexShader: NEBULA_VERTEX,
-      fragmentShader: NEBULA_FRAGMENT,
-      uniforms: { time: { value: 0 }, color: { value: new THREE.Color(0x1e1b4b) } },
-      transparent: true, blending: THREE.AdditiveBlending, depthWrite: false
-    });
-    
-    const nebulaPlane = new THREE.PlaneGeometry(50, 50);
-    const nLeft = new THREE.Mesh(nebulaPlane, nebulaLeft);
-    nLeft.position.set(-30, 0, -40);
-    scene.add(nLeft);
-    
-    const nRight = new THREE.Mesh(nebulaPlane, nebulaRight);
-    nRight.position.set(30, 0, -40);
-    scene.add(nRight);
-
-    // --- BINARY RING ---
-    const binaryRingGeo = new THREE.RingGeometry(5.8, 6.0, 64);
-    const binaryRingMat = new THREE.ShaderMaterial({
-      vertexShader: BINARY_VERTEX,
-      fragmentShader: BINARY_FRAGMENT,
-      uniforms: { time: { value: 0 } },
-      transparent: true,
-      side: THREE.DoubleSide
-    });
-    const binaryRing = new THREE.Mesh(binaryRingGeo, binaryRingMat);
-    binaryRing.rotation.x = Math.PI / 2;
-    globeGroup.add(binaryRing);
-
-    // --- HEX ARMOR RING ---
-    const hexGroup = new THREE.Group();
-    const hexGeo = new THREE.CircleGeometry(0.3, 6);
-    const hexMat = new THREE.MeshBasicMaterial({ color: 0x06b6d4, wireframe: true, transparent: true, opacity: 0.2 });
-    for (let i = 0; i < 24; i++) {
-      const angle = (i / 24) * Math.PI * 2;
-      const hex = new THREE.Mesh(hexGeo, hexMat);
-      hex.position.set(Math.cos(angle) * 7, Math.sin(angle) * 7, 0);
-      hex.rotation.z = angle;
-      hexGroup.add(hex);
-    }
-    hexGroup.rotation.x = Math.PI / 2.5;
-    globeGroup.add(hexGroup);
-
-    // --- ARCS & IMPACTS ---
-    const arcsGroup = new THREE.Group();
-    globeGroup.add(arcsGroup);
-    let activeArcs: any[] = [];
-    
-    const cityPositions = CITIES.map(city => {
-      const phi = (90 - city.lat) * (Math.PI / 180);
-      const theta = (city.lon + 180) * (Math.PI / 180);
-      return new THREE.Vector3(
-        4 * Math.sin(phi) * Math.cos(theta),
-        4 * Math.cos(phi),
-        4 * Math.sin(phi) * Math.sin(theta)
-      );
-    });
-
-    const createArc = () => {
-      const start = cityPositions[Math.floor(Math.random() * cityPositions.length)];
-      const end = cityPositions[Math.floor(Math.random() * cityPositions.length)];
-      if (start.distanceTo(end) < 1) return;
-
-      const mid = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5).normalize().multiplyScalar(6);
-      const curve = new THREE.QuadraticBezierCurve3(start, mid, end);
-      const points = curve.getPoints(50);
-      const geo = new THREE.BufferGeometry().setFromPoints(points);
-      const color = ATTACK_COLORS[Math.floor(Math.random() * ATTACK_COLORS.length)];
-      const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0 });
-      const arc = new THREE.Line(geo, mat);
-      (arc as any).progress = 0;
-      (arc as any).speed = 0.008 + Math.random() * 0.015;
-      arcsGroup.add(arc);
-      activeArcs.push(arc);
-    };
-
-    // --- ANIMATION LOOP ---
-    camera.position.z = 12;
-    setIntroFinished(true);
-
-    const animate = () => {
-      requestAnimationFrame(animate);
-      const delta = clock.getDelta();
-      const time = clock.getElapsedTime();
-
-      earthMat.uniforms.time.value = time;
-      atmosMat.uniforms.time.value = time;
-      nebulaLeft.uniforms.time.value = time;
-      nebulaRight.uniforms.time.value = time;
-      binaryRingMat.uniforms.time.value = time;
-
-      globeGroup.rotation.y += 0.0006;
-      hexGroup.rotation.z -= 0.001;
-      stars.rotation.y += 0.0001;
-
-      // Update Arcs
-      activeArcs.forEach((arc, i) => {
-        arc.progress += arc.speed;
-        arc.material.opacity = arc.progress < 0.2 ? arc.progress * 5 : (1 - arc.progress) * 2;
-        if (arc.progress >= 1) {
-          arcsGroup.remove(arc);
-          activeArcs.splice(i, 1);
-        }
-      });
-
-      if (Math.random() > 0.96 && activeArcs.length < 150) createArc();
-
-      // Mouse Parallax with smooth damping
-      const targetX = mouse.x * 0.15;
-      const targetY = mouse.y * 0.15;
-      scene.rotation.y += (targetX - scene.rotation.y) * 0.05;
-      scene.rotation.x += (targetY - scene.rotation.x) * 0.05;
-
-      renderer.render(scene, camera);
-    };
-
-    animate();
-
-    const handleResize = () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    };
-
-    const handleMouseMove = (e: MouseEvent) => {
-      setMouse({
-        x: (e.clientX / window.innerWidth - 0.5) * 2,
-        y: (e.clientY / window.innerHeight - 0.5) * 2
-      });
-    };
-
-    window.addEventListener('resize', handleResize);
-    window.addEventListener('mousemove', handleMouseMove);
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('mousemove', handleMouseMove);
-    };
-  }, [mouse]);
-
   return (
     <div className="relative min-h-screen bg-[#020408] overflow-hidden font-body text-white selection:bg-destructive/40">
       
+      <CinematicBackground />
+
       {/* Cinematic Letterbox */}
       <div className="fixed top-0 left-0 w-full h-[8vh] bg-black z-[200] pointer-events-none opacity-60" />
       <div className="fixed bottom-0 left-0 w-full h-[8vh] bg-black z-[200] pointer-events-none opacity-60" />
       
-      <canvas 
-        ref={canvasRef} 
-        className={cn(
-          "fixed inset-0 z-0 transition-opacity duration-1000",
-          introFinished ? "opacity-100" : "opacity-0"
-        )} 
-      />
-
-      {/* Cinematic Overlays (Post-processing simulation) */}
-      <div className="fixed inset-0 pointer-events-none z-[50] pointer-events-none">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.8)_100%)]" />
-        <div className="absolute inset-0 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] pointer-events-none" />
-      </div>
-
       {/* Telemetry Docks */}
-      <div className={cn(
-        "fixed inset-0 z-20 pointer-events-none transition-all duration-1000 delay-500",
-        introFinished ? "opacity-100" : "opacity-0"
-      )}>
+      <div className="fixed inset-0 z-20 pointer-events-none">
         <div className="absolute top-24 left-12 w-64 glass-card p-6 border-white/5 rounded-2xl bg-black/40 backdrop-blur-md">
            <div className="flex items-center gap-3 mb-4">
               <Activity className="h-4 w-4 text-destructive animate-pulse" />
@@ -423,10 +354,7 @@ export default function LandingPage() {
 
       {/* Hero Content */}
       <section className="relative z-50 flex flex-col items-center justify-center min-h-screen text-center px-6">
-        <div className={cn(
-          "max-w-4xl space-y-12 transition-all duration-1000",
-          introFinished ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
-        )}>
+        <div className="max-w-4xl space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-1000">
           <div className="space-y-4">
             <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-destructive/10 border border-destructive/30 text-destructive text-[10px] font-black tracking-[0.5em] uppercase shadow-[0_0_30px_rgba(239,68,68,0.2)]">
               <Target className="h-4 w-4 animate-pulse" />
