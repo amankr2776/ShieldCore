@@ -17,7 +17,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { useState, useEffect } from 'react';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { 
+  Sheet, 
+  SheetContent, 
+  SheetTrigger,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription 
+} from '@/components/ui/sheet';
 
 const navItems = [
   { name: 'Analyzer', href: '/analyzer', icon: Zap },
@@ -189,6 +196,12 @@ export function WafNavbar() {
                     </Button>
                   </SheetTrigger>
                   <SheetContent side="right" className="glass-card border-l border-white/10 w-80 p-0">
+                    <div className="sr-only">
+                      <SheetHeader>
+                        <SheetTitle>Navigation Menu</SheetTitle>
+                        <SheetDescription>Access dashboard features and telemetry</SheetDescription>
+                      </SheetHeader>
+                    </div>
                     <div className="p-8 space-y-8">
                       <div className="flex items-center gap-3 font-black text-2xl tracking-tighter">
                         <Shield className="h-8 w-8 text-destructive" />

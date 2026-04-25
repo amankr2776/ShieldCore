@@ -244,6 +244,12 @@ export default function LiveFeedPage() {
         {/* Detailed Drawer */}
         <Sheet open={!!selectedRequest} onOpenChange={(open) => !open && setSelectedRequest(null)}>
           <SheetContent className="w-full sm:max-w-2xl glass-card border-l border-white/10 shadow-2xl p-0 overflow-hidden flex flex-col">
+            <div className="sr-only">
+              <SheetHeader>
+                <SheetTitle>Incident Details</SheetTitle>
+                <SheetDescription>Detailed forensic breakdown of the selected request</SheetDescription>
+              </SheetHeader>
+            </div>
             {selectedRequest && (
               <>
                 <div className={cn("h-2 w-full", selectedRequest.decision === 'BLOCKED' ? "bg-destructive" : "bg-emerald-500")} />
