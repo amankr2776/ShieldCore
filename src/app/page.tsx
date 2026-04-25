@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useRef, useState } from 'react';
@@ -232,7 +231,6 @@ export default function LandingPage() {
         if (life >= (arc as any).maxLife) {
           arcsGroup.remove(arc);
           activeArcs.splice(index, 1);
-          // Impact flash could be added here
         }
       });
 
@@ -265,15 +263,9 @@ export default function LandingPage() {
       {/* 3D Cinematic Background Layer */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <canvas ref={canvasRef} className="w-full h-full opacity-90" />
-        
-        {/* Post-Processing Overlays */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(88,28,135,0.2)_0%,transparent_80%)] animate-pulse pointer-events-none" />
-        
-        {/* Cinematic Vignette & Grain */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.6)_100%)] pointer-events-none" />
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
-        
-        {/* Scanline / Matrix Grid Overlay */}
         <div className="absolute inset-0 opacity-[0.05] pointer-events-none" style={{ backgroundImage: 'linear-gradient(rgba(18,16,16,0) 50%,rgba(0,0,0,0.25) 50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))', backgroundSize: '100% 2px, 3px 100%' }} />
       </div>
       
@@ -305,9 +297,6 @@ export default function LandingPage() {
           <Button asChild size="lg" className="bg-destructive hover:bg-destructive/90 text-white font-black h-20 px-14 text-xl rounded-2xl glow-btn transition-all duration-500 hover:scale-105 active:scale-95 uppercase tracking-widest shadow-[0_0_40px_rgba(239,68,68,0.5)]">
             <Link href="/login">Launch Console <ArrowRight className="ml-3 h-6 w-6" /></Link>
           </Button>
-          <Button asChild variant="outline" size="lg" className="h-20 px-14 text-xl rounded-2xl border-gray-200 dark:border-white/10 bg-white/5 dark:bg-white/5 backdrop-blur-2xl hover:bg-white/10 transition-all duration-500 text-gray-900 dark:text-white font-black uppercase tracking-widest">
-            <Link href="/architecture">System Specs</Link>
-          </Button>
         </div>
 
         {/* Real-time Stats Bar */}
@@ -319,7 +308,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Feature Section with Cinematic Cards */}
       <section className="relative z-10 container mx-auto px-6 py-32 space-y-20">
         <div className="text-center space-y-4">
           <div className="section-label mx-auto inline-block border-none pl-0">Strategic Advantages</div>

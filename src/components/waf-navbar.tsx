@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Shield, Zap, Activity, BarChart3, Binary, Bell, LogOut, Moon, Sun, Menu } from 'lucide-react';
+import { Shield, Zap, Activity, BarChart3, Bell, LogOut, Moon, Sun, Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
@@ -29,7 +29,6 @@ const navItems = [
   { name: 'Analyzer', href: '/analyzer', icon: Zap },
   { name: 'Live Feed', href: '/live-feed', icon: Activity },
   { name: 'Analytics', href: '/analytics', icon: BarChart3 },
-  { name: 'Architecture', href: '/architecture', icon: Binary },
 ];
 
 export function WafNavbar() {
