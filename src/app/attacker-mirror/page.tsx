@@ -22,7 +22,8 @@ import {
   Scale, FileText, AlertOctagon, ZapOff,
   Activity, CheckCircle2, AlertCircle, 
   ArrowLeft, ArrowRight, RotateCcw, Info,
-  Fingerprint, Hammer, Gavel, ExternalLink
+  Fingerprint, Hammer, Gavel, ExternalLink,
+  Target
 } from 'lucide-react';
 import { generateFakeRequest, getSeededData } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
