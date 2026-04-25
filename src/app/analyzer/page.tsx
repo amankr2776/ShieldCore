@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import { 
   ShieldAlert, Loader2, CheckCircle2, AlertCircle, 
   Trash2, FileJson, Flag, Activity, Zap, 
@@ -395,7 +396,7 @@ export default function AnalyzerPage() {
           <Card className="glass-card rounded-[2rem] border-white/5 p-8 space-y-8">
             <div className="space-y-6">
               <h3 className="section-label mb-0 pl-0 border-none flex items-center gap-2">
-                <Database className="h-4 w-4 text-emerald-500" /> Dataset Status
+                <DatabaseIcon className="h-4 w-4 text-emerald-500" /> Dataset Status
               </h3>
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
@@ -478,7 +479,7 @@ export default function AnalyzerPage() {
   );
 }
 
-function Database(props: any) {
+function DatabaseIcon(props: any) {
   return (
     <svg
       {...props}
