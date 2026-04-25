@@ -58,23 +58,13 @@
   }
 }
 
-@keyframes ping-red {
+@keyframes pulse {
   0% { transform: scale(1); opacity: 1; }
-  100% { transform: scale(3); opacity: 0; }
+  100% { transform: scale(2); opacity: 0; }
 }
 
-.animate-ping-red {
-  animation: ping-red 2s cubic-bezier(0, 0, 0.2, 1) infinite;
-}
-
-@keyframes draw {
-  to { stroke-dashoffset: 0; }
-}
-
-.animate-draw {
-  stroke-dasharray: 1000;
-  stroke-dashoffset: 1000;
-  animation: draw 2s ease-in-out forwards;
+.animate-pulse-dot {
+  animation: pulse 2s cubic-bezier(0, 0, 0.2, 1) infinite;
 }
 
 .blocked-gradient {
