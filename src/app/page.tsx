@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useRef, useState } from 'react';
@@ -25,76 +26,127 @@ export default function LandingPage() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-    // --- Enhanced Particle System (Warp Effect) ---
-    const particlesCount = 6000;
+    // --- 1. Starfield Particle System ---
+    const particlesCount = 10000;
     const posArray = new Float32Array(particlesCount * 3);
-    const velocityArray = new Float32Array(particlesCount);
+    const speedArray = new Float32Array(particlesCount);
 
     for (let i = 0; i < particlesCount * 3; i++) {
-      // Wide spread
-      posArray[i] = (Math.random() - 0.5) * 12;
+      posArray[i] = (Math.random() - 0.5) * 20;
     }
     for (let i = 0; i < particlesCount; i++) {
-      velocityArray[i] = Math.random() * 0.02 + 0.005;
+      speedArray[i] = Math.random() * 0.005 + 0.002;
     }
 
     const particlesGeometry = new THREE.BufferGeometry();
     particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
     
     const particlesMaterial = new THREE.PointsMaterial({
-      size: 0.008,
-      color: 0xef4444,
+      size: 0.015,
+      color: 0x00ffff,
       transparent: true,
-      opacity: 0.6,
+      opacity: 0.4,
       blending: THREE.AdditiveBlending,
-      sizeAttenuation: true
     });
     
     const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
     scene.add(particlesMesh);
 
-    // --- Multi-Layered Energy Shield ---
-    const shieldGroup = new THREE.Group();
+    // --- 2. Holographic Globe ---
+    const globeGroup = new THREE.Group();
     
-    // 1. Inner Faceted Core
-    const innerGeo = new THREE.IcosahedronGeometry(0.8, 1);
-    const innerMat = new THREE.MeshBasicMaterial({
-      color: 0xef4444,
-      wireframe: false,
-      transparent: true,
-      opacity: 0.15
-    });
-    const innerShield = new THREE.Mesh(innerGeo, innerMat);
-    shieldGroup.add(innerShield);
-
-    // 2. Outer Wireframe
-    const outerGeo = new THREE.OctahedronGeometry(1.2, 2);
-    const outerMat = new THREE.MeshBasicMaterial({
-      color: 0xef4444,
+    // Grid Lines (Holographic Earth)
+    const globeGeo = new THREE.SphereGeometry(2, 64, 64);
+    const globeMat = new THREE.MeshBasicMaterial({
+      color: 0x00eaff,
       wireframe: true,
       transparent: true,
-      opacity: 0.4
+      opacity: 0.15,
+      blending: THREE.AdditiveBlending
     });
-    const outerShield = new THREE.Mesh(outerGeo, outerMat);
-    shieldGroup.add(outerShield);
+    const globe = new THREE.Mesh(globeGeo, globeMat);
+    globeGroup.add(globe);
 
-    // 3. Floating Data Rings
-    const ringGeo = new THREE.TorusGeometry(1.5, 0.01, 16, 100);
-    const ringMat = new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.1 });
-    const ring1 = new THREE.Mesh(ringGeo, ringMat);
-    const ring2 = new THREE.Mesh(ringGeo, ringMat);
-    ring2.rotation.x = Math.PI / 2;
-    shieldGroup.add(ring1, ring2);
+    // Inner Glow
+    const innerGlobeGeo = new THREE.SphereGeometry(1.95, 32, 32);
+    const innerGlobeMat = new THREE.MeshBasicMaterial({
+      color: 0x0055ff,
+      transparent: true,
+      opacity: 0.05
+    });
+    const innerGlobe = new THREE.Mesh(innerGlobeGeo, innerGlobeMat);
+    globeGroup.add(innerGlobe);
 
-    shieldGroup.scale.set(1.2, 1.4, 0.6);
-    scene.add(shieldGroup);
+    // City Origin Dots
+    const cities = [
+      { lat: 40.7128, lon: -74.0060 }, // New York
+      { lat: 35.6762, lon: 139.6503 }, // Tokyo
+      { lat: 51.5074, lon: -0.1278 },  // London
+      { lat: -33.8688, lon: 151.2093 }, // Sydney
+      { lat: 31.2304, lon: 121.4737 }, // Shanghai
+      { lat: -23.5505, lon: -46.6333 }, // Sao Paulo
+      { lat: 55.7558, lon: 37.6173 },   // Moscow
+    ];
 
-    // Lighting
-    const pointLight = new THREE.PointLight(0xef4444, 2);
-    pointLight.position.set(2, 3, 4);
-    scene.add(pointLight);
+    const dotGeo = new THREE.SphereGeometry(0.04, 8, 8);
+    const dotMat = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.8 });
+    
+    const cityDots: THREE.Mesh[] = [];
 
-    camera.position.z = 4;
+    cities.forEach(city => {
+      const phi = (90 - city.lat) * (Math.PI / 180);
+      const theta = (city.lon + 180) * (Math.PI / 180);
+      
+      const dot = new THREE.Mesh(dotGeo, dotMat);
+      dot.position.x = 2 * Math.sin(phi) * Math.cos(theta);
+      dot.position.y = 2 * Math.cos(phi);
+      dot.position.z = 2 * Math.sin(phi) * Math.sin(theta);
+      
+      globeGroup.add(dot);
+      cityDots.push(dot);
+    });
+
+    scene.add(globeGroup);
+
+    // --- 3. Attack Trajectory Arcs ---
+    const arcsGroup = new THREE.Group();
+    scene.add(arcsGroup);
+
+    const createArc = (start: THREE.Vector3) => {
+      const end = new THREE.Vector3(
+        (Math.random() - 0.5) * 10,
+        (Math.random() - 0.5) * 10,
+        Math.random() * 5 + 5
+      );
+      
+      const mid = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
+      mid.y += 2; // Curve height
+      
+      const curve = new THREE.QuadraticBezierCurve3(start, mid, end);
+      const points = curve.getPoints(50);
+      const geometry = new THREE.BufferGeometry().setFromPoints(points);
+      
+      const material = new THREE.LineBasicMaterial({ 
+        color: 0xff3333, 
+        transparent: true, 
+        opacity: 0.4,
+        blending: THREE.AdditiveBlending 
+      });
+      
+      const line = new THREE.Line(geometry, material);
+      (line as any).life = 1.0;
+      (line as any).speed = Math.random() * 0.01 + 0.005;
+      return line;
+    };
+
+    let activeArcs: THREE.Line[] = [];
+
+    // --- 4. Lighting ---
+    const mainLight = new THREE.PointLight(0x00ffff, 2, 50);
+    mainLight.position.set(5, 5, 5);
+    scene.add(mainLight);
+
+    camera.position.z = 6;
 
     let mouseX = 0;
     let mouseY = 0;
@@ -107,32 +159,41 @@ export default function LandingPage() {
     const animate = () => {
       requestAnimationFrame(animate);
 
-      // Particle Warp Animation
+      // Globe Rotation
+      globeGroup.rotation.y += 0.002;
+      globeGroup.rotation.x += 0.0005;
+
+      // Particle Drift
       const positions = particlesGeometry.attributes.position.array as Float32Array;
       for (let i = 0; i < particlesCount; i++) {
         const i3 = i * 3;
-        // Move particles forward
-        positions[i3 + 2] += velocityArray[i];
-        
-        // Reset particles that go past the camera
-        if (positions[i3 + 2] > 5) {
-          positions[i3 + 2] = -10;
-          positions[i3] = (Math.random() - 0.5) * 12;
-          positions[i3 + 1] = (Math.random() - 0.5) * 12;
-        }
+        positions[i3 + 2] += speedArray[i];
+        if (positions[i3 + 2] > 10) positions[i3 + 2] = -10;
       }
       particlesGeometry.attributes.position.needsUpdate = true;
 
-      // Shield Animations
-      shieldGroup.rotation.y += 0.005;
-      innerShield.rotation.x -= 0.01;
-      outerShield.rotation.z += 0.01;
-      ring1.rotation.y += 0.02;
-      ring2.rotation.z -= 0.02;
+      // Manage Arcs
+      if (Math.random() > 0.95 && activeArcs.length < 15) {
+        const randomDot = cityDots[Math.floor(Math.random() * cityDots.length)];
+        const worldPos = new THREE.Vector3();
+        randomDot.getWorldPosition(worldPos);
+        const arc = createArc(worldPos);
+        arcsGroup.add(arc);
+        activeArcs.push(arc);
+      }
 
-      // Mouse Parallax
-      camera.position.x += (mouseX * 1.5 - camera.position.x) * 0.05;
-      camera.position.y += (-mouseY * 1.5 - camera.position.y) * 0.05;
+      activeArcs.forEach((arc, index) => {
+        (arc as any).life -= (arc as any).speed;
+        (arc.material as THREE.LineBasicMaterial).opacity = (arc as any).life * 0.4;
+        if ((arc as any).life <= 0) {
+          arcsGroup.remove(arc);
+          activeArcs.splice(index, 1);
+        }
+      });
+
+      // Parallax
+      camera.position.x += (mouseX * 2 - camera.position.x) * 0.05;
+      camera.position.y += (-mouseY * 2 - camera.position.y) * 0.05;
       camera.lookAt(scene.position);
 
       renderer.render(scene, camera);
@@ -155,9 +216,18 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="flex flex-col min-h-screen bg-white dark:bg-[#020408] transition-colors duration-300 overflow-hidden selection:bg-destructive/30">
-      {/* 3D Visual Background */}
-      <canvas ref={canvasRef} className="fixed inset-0 z-0 pointer-events-none opacity-40 dark:opacity-80" />
+    <div className="flex flex-col min-h-screen bg-[#020408] transition-colors duration-300 overflow-hidden selection:bg-destructive/30">
+      {/* 3D Cinematic Background */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <canvas ref={canvasRef} className="w-full h-full opacity-80" />
+        
+        {/* Nebula Fog Effect */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(88,28,135,0.15)_0%,transparent_70%)] animate-pulse" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(30,58,138,0.1)_0%,transparent_50%)]" />
+        
+        {/* Hexagonal Matrix Overlay */}
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M30 0l25.98 15v30L30 60 4.02 45V15z\' fill-opacity=\'0.4\' fill=\'%2300ffff\' fill-rule=\'evenodd\'/%3E%3C/svg%3E")', backgroundSize: '60px' }} />
+      </div>
       
       {/* Scanline Overlay */}
       <div className="fixed inset-0 z-[5] pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.03),rgba(0,255,0,0.01),rgba(0,0,255,0.03))] bg-[length:100%_2px,3px_100%] opacity-20" />
@@ -166,7 +236,7 @@ export default function LandingPage() {
         <div className="space-y-6 animate-in fade-in slide-in-from-top-12 duration-1000">
           <div className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-destructive/10 border border-destructive/30 text-destructive text-[10px] font-black tracking-[0.4em] uppercase shadow-[0_0_20px_rgba(239,68,68,0.2)]">
             <Activity className="h-3.5 w-3.5 animate-pulse" />
-            Neural Ingress Protocol Active
+            ShieldCore Neural Cluster Active
           </div>
           
           <div className="relative">
@@ -177,12 +247,12 @@ export default function LandingPage() {
           </div>
 
           <h2 className="text-3xl md:text-5xl font-black text-gray-800 dark:text-gray-200 tracking-tight opacity-90">
-            ADVANCED AI <span className="text-destructive italic">WAF</span>
+            AI-POWERED <span className="text-destructive italic">SECURITY</span>
           </h2>
           
           <p className="text-lg md:text-xl text-gray-500 dark:text-muted-foreground max-w-2xl mx-auto font-medium leading-relaxed italic opacity-80">
             LPU-accelerated neural packet inspection. <br />
-            Detecting intent, intercepting threats, securing the global edge.
+            Deep semantic detection. Global edge protection.
           </p>
         </div>
 
