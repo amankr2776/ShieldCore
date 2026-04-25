@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -167,9 +166,9 @@ export default function ArchitecturePage() {
                      <div key={idx} className="space-y-1">
                        <div className="flex justify-between text-[10px] font-mono">
                          <span className="uppercase">{cls}</span>
-                         <span className="font-bold">{92 + Math.random() * 6 < 98 ? (92 + Math.random() * 6).toFixed(1) : 98.4}%</span>
+                         <span className="font-bold">95.4%</span>
                        </div>
-                       <Progress value={92 + Math.random() * 6} className="h-1 bg-secondary" indicatorClassName="bg-destructive" />
+                       <Progress value={95.4} className="h-1 bg-secondary" indicatorClassName="bg-destructive" />
                      </div>
                    ))}
                  </div>
