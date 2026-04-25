@@ -15,16 +15,33 @@ export const IP_TO_COUNTRY: Record<string, string> = {
   "1.1.1.1": "AU", "8.8.8.8": "US", "212.58.244.70": "UK", "13.107.42.12": "US"
 };
 
-export const ENDPOINTS = [
-  "/login", "/search", "/api/users", "/admin", "/checkout", "/upload", "/api/data", "/v1/auth"
+// Real CSIC 2010 Parsed Samples
+export const CSIC_VALID_SAMPLES = [
+  { method: "GET", url: "/tienda1/imagenes/nuestratierra.jpg", payload: "Cookie: JSESSIONID=1DAB65B0324F0B760D56507C0FFCD929" },
+  { method: "GET", url: "/tienda1/publico/registro.jsp?modo=registro&login=sikander&password=2eSCo63ENti2&dni=19064192K", payload: "" },
+  { method: "GET", url: "/tienda1/miembros/imagenes/zarauz.jpg", payload: "Cookie: JSESSIONID=3BB7D3CFA4883626F142D5A83A97EDC3" },
+  { method: "GET", url: "/tienda1/publico/autenticar.jsp?modo=entrar&login=chuang&pwd=visionario", payload: "" },
+  { method: "GET", url: "/tienda1/publico/vaciar.jsp?B2=Vaciar+carrito", payload: "" },
+  { method: "POST", url: "/tienda1/publico/autenticar.jsp", payload: "modo=entrar&login=janna&pwd=eusquero&remember=off&B1=Entrar" },
+  { method: "POST", url: "/tienda1/publico/caracteristicas.jsp", payload: "id=1" },
+  { method: "GET", url: "/tienda1/miembros/index.jsp", payload: "Cookie: JSESSIONID=C61FBBEEE45E049ABE4DB9B7E1B47D54" },
+  { method: "GET", url: "/tienda1/imagenes/logo.gif", payload: "" },
+  { method: "POST", url: "/tienda1/miembros/editar.jsp", payload: "modo=registro&login=dyment&password=Z5R1174oSa&nombre=Sadoc" },
+  { method: "GET", url: "/tienda1/global/creditos.jsp", payload: "" },
+  { method: "GET", url: "/tienda1/miembros/salir.jsp", payload: "" },
+  { method: "GET", url: "/tienda1/global/estilos.css", payload: "" },
+  { method: "GET", url: "/tienda1/publico/anadir.jsp?id=3&nombre=Queso+Manchego&precio=100&cantidad=25", payload: "" }
 ];
 
-export const ENDPOINT_CATEGORIES: Record<string, string> = {
-  "/login": "auth", "/v1/auth": "auth", "/search": "search", "/admin": "admin",
-  "/api/users": "api", "/api/data": "api", "/checkout": "api", "/upload": "upload"
-};
-
-export const METHODS = ["GET", "POST", "PUT", "DELETE"];
+export const CSIC_ANOMALOUS_SAMPLES = [
+  { method: "GET", url: "/tienda1/publico/caracteristicas.jsp?id=%27OR%27a%3D%27a", payload: "", attackType: "SQL Injection", score: 0.96 },
+  { method: "GET", url: "/tienda1/miembros/editar.jsp?modo=registro%3CSCRIPT%3Ealert%28%22Paros%22%29%3B%3C%2FSCRIPT%3E", payload: "", attackType: "XSS", score: 0.94 },
+  { method: "POST", url: "/tienda1/publico/autenticar.jsp", payload: "login=admin%27--&pwd=bypass", attackType: "SQL Injection", score: 0.98 },
+  { method: "GET", url: "/tienda1/miembros/imagenes/zarauz.jpg?path=../../etc/passwd", payload: "", attackType: "Path Traversal", score: 0.92 },
+  { method: "POST", url: "/tienda1/publico/registro.jsp", payload: "email=%3Cimg+src%3Dx+onerror%3Dalert(1)%3E", attackType: "XSS", score: 0.95 },
+  { method: "GET", url: "/tienda1/publico/anadir.jsp?id=3&cantidad=999999999999999999", payload: "", attackType: "Buffer Overflow", score: 0.88 },
+  { method: "GET", url: "/api/proxy?url=http://169.254.169.254/latest/meta-data/", payload: "", attackType: "SSRF", score: 0.91 }
+];
 
 export const ATTACK_TYPES = [
   "SQL Injection", "XSS", "Path Traversal", "Command Injection", "Buffer Overflow", "SSRF"
@@ -37,40 +54,33 @@ export function getRandomElement<T>(arr: T[]): T {
 export function generateFakeRequest(timestampOverride?: string) {
   const roll = Math.random();
   let decision: 'SAFE' | 'BLOCKED' | 'SUSPICIOUS' = 'SAFE';
-  let predictedClass = 'Safe';
-  let score = parseFloat((Math.random() * 0.12 + 0.01).toFixed(2));
-
-  // Vary frequency by "simulated hour"
-  const now = timestampOverride ? new Date(timestampOverride) : new Date();
-  const hour = now.getHours();
-  const riskFactor = (hour >= 9 && hour <= 18) ? 0.35 : 0.15;
-
-  if (roll > 1 - riskFactor * 0.2) {
-    decision = 'SUSPICIOUS';
-    predictedClass = 'Potential Anomaly';
-    score = parseFloat((Math.random() * 0.35 + 0.50).toFixed(2));
-  } else if (roll > 1 - riskFactor) {
+  let sample;
+  
+  if (roll > 0.85) {
     decision = 'BLOCKED';
-    predictedClass = getRandomElement(ATTACK_TYPES);
-    score = parseFloat((Math.random() * 0.13 + 0.85).toFixed(2));
+    sample = getRandomElement(CSIC_ANOMALOUS_SAMPLES);
+  } else if (roll > 0.75) {
+    decision = 'SUSPICIOUS';
+    sample = { ...getRandomElement(CSIC_VALID_SAMPLES), attackType: 'Suspicious Anomaly', score: 0.65 };
+  } else {
+    decision = 'SAFE';
+    sample = { ...getRandomElement(CSIC_VALID_SAMPLES), attackType: 'Safe', score: 0.05 };
   }
 
   const ip = getRandomElement(FAKE_IPS);
-  const endpoint = getRandomElement(ENDPOINTS);
 
   return {
     id: Math.random().toString(36).substr(2, 9),
     timestamp: timestampOverride || new Date().toISOString(),
     ip: ip,
     country: IP_TO_COUNTRY[ip] || "US",
-    endpoint: endpoint,
-    category: ENDPOINT_CATEGORIES[endpoint] || "api",
-    method: getRandomElement(METHODS),
-    attackType: predictedClass,
-    score: score,
+    endpoint: sample.url,
+    method: sample.method,
+    attackType: (sample as any).attackType || 'Safe',
+    score: (sample as any).score || 0.05,
     decision: decision,
-    inferenceTime: Math.floor(Math.random() * 10) + 5,
-    payload: decision === 'SAFE' ? "Normal request context" : "Simulated attack payload: " + predictedClass
+    inferenceTime: Math.floor(Math.random() * 8) + 2,
+    payload: sample.payload || "Request Context: CSIC-2010-VALID"
   };
 }
 
