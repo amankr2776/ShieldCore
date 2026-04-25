@@ -13,7 +13,7 @@ import {
 import { 
   Activity, ShieldAlert, Zap, Globe, Target, Search, Filter, 
   RotateCcw, Play, Pause, AlertTriangle, Clock, MousePointer2,
-  TrendingUp, Fingerprint, Shield
+  TrendingUp, Fingerprint, Shield, Crosshair
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DATASET_TOTALS } from '@/lib/mock-data';
@@ -31,10 +31,10 @@ const ATTACK_COLORS: Record<string, string> = {
 };
 
 const SKILL_COLORS: Record<string, string> = {
-  'Script Kiddie': '#f97316',
-  'Intermediate': '#ef4444',
-  'Advanced': '#7e22ce',
-  'Nation State': '#1e1b4b'
+  'Script Kiddie': '#22c55e',
+  'Intermediate': '#f59e0b',
+  'Advanced': '#ef4444',
+  'Nation State': '#7e22ce'
 };
 
 const ATTACKER_DATA = [
@@ -220,23 +220,74 @@ export default function AnalyticsPage() {
 
       const marker = L.marker([node.lat, node.lng], { icon });
 
+      // Calculate dynamic values for rich popup
+      const threatScore = Math.floor(Math.random() * 20) + 75;
+      const confidence = Math.floor(Math.random() * 10) + 85;
+      const riskLevel = threatScore > 90 ? 'CRITICAL' : threatScore > 85 ? 'HIGH' : 'MEDIUM';
+      const riskColor = threatScore > 90 ? '#ef4444' : threatScore > 85 ? '#f97316' : '#f59e0b';
+
       const popupHtml = `
-        <div class="dark-popup">
-          <div class="popup-header" style="border-bottom: 2px solid ${color}">
-            <p class="city">${node.flag} ${node.city}</p>
-            <p class="country">${node.country}</p>
+        <div class="rich-popup" style="border-left: 4px solid ${color}">
+          <div class="popup-header">
+            <div>
+              <h3 class="city-name">${node.city}</h3>
+              <p class="country-name">${node.country}</p>
+            </div>
+            <div class="attack-badge" style="background: ${color}">${node.type}</div>
           </div>
-          <div class="popup-body">
-            <div class="stat-row"><span>Type:</span> <span style="color: ${color}">${node.type}</span></div>
-            <div class="stat-row"><span>Skill:</span> <span style="color: ${SKILL_COLORS[node.skill]}">${node.skill}</span></div>
-            <div class="stat-row"><span>Threat:</span> <span class="threat-num">${Math.floor(Math.random() * 20) + 75}%</span></div>
-            <div class="stat-row"><span>Volume:</span> <span>${node.attacks.toLocaleString()}</span></div>
-            <div class="coords">LOC: ${node.lat.toFixed(2)}, ${node.lng.toFixed(2)}</div>
+          
+          <div class="stats-grid">
+            <div class="stat-item">
+              <label>Threat Score</label>
+              <span class="value score-red">${threatScore}</span>
+            </div>
+            <div class="stat-item">
+              <label>Confidence</label>
+              <span class="value">${confidence}%</span>
+            </div>
+            <div class="stat-item">
+              <label>Origin Volume</label>
+              <span class="value">${node.attacks.toLocaleString()}</span>
+            </div>
+            <div class="stat-item">
+              <label>Attacker Skill</label>
+              <span class="skill-badge" style="background: ${SKILL_COLORS[node.skill]}">${node.skill}</span>
+            </div>
+            <div class="stat-item">
+              <label>Last Event</label>
+              <span class="value small-text">${new Date().toLocaleTimeString()}</span>
+            </div>
+            <div class="stat-item">
+              <label>Coordinates</label>
+              <span class="value small-text">${node.lat.toFixed(2)}, ${node.lng.toFixed(2)}</span>
+            </div>
+          </div>
+
+          <div class="description-section">
+            <p>Detection engine identified malicious ${node.type} activity originating from compromised edge infrastructure within the ${node.city} subnet.</p>
+          </div>
+
+          <div class="risk-section">
+            <div class="risk-bar-container">
+              <div class="risk-bar-fill" style="width: ${threatScore}%; background: ${riskColor};"></div>
+            </div>
+            <span class="risk-label" style="color: ${riskColor}">${riskLevel}</span>
+          </div>
+
+          <div class="action-buttons">
+            <button class="popup-btn highlight-type" data-type="${node.type}">Track Attacker</button>
+            <button class="popup-btn">Add to Watchlist</button>
           </div>
         </div>
       `;
 
-      marker.bindPopup(popupHtml, { className: 'custom-leaflet-popup' });
+      marker.bindPopup(popupHtml, { 
+        className: 'custom-leaflet-popup',
+        maxWidth: 320,
+        offset: [0, -10],
+        closeButton: true
+      });
+
       markerGroupRef.current.addLayer(marker);
 
       // Arc Paths
@@ -326,10 +377,10 @@ export default function AnalyticsPage() {
   }));
 
   const skillData = [
-    { name: 'Script Kiddie', value: 45, fill: '#f97316' },
-    { name: 'Intermediate', value: 25, fill: '#ef4444' },
-    { name: 'Advanced', value: 20, fill: '#7e22ce' },
-    { name: 'Nation State', value: 10, fill: '#1e1b4b' },
+    { name: 'Script Kiddie', value: 45, fill: '#22c55e' },
+    { name: 'Intermediate', value: 25, fill: '#f59e0b' },
+    { name: 'Advanced', value: 20, fill: '#ef4444' },
+    { name: 'Nation State', value: 10, fill: '#7e22ce' },
   ];
 
   const successData = Array.from({ length: 12 }, (_, i) => ({
@@ -642,17 +693,44 @@ export default function AnalyticsPage() {
         /* Cluster Styles */
         .custom-cluster { width: 40px; height: 40px; background: rgba(239, 68, 68, 0.1); border: 2px solid #ef4444; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #ef4444; font-weight: 900; font-family: 'JetBrains Mono', monospace; backdrop-filter: blur(8px); box-shadow: 0 0 15px rgba(239, 68, 68, 0.3); }
 
-        /* Popup Overrides */
-        .custom-leaflet-popup .leaflet-popup-content-wrapper { background: #0a0c14 !important; color: #fff !important; border: 1px solid rgba(255,255,255,0.1) !important; border-radius: 16px !important; padding: 0 !important; }
+        /* Professional Popup Overrides */
+        .custom-leaflet-popup .leaflet-popup-content-wrapper { 
+          background: #0a0c14 !important; 
+          color: #fff !important; 
+          border: 1px solid rgba(255,255,255,0.1) !important; 
+          border-radius: 12px !important; 
+          padding: 0 !important; 
+          box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
+        }
+        .custom-leaflet-popup .leaflet-popup-content { margin: 0 !important; width: 320px !important; }
         .custom-leaflet-popup .leaflet-popup-tip { background: #0a0c14 !important; }
-        .dark-popup { padding: 16px; min-width: 200px; }
-        .popup-header { padding-bottom: 8px; margin-bottom: 12px; }
-        .popup-header .city { font-weight: 900; font-size: 16px; margin: 0; }
-        .popup-header .country { font-size: 10px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 2px; }
-        .popup-body .stat-row { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 6px; }
-        .popup-body .stat-row span:first-child { color: rgba(255,255,255,0.3); font-weight: bold; text-transform: uppercase; }
-        .popup-body .threat-num { font-weight: 900; font-family: 'JetBrains Mono', monospace; }
-        .popup-body .coords { font-size: 9px; font-family: 'JetBrains Mono', monospace; color: rgba(255,255,255,0.1); margin-top: 10px; text-align: center; }
+        .custom-leaflet-popup .leaflet-popup-close-button { color: #555 !important; padding: 12px !important; font-size: 16px !important; }
+        
+        .rich-popup { padding: 16px; background: #0a0c14; border-radius: 12px; }
+        .popup-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 12px; }
+        .city-name { font-size: 18px; font-weight: 800; color: white; margin: 0; line-height: 1; }
+        .country-name { font-size: 10px; font-weight: 700; color: #06b6d4; text-transform: uppercase; letter-spacing: 1px; margin: 4px 0 0 0; }
+        .attack-badge { padding: 4px 10px; border-radius: 6px; font-size: 9px; font-weight: 900; color: white; text-transform: uppercase; margin-left: 8px; white-space: nowrap; }
+        
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; background: rgba(255,255,255,0.02); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); }
+        .stat-item { display: flex; flex-direction: column; gap: 2px; }
+        .stat-item label { font-size: 8px; font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; }
+        .stat-item .value { font-size: 11px; font-weight: 800; color: white; font-family: 'JetBrains Mono', monospace; }
+        .stat-item .score-red { color: #ef4444; text-shadow: 0 0 8px rgba(239, 68, 68, 0.4); }
+        .stat-item .skill-badge { font-size: 8px; font-weight: 900; padding: 2px 6px; border-radius: 4px; color: white; width: fit-content; text-transform: uppercase; margin-top: 2px; }
+        .stat-item .small-text { font-size: 9px; opacity: 0.6; }
+
+        .description-section { margin-bottom: 16px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 12px; }
+        .description-section p { font-size: 10px; line-height: 1.5; color: rgba(255,255,255,0.6); margin: 0; }
+
+        .risk-section { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+        .risk-bar-container { flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; }
+        .risk-bar-fill { height: 100%; }
+        .risk-label { font-size: 9px; font-weight: 900; white-space: nowrap; }
+
+        .action-buttons { display: flex; gap: 8px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 12px; }
+        .popup-btn { flex: 1; padding: 8px; border-radius: 6px; font-size: 9px; font-weight: 800; text-transform: uppercase; cursor: pointer; transition: all 0.2s; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: white; }
+        .popup-btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
 
         /* Scrollbars */
         ::-webkit-scrollbar { width: 4px; }
