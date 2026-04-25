@@ -1,10 +1,32 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
+    --background: 0 0% 100%;
+    --foreground: 226 21% 7%;
+    --card: 0 0% 98%;
+    --card-foreground: 226 21% 7%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 226 21% 7%;
+    --primary: 218 50% 45%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 226 21% 7%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 189 68% 45%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 218 50% 45%;
+    --radius: 1rem;
+  }
+
+  .dark {
     --background: 226 21% 7%;
     --foreground: 210 40% 98%;
     --card: 231 28% 12%;
@@ -24,21 +46,6 @@
     --border: 231 20% 25%;
     --input: 231 20% 25%;
     --ring: 218 50% 45%;
-    --radius: 1rem;
-    --sidebar-background: 226 21% 9%;
-    --sidebar-foreground: 215 20% 65%;
-    --sidebar-primary: 218 50% 45%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 231 28% 14%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 231 20% 20%;
-    --sidebar-ring: 218 50% 45%;
-
-    --chart-1: 0 84% 60%;
-    --chart-2: 142 71% 45%;
-    --chart-3: 38 92% 50%;
-    --chart-4: 217 91% 60%;
-    --chart-5: 262 83% 66%;
   }
 }
 
@@ -47,8 +54,27 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground font-body;
+    @apply bg-background text-foreground transition-colors duration-200;
   }
+}
+
+@keyframes ping-red {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(3); opacity: 0; }
+}
+
+.animate-ping-red {
+  animation: ping-red 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes draw {
+  to { stroke-dashoffset: 0; }
+}
+
+.animate-draw {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: draw 2s ease-in-out forwards;
 }
 
 .blocked-gradient {
@@ -61,51 +87,4 @@
 
 .suspicious-gradient {
   background: linear-gradient(to right, rgba(245, 158, 11, 0.1), transparent);
-}
-
-@keyframes slideDown {
-  from {
-    transform: translateY(-10px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-.animate-slide-down {
-  animation: slideDown 0.3s ease-out forwards;
-}
-
-@keyframes pulse-subtle {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.85; }
-}
-
-.animate-pulse-subtle {
-  animation: pulse-subtle 2s ease-in-out infinite;
-}
-
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-4px); }
-  75% { transform: translateX(4px); }
-}
-
-.animate-shake {
-  animation: shake 0.3s ease-in-out;
-}
-
-.grid-cols-24 {
-  grid-template-columns: repeat(24, minmax(0, 1fr));
-}
-
-@keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-.animate-spin-slow {
-  animation: spin-slow 3s linear infinite;
 }

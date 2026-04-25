@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -9,18 +8,18 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { ShieldAlert, CheckCircle2, AlertCircle, Loader2, Copy, Flag, Activity, Zap, RefreshCw } from 'lucide-react';
+import { ShieldAlert, Loader2, Copy, Flag, Activity, Zap, RefreshCw, ChevronRight } from 'lucide-react';
 import { analyzeHttpRequest, AnalyzeOutput } from '@/ai/flows/analyze-http-request';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
 const TEST_SAMPLES = [
-  { name: 'Normal Request', payload: 'GET /index.html HTTP/1.1\nHost: example.com\nUser-Agent: Mozilla/5.0' },
-  { name: 'SQL Injection', payload: "GET /api/user?id=1' OR '1'='1' HTTP/1.1" },
-  { name: 'SQLi (Base64)', payload: 'GET /search?q=MScgT1IgJzEnPScx' },
-  { name: 'XSS Attack', payload: 'POST /comment HTTP/1.1\n\nbody=<script>alert("XSS")</script>' },
-  { name: 'Path Traversal', payload: 'GET /download?file=../../../../etc/passwd' },
-  { name: 'Command Injection', payload: 'POST /exec HTTP/1.1\n\ncmd=; ls -la' }
+  { name: 'Normal Request', payload: 'GET /home HTTP/1.1\nHost: example.com' },
+  { name: 'SQL Injection', payload: "GET /login?id=1' OR '1'='1 HTTP/1.1" },
+  { name: 'SQLi Base64', payload: 'GET /login?id=YWRtaW4nIE9SICcxJz0nMQ== HTTP/1.1' },
+  { name: 'XSS', payload: 'GET /search?q=<script>document.cookie</script> HTTP/1.1' },
+  { name: 'Path Traversal', payload: 'GET /files?path=../../etc/passwd HTTP/1.1' },
+  { name: 'Command Injection', payload: 'GET /ping?host=127.0.0.1;ls -la HTTP/1.1' }
 ];
 
 export default function AnalyzerPage() {
@@ -47,7 +46,7 @@ export default function AnalyzerPage() {
     setReAnalyzeResult(null);
     setFeedbackSent(false);
 
-    // Simulated "Inference Feel"
+    // Deliberate inference feel
     await new Promise(resolve => setTimeout(resolve, 1500));
 
     try {
@@ -100,7 +99,7 @@ export default function AnalyzerPage() {
   };
 
   return (
-    <div className="container mx-auto py-10 px-6 max-w-5xl space-y-8 animate-in fade-in duration-500">
+    <div className="container mx-auto py-10 px-6 max-w-6xl space-y-8 animate-in fade-in duration-500">
       <div className="space-y-2">
         <h1 className="text-4xl font-extrabold tracking-tight">Attack Analyzer</h1>
         <p className="text-muted-foreground text-lg">Semantic deep packet inspection using DistilBERT-HTTP intelligence.</p>
@@ -117,7 +116,7 @@ export default function AnalyzerPage() {
                 </div>
                 <Textarea
                   placeholder="Paste raw request here..."
-                  className="min-h-[200px] font-mono text-sm bg-background/50 border-border focus-visible:ring-destructive resize-none"
+                  className="min-h-[160px] font-mono text-sm bg-background/50 border-border focus-visible:ring-destructive resize-none"
                   value={payload}
                   onChange={(e) => setPayload(e.target.value)}
                 />
@@ -146,7 +145,7 @@ export default function AnalyzerPage() {
             </h3>
             <div className="flex flex-wrap gap-2">
               {TEST_SAMPLES.map((sample, i) => (
-                <Button key={i} variant="secondary" size="sm" className="text-[10px] font-bold uppercase" onClick={() => handleQuickTest(sample.payload)} disabled={isAnalyzing}>
+                <Button key={i} variant="secondary" size="sm" className="text-[10px] font-bold uppercase border-border/50" onClick={() => handleQuickTest(sample.payload)} disabled={isAnalyzing}>
                   {sample.name}
                 </Button>
               ))}
@@ -175,7 +174,7 @@ export default function AnalyzerPage() {
                           </Badge>
                         </div>
                       </CardHeader>
-                      <CardContent className="space-y-6">
+                      <CardContent className="p-6 pt-0 space-y-8">
                         <div className="space-y-2">
                           <div className="flex justify-between text-sm font-bold">
                             <span className="uppercase tracking-tighter text-muted-foreground">Threat Confidence</span>
@@ -183,7 +182,7 @@ export default function AnalyzerPage() {
                               {Math.round(result.confidence_score * 100)}%
                             </span>
                           </div>
-                          <Progress value={result.confidence_score * 100} indicatorclassname={result.decision === 'BLOCKED' ? "bg-destructive" : "bg-emerald-500"} />
+                          <Progress value={result.confidence_score * 100} indicatorClassName={result.decision === 'BLOCKED' ? "bg-destructive" : "bg-emerald-500"} />
                         </div>
 
                         <div className="grid grid-cols-2 gap-4 bg-secondary/20 p-4 rounded-xl border border-border/30">
@@ -197,17 +196,39 @@ export default function AnalyzerPage() {
                           </div>
                         </div>
 
-                        <div className="space-y-3">
+                        <div className="space-y-4">
                           <Label className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Decoded Payload Highlights</Label>
-                          <div className="p-4 bg-black/40 rounded-xl border border-border/50 text-xs font-mono break-all leading-relaxed max-h-[150px] overflow-auto">
+                          <div className="p-4 bg-black/5 rounded-xl border border-border/50 text-xs font-mono break-all leading-relaxed max-h-[120px] overflow-auto">
                             {result.decoded_input.split('').map((char, i) => {
                               const isHighlighted = result.highlighted_tokens.some(token => 
                                 result.decoded_input.substring(i, i + token.length).toLowerCase() === token.toLowerCase()
                               );
-                              return <span key={i} className={cn(isHighlighted ? "bg-yellow-500 text-black px-0.5" : "")}>{char}</span>;
+                              return <span key={i} className={cn(isHighlighted ? "bg-yellow-400 text-black px-0.5 rounded-sm font-bold" : "")}>{char}</span>;
                             })}
                           </div>
                         </div>
+
+                        {result.token_scores && result.token_scores.length > 0 && (
+                          <div className="space-y-4">
+                            <Label className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Token Confidence Breakdown</Label>
+                            <div className="space-y-3">
+                              {result.token_scores.map((ts, i) => (
+                                <div key={i} className="space-y-1">
+                                  <div className="flex justify-between text-[10px] font-mono">
+                                    <span className="font-bold">{ts.token}</span>
+                                    <span>{Math.round(ts.score * 100)}%</span>
+                                  </div>
+                                  <div className="h-2 w-full bg-secondary/30 rounded-full overflow-hidden">
+                                    <div 
+                                      className={cn("h-full transition-all duration-1000", ts.score > 0.85 ? "bg-destructive" : "bg-amber-500")}
+                                      style={{ width: `${ts.score * 100}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
 
                         <div className="space-y-2">
                           <Label className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Analyst Insight</Label>
@@ -223,11 +244,6 @@ export default function AnalyzerPage() {
                           <Button variant="ghost" size="sm" className={cn("flex-1 font-bold uppercase text-[10px]", feedbackSent ? "text-emerald-500" : "text-muted-foreground")} onClick={() => { setFeedbackSent(true); toast({ title: "Feedback Sent", description: "False positive report recorded." }); }} disabled={feedbackSent}>
                             <Flag className="h-3.5 w-3.5 mr-2" /> {feedbackSent ? "REPORTED" : "REPORT FALSE POSITIVE"}
                           </Button>
-                        </div>
-
-                        <div className="flex justify-between items-center text-[10px] text-muted-foreground font-mono uppercase">
-                          <span>LATENCY: {result.inference_time_ms}ms</span>
-                          <span>DistilBERT-HTTP v2.0</span>
                         </div>
                       </CardContent>
                     </>
@@ -248,7 +264,7 @@ export default function AnalyzerPage() {
                         onChange={(e) => setModifiedPayload(e.target.value)}
                         placeholder="Modify payload here..."
                       />
-                      <Button variant="destructive" className="w-full font-bold uppercase" onClick={handleReAnalyze} disabled={isReAnalyzing}>
+                      <Button variant="destructive" className="w-full font-bold uppercase h-12" onClick={handleReAnalyze} disabled={isReAnalyzing}>
                         {isReAnalyzing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
                         RE-RUN INFERENCE
                       </Button>
@@ -264,7 +280,7 @@ export default function AnalyzerPage() {
                               <span>Score</span>
                               <span>{Math.round(reAnalyzeResult.confidence_score * 100)}%</span>
                             </div>
-                            <Progress value={reAnalyzeResult.confidence_score * 100} indicatorclassname={reAnalyzeResult.decision === 'BLOCKED' ? "bg-destructive" : "bg-emerald-500"} />
+                            <Progress value={reAnalyzeResult.confidence_score * 100} indicatorClassName={reAnalyzeResult.decision === 'BLOCKED' ? "bg-destructive" : "bg-emerald-500"} />
                           </div>
                           <p className="text-[11px] text-muted-foreground italic leading-relaxed">
                             "{reAnalyzeResult.explanation}"

@@ -1,9 +1,8 @@
-
 "use client";
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Shield, Zap, Activity, BarChart3, Binary, Bell, LogOut, Menu } from 'lucide-react';
+import { Shield, Zap, Activity, BarChart3, Binary, Bell, LogOut, Moon, Sun } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
@@ -30,13 +29,26 @@ export function WafNavbar() {
   const { isAuthenticated, logout, user } = useAuth();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
-  // In real app, this would listen to a store or socket
+  useEffect(() => {
+    const saved = localStorage.getItem('fusionx_theme') as 'dark' | 'light';
+    if (saved) {
+      setTheme(saved);
+      document.documentElement.classList.toggle('dark', saved === 'dark');
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    localStorage.setItem('fusionx_theme', next);
+    document.documentElement.classList.toggle('dark', next === 'dark');
+  };
+
   useEffect(() => {
     if (!isAuthenticated) return;
-    
     const interval = setInterval(() => {
-      // Simulate occasional notification
       if (Math.random() > 0.8) {
         const newNotif = {
           id: Math.random(),
@@ -50,7 +62,6 @@ export function WafNavbar() {
         setUnreadCount(prev => prev + 1);
       }
     }, 10000);
-
     return () => clearInterval(interval);
   }, [isAuthenticated]);
 
@@ -58,11 +69,11 @@ export function WafNavbar() {
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="absolute top-0 left-0 right-0 h-[1px] bg-destructive/50" />
+      <div className="absolute top-0 left-0 right-0 h-[2px] bg-destructive" />
       <div className="container flex h-16 items-center justify-between px-6 mx-auto max-w-7xl">
         <Link href="/" className="flex items-center gap-2 font-bold text-xl tracking-tight">
           <Shield className="h-6 w-6 text-destructive" />
-          <span className="bg-gradient-to-r from-white to-muted-foreground bg-clip-text text-transparent">FusionX WAF</span>
+          <span className="font-bold text-foreground">FusionX WAF</span>
         </Link>
         
         {isAuthenticated && (
@@ -74,7 +85,7 @@ export function WafNavbar() {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "relative flex items-center gap-2 text-sm font-medium transition-all hover:text-white",
+                    "relative flex items-center gap-2 text-sm font-medium transition-all hover:text-foreground",
                     isActive ? "text-destructive" : "text-muted-foreground"
                   )}
                 >
@@ -90,16 +101,19 @@ export function WafNavbar() {
         )}
 
         <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={toggleTheme} className="rounded-full text-muted-foreground hover:text-foreground">
+            {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </Button>
+
           {!isAuthenticated ? (
-            <Button asChild size="sm" className="bg-destructive hover:bg-destructive/90 font-bold rounded-full px-6">
+            <Button asChild size="sm" className="bg-destructive hover:bg-destructive/90 font-bold rounded-full px-6 text-white">
               <Link href="/login">Launch Dashboard</Link>
             </Button>
           ) : (
             <>
-              {/* Notification Bell */}
               <DropdownMenu onOpenChange={(open) => open && setUnreadCount(0)}>
                 <DropdownMenuTrigger asChild>
-                  <button className="relative p-2 text-muted-foreground hover:text-white transition-colors">
+                  <button className="relative p-2 text-muted-foreground hover:text-foreground transition-colors">
                     <Bell className="h-5 w-5" />
                     {unreadCount > 0 && (
                       <span className="absolute top-1 right-1 h-4 w-4 bg-destructive text-[10px] font-bold text-white rounded-full flex items-center justify-center border-2 border-background animate-bounce">
@@ -146,11 +160,6 @@ export function WafNavbar() {
               </DropdownMenu>
 
               <div className="h-4 w-[1px] bg-border mx-1" />
-
-              <Badge variant="outline" className="hidden lg:inline-flex border-muted-foreground/30 text-muted-foreground font-mono text-[10px] uppercase">
-                v1.0.0
-              </Badge>
-
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="rounded-full h-9 w-9 border border-border bg-secondary/50 overflow-hidden">
