@@ -1,0 +1,22 @@
+# **App Name**: FusionX WAF
+
+## Core Features:
+
+- AI-Powered Request Analyzer: A centralized tool for users to paste HTTP requests or payloads, trigger a simulated ML classification to identify threats like SQL Injection or XSS, and view detailed analysis including decision badges, threat scores, predicted class labels, OWASP categories, highlighted malicious tokens, inference time, and human-readable explanation text. This feature also includes a 'What-If Mode' for interactive re-analysis of decoded payloads.
+- Real-time Attack Stream: A live, auto-scrolling dashboard table that displays incoming, simulated WAF events in real-time via WebSocket. Each entry shows comprehensive details like timestamp, IP address, attack type, threat score, and decision, with animated row additions. Includes dynamic statistics like Total Requests, Blocked, Safe, and Suspicious counts.
+- Interactive Analytics Dashboard: A visual analytics interface featuring real-time Chart.js-powered visualizations. It includes a doughnut chart for traffic breakdown (Safe vs. Blocked vs. Suspicious), a bar chart for attack type distribution, a line chart showing blocked requests per minute, a table of top 5 attacker IPs, and key performance indicators. All charts update live as new data flows in.
+- Architectural Overview Page: A dedicated screen featuring a full-page visual pipeline diagram illustrating the end-to-end flow of the FusionX WAF system (from user input to data persistence and dashboard display). It is complemented by a clean table detailing the technology stack and purpose of each component.
+- Secure Decoding and Mock ML Classification Engine: Backend services that apply a multi-stage decoding pipeline (URL, Base64, Unicode normalization) to raw input. This is followed by a mock machine learning pipeline that simulates DistilBERT inference to classify threats and assign confidence scores and explanations based on predefined patterns.
+- Attack Log Persistence: An SQLite database that persistently stores details of every analyzed request and real-time event. Each log entry includes raw input, decoded input, predicted class, confidence score, decision, and inference time, providing historical data for analytics and review.
+- API & WebSocket Server: A Python FastAPI backend serving REST API endpoints for payload analysis and system statistics. It also manages WebSocket connections for real-time data streaming and a background task for generating realistic fake attack traffic to simulate a live environment.
+
+## Style Guidelines:
+
+- Overall dark theme, featuring a main background of #0F1117 and card backgrounds of #1A1D2E, providing a professional and focused security dashboard aesthetic.
+- Primary interactive color: A deep, professional blue (#3962AC) used for general UI elements and branding. This choice provides a steady visual foundation that complements the functional elements.
+- Accent color: A vibrant cyan-blue (#6CD0E1), chosen analogously to the primary blue. It is significantly brighter to highlight specific interactive elements or important information.
+- Semantic colors: Red (#EF4444) for 'Blocked' statuses and alerts, Green (#22C55E) for 'Safe' indications, and Amber (#F59E0B) for 'Suspicious' warnings. These colors provide immediate visual feedback on threat levels.
+- Headline and body font: 'Inter', a grotesque-style sans-serif known for its clean, modern, and objective readability, highly suitable for data-intensive dashboards.
+- Use a simple shield icon as the favicon, reinforcing the WAF theme. Within the architecture diagram, use clear emojis or simple SVG icons to represent individual components and their functions.
+- Each screen follows a 'one purpose per screen' principle to avoid clutter. A consistent top navigation bar facilitates screen switching. Layouts are fully responsive, with charts stacking vertically and tables scrolling horizontally on smaller screens.
+- Subtle, smooth loading animations when data is being processed, enhancing user feedback. Real-time updates like new rows in the live feed feature slide-down transitions, and chart lines animate as new data points arrive. All transitions are set to 200ms ease for a fluid experience.
