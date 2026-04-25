@@ -15,7 +15,7 @@ export const IP_TO_COUNTRY: Record<string, string> = {
   "1.1.1.1": "AU", "8.8.8.8": "US", "212.58.244.70": "UK", "13.107.42.12": "US"
 };
 
-// Real CSIC 2010 Parsed Samples (Valid)
+// Real CSIC 2010 Parsed Samples (Valid Traffic)
 export const CSIC_VALID_SAMPLES = [
   { method: "GET", url: "/tienda1/imagenes/nuestratierra.jpg", payload: "Cookie: JSESSIONID=1DAB65B0324F0B760D56507C0FFCD929", id: "7704" },
   { method: "GET", url: "/tienda1/publico/registro.jsp?modo=registro&login=sikander&password=2eSCo63ENti2&dni=19064192K", payload: "Cookie: JSESSIONID=8CD26B5FBF3F555875293CA8CA90F199", id: "13515" },
@@ -25,14 +25,14 @@ export const CSIC_VALID_SAMPLES = [
   { method: "POST", url: "/tienda1/publico/autenticar.jsp", payload: "modo=entrar&login=janna&pwd=eusquero&remember=off&B1=Entrar", id: "16025" },
   { method: "POST", url: "/tienda1/publico/caracteristicas.jsp", payload: "id=1", id: "10915" },
   { method: "GET", url: "/tienda1/miembros/index.jsp", payload: "Cookie: JSESSIONID=C61FBBEEE45E049ABE4DB9B7E1B47D54", id: "7082" },
+  { method: "GET", url: "/tienda1/imagenes/logo.gif", payload: "Cookie: JSESSIONID=A53D159B0F23CDF15AF7AF825C939170", id: "11591" },
   { method: "POST", url: "/tienda1/miembros/editar.jsp", payload: "modo=registro&login=dyment&password=Z5R1174oSa&nombre=Sadoc&apellidos=Oruna", id: "21484" },
   { method: "POST", url: "/tienda1/publico/anadir.jsp", payload: "id=2&nombre=Jam%F3n+Ib%E9rico&precio=39&cantidad=98&B1=A%F1adir+al+carrito", id: "23259" },
   { method: "POST", url: "/tienda1/publico/pagar.jsp", payload: "modo=insertar&precio=1126&B1=Pasar+por+caja", id: "20713" },
   { method: "GET", url: "/tienda1/index.jsp", payload: "Cookie: JSESSIONID=F43C7CD943DE7B1C20D3A9896C463DFB", id: "13033" },
   { method: "POST", url: "/tienda1/publico/entrar.jsp", payload: "errorMsg=Credenciales+incorrectas", id: "3286" },
   { method: "GET", url: "/tienda1/publico/miembros.jsp", payload: "Cookie: JSESSIONID=2A48D6F851EE859F13A273FF4FF92637", id: "5267" },
-  { method: "POST", url: "/tienda1/miembros/editar.jsp", payload: "modo=registro&login=dafoe&password=25I6La&nombre=Aldebar", id: "19288" },
-  { method: "POST", url: "/tienda1/publico/autenticar.jsp", payload: "modo=entrar&login=eggebraa&pwd=enALtEceDOr&remember=on&B1=Entrar", id: "27977" },
+  { method: "POST", url: "/tienda1/miembros/editar.jsp", payload: "modo=registro&login=eggebraa&pwd=enALtEceDOr&remember=on&B1=Entrar", id: "27977" },
   { method: "GET", url: "/tienda1/global/estilos.css", payload: "Accept: text/css", id: "14566" },
   { method: "GET", url: "/tienda1/miembros/salir.jsp", payload: "Cookie: JSESSIONID=7C7D9FAB545CDB214E96AFDE9E202090", id: "31314" },
   { method: "GET", url: "/tienda1/imagenes/logo.gif", payload: "Accept: image/gif", id: "25883" },
@@ -41,15 +41,25 @@ export const CSIC_VALID_SAMPLES = [
   { method: "GET", url: "/tienda1/publico/pagar.jsp?modo=insertar&precio=8656&B1=Confirmar", payload: "Cookie: JSESSIONID=6B8FCC0BFBF0378A7A2507C09243692E", id: "32160" }
 ];
 
-// Real CSIC 2010 Parsed Samples (Anomalous - Reconstructed from typical patterns in dataset)
+// Real CSIC 2010 Parsed Samples (Anomalous/Attack Traffic)
 export const CSIC_ANOMALOUS_SAMPLES = [
-  { method: "GET", url: "/tienda1/publico/caracteristicas.jsp?id=%27OR%27a%3D%27a", payload: "SQL Injection Payload", attackType: "SQL Injection", score: 0.96, id: "AN-7704" },
-  { method: "GET", url: "/tienda1/miembros/editar.jsp?modo=registro%3CSCRIPT%3Ealert%28%22Paros%22%29%3B%3C%2FSCRIPT%3E", payload: "XSS script execution", attackType: "XSS", score: 0.94, id: "AN-13515" },
-  { method: "POST", url: "/tienda1/publico/autenticar.jsp", payload: "login=admin%27--&pwd=bypass", attackType: "SQL Injection", score: 0.98, id: "AN-35896" },
-  { method: "GET", url: "/tienda1/miembros/imagenes/zarauz.jpg?path=../../etc/passwd", payload: "Path Traversal Attempt", attackType: "Path Traversal", score: 0.92, id: "AN-12445" },
-  { method: "POST", url: "/tienda1/publico/registro.jsp", payload: "email=%3Cimg+src%3Dx+onerror%3Dalert(1)%3E", attackType: "XSS", score: 0.95, id: "AN-6784" },
-  { method: "GET", url: "/tienda1/publico/anadir.jsp?id=3&cantidad=999999999999999999", payload: "Buffer Overflow Simulation", attackType: "Buffer Overflow", score: 0.88, id: "AN-23259" },
-  { method: "GET", url: "/api/proxy?url=http://169.254.169.254/latest/meta-data/", payload: "SSRF Intelligence Probe", attackType: "SSRF", score: 0.91, id: "AN-15888" }
+  { method: "GET", url: "/tienda1/publico/caracteristicas.jsp?idA=2", payload: "Parameter Tampering Detected", attackType: "Path Traversal", score: 0.92, id: "AN-11044" },
+  { method: "POST", url: "/tienda1/publico/autenticar.jsp", payload: "login=arro&pwd=CarMinAR%3C%21--%23include+file%3D%22archivo_secreto%22+--%3E", attackType: "Command Injection", score: 0.98, id: "AN-1174" },
+  { method: "GET", url: "/tienda1/publico/anadir.jsp?id=2&nombre=Jam%F3n+Ib%E9rico&precio=100%2F&cantidad=60", attackType: "SQL Injection", score: 0.89, id: "AN-21535" },
+  { method: "POST", url: "/tienda1/publico/registro.jsp", payload: "login=defalco&password=botonesSet-cookie%253A%2BTamper%253D1041264011025374727", attackType: "XSS", score: 0.95, id: "AN-13852" },
+  { method: "GET", url: "/tienda1/publico/pagar.jsp?modo=insertar&precio=1633&B1=Confirmar%27INJECTED_PARAM", attackType: "SQL Injection", score: 0.94, id: "AN-3053" },
+  { method: "GET", url: "/tienda1/miembros/imagenes/zarauz.jpg.BAK", payload: "Source Code Leakage Attempt", attackType: "Path Traversal", score: 0.96, id: "AN-8203" },
+  { method: "GET", url: "/tienda1/imagenes.java", payload: "Directory Brute Force Detected", attackType: "Path Traversal", score: 0.91, id: "AN-16628" },
+  { method: "POST", url: "/tienda1/miembros/editar.jsp", payload: "login=blodgett&password=1LFiLERer5&provincia=Al%2Fmer.%EDa", attackType: "Path Traversal", score: 0.88, id: "AN-5232" },
+  { method: "GET", url: "/tienda1/publico/caracteristicas.jsp.INC", payload: "Include File Disclosure Attempt", attackType: "Path Traversal", score: 0.93, id: "AN-2834" },
+  { method: "POST", url: "/tienda1/miembros/editar.jsp", payload: "login=julee&password=any%253F%250D%250ASet-cookie%253A%2BTamper%253D1041264011025374727", attackType: "XSS", score: 0.97, id: "AN-1258" },
+  { method: "GET", url: "/tienda1/publico/autenticar.jsp?modo=entrar&login=lilllie8&pwd=4mpo599c7mientoSet-cookie%253A%2BTamper%253D1041264011025374727", attackType: "XSS", score: 0.92, id: "AN-10989" },
+  { method: "GET", url: "/tienda1/publico/anadir.jsp/asf-logo-wide", attackType: "Path Traversal", score: 0.85, id: "AN-17943" },
+  { method: "POST", url: "/tienda1/publico/entrar.jsp", payload: "errorMsg=any%253F%250ASet-cookie%253A%2BTamper%253D5765205567234876235", attackType: "XSS", score: 0.94, id: "AN-5016" },
+  { method: "GET", url: "/tienda1/publico/pagar.jsp?modo=insertar&precio=1012%27INJECTED_PARAM&B1=Pasar+por+caja", attackType: "SQL Injection", score: 0.96, id: "AN-23333" },
+  { method: "POST", url: "/tienda1/publico/anadir.jsp", payload: "id=2%257C&nombre=Vino+Rioja&precio=85&cantidad=18", attackType: "Command Injection", score: 0.91, id: "AN-8576" },
+  { method: "POST", url: "/tienda1/publico/pagar.jsp", payload: "modo=insertar&precio=6027&B1=Confirmar%253CSCRIPT%253Ealert%2528%2522Paros%2522%2529%253B%253C%252FSCRIPT%253E", attackType: "XSS", score: 0.98, id: "AN-7122" },
+  { method: "GET", url: "/tienda1/publico/pagar.jsp/asf-logo-wide.java", attackType: "Path Traversal", score: 0.94, id: "AN-22323" }
 ];
 
 export const ATTACK_TYPES = [
