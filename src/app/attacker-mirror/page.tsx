@@ -1,6 +1,8 @@
+
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -92,6 +94,7 @@ const Typewriter = ({ lines, delay = 20, onComplete, className }: { lines: strin
 };
 
 export default function AttackerMirrorPage() {
+  const router = useRouter();
   const [attacks, setAttacks] = useState<any[]>([]);
   const [selectedAttack, setSelectedAttack] = useState<any | null>(null);
   const [isLive, setIsLive] = useState(true);
@@ -100,9 +103,10 @@ export default function AttackerMirrorPage() {
   const [frustration, setFrustration] = useState(45);
   const [showBreachAlert, setShowBreachAlert] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [isReplaying, setIsReplaying] = useState(false);
   
   // Replay Trigger
-  const triggerReplay = (attack: any) => {
+  const triggerSequence = (attack: any) => {
     setSelectedAttack(attack);
     setReplayStage(0);
     setCountdown(3);
@@ -135,7 +139,7 @@ export default function AttackerMirrorPage() {
   useEffect(() => {
     const seed = getSeededData().slice(0, 30);
     setAttacks(seed);
-    if (seed.length > 0) triggerReplay(seed[0]);
+    if (seed.length > 0) triggerSequence(seed[0]);
   }, []);
 
   // Live Mode Simulation
@@ -144,7 +148,7 @@ export default function AttackerMirrorPage() {
     const interval = setInterval(() => {
       const newReq = generateFakeRequest();
       setAttacks(prev => [newReq, ...prev].slice(0, 30));
-      triggerReplay(newReq);
+      triggerSequence(newReq);
     }, 12000);
     return () => clearInterval(interval);
   }, [isLive, replayStage]);
@@ -167,6 +171,19 @@ export default function AttackerMirrorPage() {
       { side: 'right', time: '2808ms', text: 'Final Decision: BLOCKED', icon: Lock },
     ].filter((_, i) => (i / 2) < replayStage);
   }, [selectedAttack, replayStage]);
+
+  const handleReplayInAnalyzer = () => {
+    if (!selectedAttack) return;
+    setIsReplaying(true);
+    setTimeout(() => {
+      const replayData = encodeURIComponent(JSON.stringify({
+        payload: selectedAttack.payload || selectedAttack.endpoint,
+        attackType: selectedAttack.attackType,
+        timestamp: selectedAttack.timestamp
+      }));
+      router.push(`/analyzer?replay=${replayData}`);
+    }, 1000);
+  };
 
   return (
     <div className="flex flex-col h-screen bg-[#020408] overflow-hidden dashboard-cursor text-white selection:bg-destructive/30">
@@ -223,7 +240,7 @@ export default function AttackerMirrorPage() {
                <Switch id="live-mode" checked={isLive} onCheckedChange={setIsLive} />
                <Label htmlFor="live-mode" className="text-[10px] font-black uppercase tracking-widest text-white/60">Live Intercept</Label>
             </div>
-            <Select onValueChange={(v) => triggerReplay(attacks.find(a => a.id === v))}>
+            <Select onValueChange={(v) => triggerSequence(attacks.find(a => a.id === v))}>
                <SelectTrigger className="w-[180px] bg-white/5 border-white/10 rounded-xl h-10 text-[10px] font-black uppercase">
                  <SelectValue placeholder="Select Attack" />
                </SelectTrigger>
@@ -233,7 +250,7 @@ export default function AttackerMirrorPage() {
                  ))}
                </SelectContent>
             </Select>
-            <Button variant="ghost" size="icon" onClick={() => triggerReplay(selectedAttack)} className="h-10 w-10 border border-white/10 rounded-xl hover:bg-white/5">
+            <Button variant="ghost" size="icon" onClick={() => triggerSequence(selectedAttack)} className="h-10 w-10 border border-white/10 rounded-xl hover:bg-white/5">
               <RotateCcw className="h-4 w-4" />
             </Button>
           </div>
@@ -259,7 +276,6 @@ export default function AttackerMirrorPage() {
             <Badge variant="outline" className="bg-red-500/10 border-red-500/30 text-red-500 font-mono text-[9px] px-3 py-1 uppercase">Node_0x4F Active</Badge>
           </div>
 
-          {/* Section 1: What they are doing */}
           <Card className="bg-black/60 border-white/5 rounded-[2rem] overflow-hidden flex flex-col shadow-2xl">
              <div className="bg-red-500/5 px-6 py-3 border-b border-white/5 flex items-center justify-between">
                 <span className="text-[10px] font-black uppercase tracking-widest text-red-400">Current Objective</span>
@@ -283,7 +299,7 @@ export default function AttackerMirrorPage() {
                         `sqlmap -u "shieldcore.ai/login" --data="user=${selectedAttack?.payload}"`,
                         `[INFO] testing for SQL Injection on parameter 'user'`,
                         `[INFO] parameter 'user' is vulnerable. confirming...`,
-                        `[PAYLOAD] ${selectedAttack?.payload.substring(0, 40)}...`
+                        `[PAYLOAD] ${selectedAttack?.payload?.substring(0, 40) || 'N/A'}...`
                      ]} />
                    ) : (
                      <div className="h-full flex items-center justify-center text-white/10 italic text-xs uppercase tracking-widest">Waiting for session...</div>
@@ -292,15 +308,14 @@ export default function AttackerMirrorPage() {
              </CardContent>
           </Card>
 
-          {/* Section 2: How it was built */}
           <Card className="bg-black/40 border-dashed border-white/10 rounded-[2rem] p-8 flex flex-col space-y-6">
              <span className="text-[10px] font-black uppercase tracking-widest text-white/30">Payload Construction Stack</span>
              <div className="space-y-4">
                 {[
-                  { label: 'Start with Malicious Intent', val: selectedAttack?.payload.split(' ')[0] || 'OR 1=1' },
+                  { label: 'Start with Malicious Intent', val: selectedAttack?.payload?.split(' ')[0] || 'OR 1=1' },
                   { label: 'Add Encoding', val: 'J09S' + (selectedAttack?.id || 'X9') + '...' , explain: explain('Base64 Decode') },
                   { label: 'Obfuscate', val: '0x' + (selectedAttack?.id.repeat(4) || 'FF') , explain: 'Adding noise to confuse traditional systems' },
-                  { label: 'Launch', val: selectedAttack?.payload.substring(0, 30) + '...' }
+                  { label: 'Launch', val: selectedAttack?.payload?.substring(0, 30) + '...' }
                 ].map((step, i) => (
                   <div key={i} className={cn(
                     "flex items-start gap-6 p-4 rounded-2xl border transition-all duration-700",
@@ -319,7 +334,6 @@ export default function AttackerMirrorPage() {
              </div>
           </Card>
 
-          {/* Section 3: Attacker Profile */}
           <Card className="bg-black border-white/5 rounded-[2rem] p-8 space-y-8">
              <div className="grid grid-cols-2 gap-8">
                 <div className="space-y-4">
@@ -338,6 +352,16 @@ export default function AttackerMirrorPage() {
                          <span className="text-[11px] font-black text-red-400 uppercase tracking-tighter">DATA EXFILTRATION</span>
                       </div>
                    </div>
+
+                   <Button 
+                      variant="outline" 
+                      onClick={handleReplayInAnalyzer}
+                      disabled={isReplaying}
+                      className="w-full mt-4 h-10 border-red-500 text-red-500 hover:bg-red-600 hover:text-white transition-all rounded-xl font-black uppercase text-[10px] tracking-widest"
+                   >
+                      {isReplaying ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Play className="h-4 w-4 mr-2 fill-current" />}
+                      {isReplaying ? "REPLAYING" : "REPLAY ATTACK"}
+                   </Button>
                 </div>
                 <div className="space-y-4">
                    <span className="text-[10px] font-black uppercase tracking-widest text-white/30">Frustration Level</span>
@@ -394,7 +418,6 @@ export default function AttackerMirrorPage() {
             <Badge variant="outline" className="bg-emerald-500/10 border-emerald-500/30 text-emerald-500 font-mono text-[9px] px-3 py-1 uppercase">Protected Mode Active</Badge>
           </div>
 
-          {/* Section 1: What our WAF is doing */}
           <Card className="glass-card border-white/5 bg-black/40 rounded-[2rem] overflow-hidden flex flex-col shadow-2xl">
              <div className="bg-cyan-500/5 px-6 py-3 border-b border-white/5 flex items-center justify-between">
                 <span className="text-[10px] font-black uppercase tracking-widest text-cyan-400">Response Logic</span>
@@ -439,7 +462,6 @@ export default function AttackerMirrorPage() {
              </CardContent>
           </Card>
 
-          {/* Section 2: Why it was blocked */}
           <Card className="bg-black/40 border-white/5 rounded-[2rem] p-8 space-y-6">
              <span className="text-[10px] font-black uppercase tracking-widest text-white/30">Forensic Evidence</span>
              <div className="space-y-3">
@@ -460,17 +482,8 @@ export default function AttackerMirrorPage() {
                   </div>
                 ))}
              </div>
-             {replayStage >= 4 && (
-               <div className="pt-4 border-t border-white/5">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-2">Rule Reference</p>
-                  <p className="text-[10px] text-white/60 leading-relaxed italic">
-                    Triggered Rule: <span className="text-cyan-500 font-mono">SC-WAF-92.4</span> - Detected attempts to manipulate underlying database structure through front-end parameters.
-                  </p>
-               </div>
-             )}
           </Card>
 
-          {/* Section 3: Recommendations */}
           <Card className="bg-black border-white/5 rounded-[2rem] p-8 space-y-6">
              <span className="text-[10px] font-black uppercase tracking-widest text-white/30">Defender Recommendations</span>
              <div className="space-y-4">
@@ -495,22 +508,6 @@ export default function AttackerMirrorPage() {
                 ))}
              </div>
           </Card>
-
-          {/* Legal Section */}
-          <div className={cn(
-            "bg-[#150a0a] border border-red-500/20 rounded-[2rem] p-8 flex flex-col relative overflow-hidden transition-all duration-1000",
-            replayStage >= 4 ? "opacity-100" : "opacity-0"
-          )}>
-             <div className="absolute top-4 right-8 opacity-20 rotate-12">
-                <div className="border-4 border-red-500 px-6 py-2 rounded text-red-500 font-black text-2xl uppercase">PROSECUTABLE</div>
-             </div>
-             <h4 className="text-[10px] font-black text-red-500/60 uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
-                <Gavel className="h-4 w-4" /> Legal Assessment
-             </h4>
-             <p className="text-[11px] font-serif italic text-white/60 leading-relaxed max-w-lg">
-                "Based on the severity of the attempt to compromise critical infrastructure, this activity constitutes a violation of {explain('Prosecutable')}. Subject is liable for up to 10 years incarceration and unlimited statutory fines."
-             </p>
-          </div>
         </div>
       </div>
 
@@ -519,7 +516,7 @@ export default function AttackerMirrorPage() {
         <div className="flex items-center gap-4">
            <Button variant="ghost" size="icon" className="h-10 w-10 border border-white/10 rounded-xl" onClick={() => {
               const idx = attacks.findIndex(a => a.id === selectedAttack?.id);
-              if (idx < attacks.length - 1) triggerReplay(attacks[idx + 1]);
+              if (idx < attacks.length - 1) triggerSequence(attacks[idx + 1]);
            }}>
               <ArrowLeft className="h-4 w-4" />
            </Button>
@@ -529,7 +526,7 @@ export default function AttackerMirrorPage() {
            </div>
            <Button variant="ghost" size="icon" className="h-10 w-10 border border-white/10 rounded-xl" onClick={() => {
               const idx = attacks.findIndex(a => a.id === selectedAttack?.id);
-              if (idx > 0) triggerReplay(attacks[idx - 1]);
+              if (idx > 0) triggerSequence(attacks[idx - 1]);
            }}>
               <ArrowRight className="h-4 w-4" />
            </Button>
@@ -541,7 +538,7 @@ export default function AttackerMirrorPage() {
               {attacks.map((atk) => (
                 <button
                   key={atk.id}
-                  onClick={() => triggerReplay(atk)}
+                  onClick={() => triggerSequence(atk)}
                   className={cn(
                     "h-4 w-4 rounded-full transition-all hover:scale-150 group relative",
                     selectedAttack?.id === atk.id ? "ring-2 ring-white ring-offset-4 ring-offset-black scale-125" : "opacity-40",
@@ -570,11 +567,6 @@ export default function AttackerMirrorPage() {
       <style jsx global>{`
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        @keyframes stamp {
-          0% { transform: scale(3); opacity: 0; }
-          100% { transform: scale(1); opacity: 1; }
-        }
-        .animate-stamp { animation: stamp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
       `}</style>
 
     </div>

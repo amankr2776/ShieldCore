@@ -1,7 +1,8 @@
 
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -22,7 +23,7 @@ import {
   Terminal, Fingerprint, Database as DatabaseIcon, Lock, Unlock,
   Layers, FileText, Download, ExternalLink,
   Gavel, MousePointer2, AlertTriangle, Cpu,
-  Pause, Play
+  Pause, Play, History, RotateCcw
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -54,8 +55,6 @@ interface AnalysisResult {
   timestamp: string;
   pipeline: { step: string; output: string; completed: boolean }[];
 }
-
-// --- CONSTANTS ---
 
 const OWASP_REF = {
   'A03:2021': { code: 'A03:2021', name: 'Injection', risk: 'High', description: 'User-supplied data is not validated, filtered, or sanitized by the application.' },
@@ -89,7 +88,7 @@ function runForensicAnalysis(input: string): AnalysisResult {
     { step: 'NEURAL CLASSIFICATION', output: 'LPU-INFERENCE COMPLETE', completed: true },
   ];
 
-  // 2. Deep Pattern Detection
+  // Pattern detection logic
   let predictedClass = 'Safe Traffic';
   let decision: 'SAFE' | 'BLOCKED' | 'SUSPICIOUS' = 'SAFE';
   let confidence = 0.05 + Math.random() * 0.1;
@@ -107,11 +106,6 @@ function runForensicAnalysis(input: string): AnalysisResult {
     { p: "--", name: 'SQL Commenting', label: 'COMMENT SEQUENCE', sev: 'MEDIUM' }
   ];
 
-  const ssiThreats = [
-    { p: '#exec', name: 'SSI Injection', label: 'REMOTE EXECUTION', sev: 'HIGH' },
-    { p: '#include', name: 'SSI Disclosure', label: 'FILE INCLUSION', sev: 'HIGH' }
-  ];
-
   const xssThreats = [
     { p: '<script', name: 'Stored/Reflected XSS', label: 'SCRIPT INJECTION', sev: 'HIGH' },
     { p: 'alert(', name: 'XSS Payload Probe', label: 'EXECUTION PROBE', sev: 'MEDIUM' },
@@ -124,27 +118,11 @@ function runForensicAnalysis(input: string): AnalysisResult {
       predictedClass = threat.name;
       decision = 'BLOCKED';
       confidence = 0.96 + Math.random() * 0.03;
-      severity = 'HIGH';
+      severity = threat.sev as any;
       owasp = OWASP_REF['A03:2021'];
       evidence.push({ pattern: threat.p.toUpperCase(), label: threat.label });
       explanation = `Forensic analysis identified a ${threat.name} signature. The use of "${threat.p.toUpperCase()}" indicates a deliberate attempt to manipulate back-end database logic. High-confidence classification mapping verified against 847 similar artifacts in CSIC training corpus.`;
       break;
-    }
-  }
-
-  // Check SSI / Shell
-  if (decision === 'SAFE') {
-    for (const threat of ssiThreats) {
-      if (lower.includes(threat.p)) {
-        predictedClass = threat.name;
-        decision = 'BLOCKED';
-        confidence = 0.98;
-        severity = 'HIGH';
-        owasp = OWASP_REF['A03:2021'];
-        evidence.push({ pattern: threat.p.toUpperCase(), label: threat.label });
-        explanation = `Server-Side Include (SSI) injection attempt detected. Payload targets system resources using the "${threat.p.toUpperCase()}" directive, posing a critical risk of remote code execution.`;
-        break;
-      }
     }
   }
 
@@ -154,8 +132,8 @@ function runForensicAnalysis(input: string): AnalysisResult {
       if (lower.includes(threat.p)) {
         predictedClass = threat.name;
         decision = 'BLOCKED';
-        confidence = 0.94;
-        severity = 'HIGH';
+        confidence = 0.94 + Math.random() * 0.04;
+        severity = threat.sev as any;
         owasp = OWASP_REF['A03:2021'];
         evidence.push({ pattern: threat.p.toUpperCase(), label: threat.label });
         explanation = `Script injection artifact identified. The sequence targeting "${threat.p.toUpperCase()}" attempts to bypass client-side security controls to execute unauthorized browser logic.`;
@@ -186,6 +164,7 @@ function runForensicAnalysis(input: string): AnalysisResult {
 }
 
 export default function AnalyzerPage() {
+  const searchParams = useSearchParams();
   const [payload, setPayload] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -195,8 +174,10 @@ export default function AnalyzerPage() {
   const [sessionLog, setSessionLog] = useState<AnalysisResult[]>([]);
   const [isFeedPaused, setIsFeedPaused] = useState(false);
   const [feedIndex, setFeedIndex] = useState(0);
+  const [replayBanner, setReplayBanner] = useState<{ type: string; timestamp: string } | null>(null);
   
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const resultRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   // Attack Feed Timer
@@ -208,8 +189,9 @@ export default function AnalyzerPage() {
     return () => clearInterval(interval);
   }, [isFeedPaused]);
 
-  const handleAnalyze = async () => {
-    if (!payload.trim()) return;
+  const handleAnalyze = useCallback(async (customPayload?: string) => {
+    const inputToUse = customPayload || payload;
+    if (!inputToUse.trim()) return;
     
     setIsAnalyzing(true);
     setResult(null);
@@ -221,7 +203,7 @@ export default function AnalyzerPage() {
       setPipelineStep(i);
     }
 
-    const res = runForensicAnalysis(payload);
+    const res = runForensicAnalysis(inputToUse);
     setResult(res);
     setIsAnalyzing(false);
 
@@ -233,13 +215,33 @@ export default function AnalyzerPage() {
       fp: prev.fp
     }));
     setSessionLog(prev => [res, ...prev].slice(0, 5));
-  };
+
+    // Scroll to results
+    setTimeout(() => {
+      resultRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  }, [payload]);
+
+  // Handle incoming Replay state
+  useEffect(() => {
+    const replayParam = searchParams.get('replay');
+    if (replayParam) {
+      try {
+        const data = JSON.parse(decodeURIComponent(replayParam));
+        setPayload(data.payload);
+        setReplayBanner({ type: data.attackType, timestamp: data.timestamp });
+        handleAnalyze(data.payload);
+      } catch (e) {
+        console.error("Replay data parse error", e);
+      }
+    }
+  }, [searchParams, handleAnalyze]);
 
   const loadFromLibrary = (p?: string) => {
     setPayload(p || '');
     setResult(null);
     setPipelineStep(-1);
-    // Use a small timeout to ensure state update before focus
+    setReplayBanner(null);
     setTimeout(() => {
       if (textareaRef.current) {
         textareaRef.current.focus();
@@ -267,7 +269,6 @@ export default function AnalyzerPage() {
     doc.save(`shieldcore-forensic-${result.id}.pdf`);
   };
 
-  // Highlighting logic for the editor
   const getHighlightBorder = () => {
     if (!payload) return "border-white/5";
     const lower = payload.toLowerCase();
@@ -447,7 +448,7 @@ export default function AnalyzerPage() {
                 placeholder="INGRESS SOURCE PAYLOAD..."
                 className="min-h-[220px] pl-10 pt-4 bg-transparent border-none font-mono text-xs text-white placeholder:text-white/10 focus-visible:ring-0 resize-none leading-relaxed"
                 value={payload}
-                onChange={(e) => setPayload(e.target.value)}
+                onChange={(e) => { setPayload(e.target.value); setReplayBanner(null); }}
               />
               <div className="absolute bottom-4 right-4 pointer-events-none opacity-20">
                  <Cpu className="h-12 w-12 text-white" />
@@ -463,7 +464,7 @@ export default function AnalyzerPage() {
 
             <div className="flex gap-4">
                <Button 
-                onClick={handleAnalyze}
+                onClick={() => { setReplayBanner(null); handleAnalyze(); }}
                 disabled={isAnalyzing || !payload}
                 className="flex-1 h-14 rounded-2xl bg-destructive hover:bg-destructive/90 text-white font-black text-xs uppercase tracking-widest relative overflow-hidden group shadow-lg shadow-destructive/20"
                >
@@ -478,7 +479,7 @@ export default function AnalyzerPage() {
                    </span>
                  )}
                </Button>
-               <Button variant="outline" onClick={() => setPayload('')} className="h-14 px-8 border-white/10 hover:bg-white/5 rounded-2xl text-[10px] font-black uppercase text-white/40">Clear</Button>
+               <Button variant="outline" onClick={() => { setPayload(''); setReplayBanner(null); }} className="h-14 px-8 border-white/10 hover:bg-white/5 rounded-2xl text-[10px] font-black uppercase text-white/40">Clear</Button>
             </div>
           </div>
 
@@ -500,74 +501,90 @@ export default function AnalyzerPage() {
              ))}
           </div>
 
-          {result ? (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 space-y-6">
-               <div className={cn(
-                  "border-l-4 p-8 rounded-2xl relative bg-black/40 shadow-2xl",
-                  result.decision === 'BLOCKED' ? "border-l-destructive shadow-destructive/5" : "border-l-emerald-500 shadow-emerald-500/5"
-               )}>
-                  <div className="flex justify-between items-start mb-8">
-                     <div>
-                        <h2 className={cn("text-4xl font-black tracking-tighter uppercase", result.decision === 'BLOCKED' ? "text-destructive" : "text-emerald-500")}>
-                           {result.decision === 'BLOCKED' ? 'Threat Detected' : 'Safe Traffic'}
-                        </h2>
-                        <p className="text-lg font-black text-white/80 uppercase tracking-tighter">{result.predicted_class}</p>
-                     </div>
-                     <div className="text-right">
-                        <p className={cn("text-4xl font-black font-mono", result.decision === 'BLOCKED' ? "text-destructive" : "text-emerald-500")}>
-                           {Math.round(result.confidence_score * 100)}%
-                        </p>
-                        <p className="text-[10px] font-black text-white/20 uppercase">Confidence Score</p>
-                     </div>
-                  </div>
+          <div ref={resultRef} className="scroll-mt-10">
+            {replayBanner && (
+              <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center justify-between animate-in slide-in-from-top-2">
+                <div className="flex items-center gap-3 text-amber-500">
+                  <History className="h-4 w-4" />
+                  <span className="text-[10px] font-black uppercase tracking-widest">
+                    REPLAYING BLOCKED ATTACK FROM LIVE FEED — {replayBanner.type} — {new Date(replayBanner.timestamp).toLocaleTimeString()}
+                  </span>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => setReplayBanner(null)} className="h-6 w-6 text-amber-500/60 hover:text-amber-500">
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            )}
 
-                  <div className="grid grid-cols-3 gap-8 border-y border-white/5 py-6 mb-8">
-                     <div>
-                        <p className="text-[8px] font-black text-white/20 uppercase tracking-widest mb-1">Attack Class</p>
-                        <p className="text-xs font-bold">{result.predicted_class} ({result.owasp.code})</p>
-                     </div>
-                     <div>
-                        <p className="text-[8px] font-black text-white/20 uppercase tracking-widest mb-1">Severity</p>
-                        <Badge className={cn("font-black text-[9px]", result.severity === 'HIGH' ? "bg-destructive text-white" : "bg-emerald-500 text-white")}>
-                           {result.severity}
-                        </Badge>
-                     </div>
-                     <div>
-                        <p className="text-[8px] font-black text-white/20 uppercase tracking-widest mb-1">Inference Time</p>
-                        <p className="text-xs font-mono font-bold text-cyan-400">{result.inference_time_ms}ms</p>
-                     </div>
-                  </div>
+            {result ? (
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 space-y-6">
+                 <div className={cn(
+                    "border-l-4 p-8 rounded-2xl relative bg-black/40 shadow-2xl",
+                    result.decision === 'BLOCKED' ? "border-l-destructive shadow-destructive/5" : "border-l-emerald-500 shadow-emerald-500/5"
+                 )}>
+                    <div className="flex justify-between items-start mb-8">
+                       <div>
+                          <h2 className={cn("text-4xl font-black tracking-tighter uppercase", result.decision === 'BLOCKED' ? "text-destructive" : "text-emerald-500")}>
+                             {result.decision === 'BLOCKED' ? 'Threat Detected' : 'Safe Traffic'}
+                          </h2>
+                          <p className="text-lg font-black text-white/80 uppercase tracking-tighter">{result.predicted_class}</p>
+                       </div>
+                       <div className="text-right">
+                          <p className={cn("text-4xl font-black font-mono", result.decision === 'BLOCKED' ? "text-destructive" : "text-emerald-500")}>
+                             {Math.round(result.confidence_score * 100)}%
+                          </p>
+                          <p className="text-[10px] font-black text-white/20 uppercase">Confidence Score</p>
+                       </div>
+                    </div>
 
-                  <div className="space-y-6">
-                     <div className="space-y-2">
-                        <p className="text-[8px] font-black text-white/20 uppercase tracking-widest">AI Forensic Verdict</p>
-                        <p className="text-xs leading-relaxed text-white/70 italic bg-white/5 p-4 rounded-xl border border-white/5 border-l-2 border-l-white/20">
-                           "{result.explanation}"
-                        </p>
-                     </div>
+                    <div className="grid grid-cols-3 gap-8 border-y border-white/5 py-6 mb-8">
+                       <div>
+                          <p className="text-[8px] font-black text-white/20 uppercase tracking-widest mb-1">Attack Class</p>
+                          <p className="text-xs font-bold">{result.predicted_class} ({result.owasp.code})</p>
+                       </div>
+                       <div>
+                          <p className="text-[8px] font-black text-white/20 uppercase tracking-widest mb-1">Severity</p>
+                          <Badge className={cn("font-black text-[9px]", result.severity === 'HIGH' ? "bg-destructive text-white" : "bg-emerald-500 text-white")}>
+                             {result.severity}
+                          </Badge>
+                       </div>
+                       <div>
+                          <p className="text-[8px] font-black text-white/20 uppercase tracking-widest mb-1">Inference Time</p>
+                          <p className="text-xs font-mono font-bold text-cyan-400">{result.inference_time_ms}ms</p>
+                       </div>
+                    </div>
 
-                     {result.evidence.length > 0 && (
-                        <div className="space-y-3">
-                           <p className="text-[8px] font-black text-white/20 uppercase tracking-widest">Pattern Artifacts</p>
-                           <div className="grid grid-cols-2 gap-3">
-                              {result.evidence.map((ev, i) => (
-                                <div key={i} className="p-3 bg-black/60 border border-white/5 rounded-xl flex items-center justify-between group hover:border-red-500/30 transition-colors animate-in fade-in" style={{ animationDelay: `${i * 100}ms` }}>
-                                   <code className="text-[10px] font-black text-destructive">{ev.pattern}</code>
-                                   <span className="text-[8px] font-bold text-white/30 uppercase">{ev.label}</span>
-                                </div>
-                              ))}
-                           </div>
-                        </div>
-                     )}
-                  </div>
-               </div>
-            </div>
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center space-y-4 opacity-10">
-               <Shield className="h-24 w-24" />
-               <p className="font-mono text-xs uppercase tracking-[0.5em]">Awaiting Payload Ingress</p>
-            </div>
-          )}
+                    <div className="space-y-6">
+                       <div className="space-y-2">
+                          <p className="text-[8px] font-black text-white/20 uppercase tracking-widest">AI Forensic Verdict</p>
+                          <p className="text-xs leading-relaxed text-white/70 italic bg-white/5 p-4 rounded-xl border border-white/5 border-l-2 border-l-white/20">
+                             "{result.explanation}"
+                          </p>
+                       </div>
+
+                       {result.evidence.length > 0 && (
+                          <div className="space-y-3">
+                             <p className="text-[8px] font-black text-white/20 uppercase tracking-widest">Pattern Artifacts</p>
+                             <div className="grid grid-cols-2 gap-3">
+                                {result.evidence.map((ev, i) => (
+                                  <div key={i} className="p-3 bg-black/60 border border-white/5 rounded-xl flex items-center justify-between group hover:border-red-500/30 transition-colors animate-in fade-in" style={{ animationDelay: `${i * 100}ms` }}>
+                                     <code className="text-[10px] font-black text-destructive">{ev.pattern}</code>
+                                     <span className="text-[8px] font-bold text-white/30 uppercase">{ev.label}</span>
+                                  </div>
+                                ))}
+                             </div>
+                          </div>
+                       )}
+                    </div>
+                 </div>
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center space-y-4 opacity-10 py-20">
+                 <Shield className="h-24 w-24" />
+                 <p className="font-mono text-xs uppercase tracking-[0.5em]">Awaiting Payload Ingress</p>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="h-10 px-6 flex items-center justify-between border-t border-white/5 bg-black/60">
@@ -689,6 +706,9 @@ export default function AnalyzerPage() {
            </Button>
            <Button variant="outline" onClick={() => { setSessionStats(s => ({ ...s, fp: s.fp + 1 })); toast({ title: "Analyst Feedback", description: "False positive report logged for model retraining." }); }} className="w-full h-10 border-white/10 text-white/60 hover:text-white rounded-lg text-[10px] font-bold uppercase justify-start pl-4 group">
               <Flag className="mr-3 h-4 w-4 group-hover:text-destructive transition-colors" /> Report False Positive
+           </Button>
+           <Button variant="outline" onClick={() => { setResult(null); setPayload(''); setReplayBanner(null); textareaRef.current?.focus(); }} className="w-full h-10 border-white/10 text-white/60 hover:text-white rounded-lg text-[10px] font-bold uppercase justify-start pl-4 group">
+              <RefreshCw className="mr-3 h-4 w-4 group-hover:text-cyan-500 transition-colors" /> Analyze Another
            </Button>
         </div>
       </div>
