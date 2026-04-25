@@ -31,8 +31,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isLoading) {
       const publicRoutes = ['/', '/login'];
+      
+      // If not authenticated and trying to access a private route, go to login
       if (!isAuthenticated && !publicRoutes.includes(pathname)) {
         router.push('/login');
+      }
+
+      // If already authenticated and visiting the login page, go to the dashboard (analyzer)
+      if (isAuthenticated && pathname === '/login') {
+        router.push('/analyzer');
       }
     }
   }, [isAuthenticated, pathname, isLoading, router]);
@@ -46,6 +53,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('shieldcore_auth', JSON.stringify(userData));
       setIsAuthenticated(true);
       setUser(userData);
+      
+      // Explicitly redirect to the analyzer page after success
+      router.push('/analyzer');
       return true;
     }
     return false;
