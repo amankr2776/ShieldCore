@@ -16,6 +16,7 @@ import {
   TrendingUp, Fingerprint, Shield
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { DATASET_TOTALS } from '@/lib/mock-data';
 
 // --- DATA CONSTANTS ---
 
@@ -107,7 +108,7 @@ export default function AnalyticsPage() {
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [skillFilter, setSkillLevel] = useState('ALL');
   const [isSimulating, setIsSimulating] = useState(true);
-  const [totalAttacks, setTotalAttacks] = useState(124500);
+  const [totalAttacks, setTotalAttacks] = useState(DATASET_TOTALS.anomalous);
   const [liveRateData, setLiveRateData] = useState<any[]>(Array.from({ length: 20 }, (_, i) => ({ time: i, value: 40 + Math.random() * 20 })));
   const mapRef = useRef<any>(null);
   const markerGroupRef = useRef<any>(null);
@@ -291,7 +292,7 @@ export default function AnalyticsPage() {
   }, [isSimulating]);
 
   const stats = useMemo(() => ({
-    requests: 2845920 + (totalAttacks * 20),
+    requests: DATASET_TOTALS.total,
     blocks: totalAttacks,
     fpRate: '0.04%',
     latency: '5.2ms'
@@ -306,9 +307,13 @@ export default function AnalyticsPage() {
     xss: 80 + Math.random() * 150
   }));
 
-  const typeDistribution = Object.entries(ATTACK_COLORS).map(([name, fill]) => ({
-    name, fill, value: 1000 + Math.random() * 5000
-  }));
+  const typeDistribution = [
+    { name: 'SQLi', fill: '#ef4444', value: 8400 },
+    { name: 'XSS', fill: '#d946ef', value: 6200 },
+    { name: 'Command', fill: '#eab308', value: 3800 },
+    { name: 'Traversal', fill: '#22c55e', value: 4100 },
+    { name: 'Tampering', fill: '#06b6d4', value: 2500 }
+  ];
 
   const countryData = ATTACKER_DATA.sort((a, b) => b.attacks - a.attacks).slice(0, 15).map(c => ({
     name: `${c.flag} ${c.country}`,
@@ -325,9 +330,9 @@ export default function AnalyticsPage() {
 
   const successData = Array.from({ length: 12 }, (_, i) => ({
     time: `${i * 2}:00`,
-    blocked: 80 + Math.random() * 20,
-    suspicious: 10 + Math.random() * 10,
-    safe: 5 + Math.random() * 5
+    blocked: 25000 / 12,
+    suspicious: 5000 / 12,
+    safe: 36000 / 12
   }));
 
   // --- UI ACTIONS ---
@@ -358,9 +363,9 @@ export default function AnalyticsPage() {
       {/* Header: KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {[
-          { label: 'Requests Processed', val: stats.requests.toLocaleString(), icon: Globe, color: 'text-cyan-500', bg: 'bg-cyan-500/5' },
-          { label: 'Threats Neutralized', val: stats.blocks.toLocaleString(), icon: ShieldAlert, color: 'text-destructive', bg: 'bg-destructive/5' },
-          { label: 'False Positive rate', val: stats.fpRate, icon: AlertTriangle, color: 'text-amber-500', bg: 'bg-amber-500/5' },
+          { label: 'Dataset Total', val: stats.requests.toLocaleString(), icon: Globe, color: 'text-cyan-500', bg: 'bg-cyan-500/5' },
+          { label: 'Anomalous Identified', val: stats.blocks.toLocaleString(), icon: ShieldAlert, color: 'text-destructive', bg: 'bg-destructive/5' },
+          { label: 'CSIC Validity Rate', val: '59.0%', icon: AlertTriangle, color: 'text-amber-500', bg: 'bg-amber-500/5' },
           { label: 'Avg Inference Time', val: stats.latency, icon: Clock, color: 'text-emerald-500', bg: 'bg-emerald-500/5' },
         ].map((kpi, i) => (
           <Card key={i} className="glass-card rounded-[2rem] border-white/5 p-6 overflow-hidden relative group">
@@ -437,7 +442,7 @@ export default function AnalyticsPage() {
                 <h2 className="text-xl font-black uppercase tracking-tighter text-white">Global Neural Ingress</h2>
              </div>
              <Badge variant="outline" className="bg-destructive/10 border-destructive/30 text-destructive font-mono text-[9px] px-3 py-1">
-                EDGE_NODE_ALPHA_92 ACTIVE
+                CSIC_2010_DATASET ACTIVE
              </Badge>
           </div>
 
@@ -527,8 +532,8 @@ export default function AnalyticsPage() {
                 </RadialBarChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                 <p className="text-3xl font-black text-white tracking-tighter">124k</p>
-                 <p className="text-[8px] font-bold uppercase text-muted-foreground tracking-widest">Total Samples</p>
+                 <p className="text-3xl font-black text-white tracking-tighter">25k</p>
+                 <p className="text-[8px] font-bold uppercase text-muted-foreground tracking-widest">Anomalous Samples</p>
               </div>
            </div>
         </Card>
@@ -653,4 +658,3 @@ export default function AnalyticsPage() {
     </div>
   );
 }
-

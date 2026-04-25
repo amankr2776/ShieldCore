@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
@@ -21,6 +22,7 @@ import {
   Radar, ResponsiveContainer
 } from 'recharts';
 import { formatDistanceToNow } from 'date-fns';
+import { CSIC_ANOMALOUS_SAMPLES, CSIC_VALID_SAMPLES } from '@/lib/mock-data';
 
 const ATTACK_ICONS: Record<string, any> = {
   'SQL Injection': Syringe,
@@ -33,14 +35,10 @@ const ATTACK_ICONS: Record<string, any> = {
   'Suspicious': AlertCircle
 };
 
-const TEST_SAMPLES = [
-  { name: 'Normal Traffic', payload: 'GET /tienda1/imagenes/logo.gif HTTP/1.1\nHost: localhost:8080\nCookie: JSESSIONID=A53D159B0F23CDF15AF7AF825C939170' },
-  { name: 'SQL Injection', payload: "GET /publico/caracteristicas.jsp?id=%27OR%27a%3D%27a HTTP/1.1\nHost: localhost:8080" },
-  { name: 'XSS Attack', payload: 'GET /miembros/editar.jsp?modo=registro%3CSCRIPT%3Ealert%28%22Paros%22%29%3B%3C%2FSCRIPT%3E HTTP/1.1' },
-  { name: 'OS Command', payload: 'POST /publico/pagar.jsp HTTP/1.1\n\nmodo=insertar&precio=88&B1=Confirmar%3C%21--%23EXEC+cmd%3D%22ls+%2F%22--%3E' },
-  { name: 'Path Traversal', payload: 'GET /files?path=../../etc/passwd HTTP/1.1' },
-  { name: 'SSRF Attack', payload: 'GET /api/proxy?url=http://169.254.169.254/latest/meta-data/ HTTP/1.1' }
-];
+const TEST_SAMPLES = CSIC_ANOMALOUS_SAMPLES.slice(0, 6).map(s => ({
+  name: s.attackType,
+  payload: s.payload || `${s.method} ${s.url} HTTP/1.1`
+}));
 
 const OWASP_INTEL: Record<string, any> = {
   'A03:2021': {
@@ -105,8 +103,8 @@ export default function AnalyzerPage() {
       }, 20);
 
       const mockHistory = [
-        { id: '1', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), payload: 'GET /users/1?id=1%27 OR %271%27=%271', score: 0.94, decision: 'BLOCKED' },
-        { id: '2', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), payload: 'POST /api/v1/auth?user=admin-- ', score: 0.88, decision: 'BLOCKED' },
+        { id: '1', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), payload: 'POST /miembros/editar.jsp modo=registro&login=janey&password=3s3%27+AND+%271%27%3D%271', score: 0.94, decision: 'BLOCKED' },
+        { id: '2', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), payload: 'GET /publico/registro.jsp email=%27%2C%270%27%2C%270%27%2C%270%27%29%3Bwaitfor+delay+%270%3A0%3A15%27%3B--', score: 0.88, decision: 'BLOCKED' },
       ];
       setHistorical(mockHistory);
 
@@ -203,7 +201,7 @@ export default function AnalyzerPage() {
 
           {/* Quick Payloads */}
           <div className="space-y-6">
-            <div className="section-label">Reference Signatures</div>
+            <div className="section-label">Reference Signatures (CSIC 2010)</div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {TEST_SAMPLES.map((sample, i) => (
                 <button 
@@ -213,7 +211,7 @@ export default function AnalyzerPage() {
                   className="group relative flex flex-col items-start p-4 bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 rounded-2xl hover:border-destructive/30 hover:bg-black/[0.05] dark:hover:bg-white/[0.05] transition-all duration-300 text-left"
                 >
                   <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-muted-foreground group-hover:text-destructive transition-colors">{sample.name}</div>
-                  <div className="text-[9px] font-mono truncate w-full mt-1 opacity-20 text-gray-400 dark:text-white">SIG_REF_{i+102}</div>
+                  <div className="text-[9px] font-mono truncate w-full mt-1 opacity-20 text-gray-400 dark:text-white">{sample.payload.substring(0, 30)}...</div>
                 </button>
               ))}
             </div>
@@ -236,7 +234,7 @@ export default function AnalyzerPage() {
                   <div className={cn("relative p-10 rounded-3xl border-2 flex flex-col md:flex-row items-center justify-between gap-8 bg-gradient-to-br overflow-hidden shadow-2xl transition-all duration-1000", getStatusColor(result.decision))}>
                     <div className="absolute top-4 right-6 flex gap-4">
                        <Badge variant="outline" className="bg-black/20 dark:bg-black/40 border-white/10 text-[9px] font-mono py-1 uppercase text-white">{result.inference_time_ms}ms INF</Badge>
-                       <Badge variant="outline" className="bg-black/20 dark:bg-black/40 border-white/10 text-[9px] font-mono py-1 uppercase text-white">1.2.4 NODE</Badge>
+                       <Badge variant="outline" className="bg-black/20 dark:bg-black/40 border-white/10 text-[9px] font-mono py-1 uppercase text-white">CSIC_CORE_92</Badge>
                     </div>
                     <div className="space-y-3">
                       <div className="flex items-center gap-4">
@@ -394,30 +392,6 @@ export default function AnalyzerPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-6">
-                    <div className="section-label">Correlated Activity</div>
-                    <div className="glass-card overflow-hidden rounded-3xl">
-                      <table className="w-full text-left">
-                        <thead className="bg-black/[0.02] dark:bg-white/[0.02] border-b border-black/5 dark:border-white/5">
-                           <tr className="text-[9px] uppercase font-black text-gray-400 dark:text-muted-foreground">
-                             <th className="px-8 py-4">Time Observed</th>
-                             <th className="px-8 py-4">Payload Signature</th>
-                             <th className="px-8 py-4 text-right">Match Score</th>
-                           </tr>
-                        </thead>
-                        <tbody className="text-[11px] font-medium">
-                          {historical.map((h) => (
-                            <tr key={h.id} className="border-b border-black/5 dark:border-white/5 last:border-0 hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors group">
-                              <td className="px-8 py-4 text-gray-500 dark:text-muted-foreground font-mono">{formatDistanceToNow(new Date(h.timestamp))} ago</td>
-                              <td className="px-8 py-4 font-mono opacity-60 text-gray-700 dark:text-white group-hover:opacity-100 transition-opacity truncate max-w-md">{h.payload}</td>
-                              <td className="px-8 py-4 text-right font-black text-destructive">{Math.round(h.score * 100)}%</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
                   <div className="flex gap-4 pt-10 border-t border-black/5 dark:border-white/5">
                     <Button variant="outline" className="flex-1 font-black uppercase text-xs h-14 rounded-2xl border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5" onClick={() => { navigator.clipboard.writeText(JSON.stringify(result, null, 2)); toast({ title: "Intelligence Copied" }); }}>
                       <Copy className="h-4 w-4 mr-3" /> Export Intelligence (JSON)
@@ -436,13 +410,13 @@ export default function AnalyzerPage() {
           <Card className="glass-card bg-black/[0.01] dark:bg-white/[0.03] rounded-3xl p-2 sticky top-28">
             <CardHeader className="p-6">
               <CardTitle className="text-xs font-black uppercase tracking-[0.3em] text-gray-400 dark:text-muted-foreground flex items-center gap-2">
-                <Activity className="h-4 w-4 text-destructive" /> REAL-TIME SPECS
+                <Activity className="h-4 w-4 text-destructive" /> DATASET SPECS
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6 pt-0 space-y-6">
               {[
-                { label: 'LPU Latency', val: '5.2ms AVG', color: 'text-destructive', bg: 'bg-destructive/10' },
-                { label: 'Neural Depth', val: '12-Layer', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+                { label: 'Samples', val: '61,000 TOTAL', color: 'text-destructive', bg: 'bg-destructive/10' },
+                { label: 'Proportion', val: '59% Valid', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
                 { label: 'Context Size', val: '5,000 OCTETS', color: 'text-gray-900 dark:text-white', bg: 'bg-black/5 dark:bg-white/5' }
               ].map((item, idx) => (
                 <div key={idx} className={cn("p-5 rounded-2xl border border-black/5 dark:border-white/5 transition-all duration-300 hover:bg-black/5 dark:hover:bg-white/5", item.bg)}>
