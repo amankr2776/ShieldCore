@@ -289,6 +289,10 @@ export default function LiveFeedPage() {
                        Dismiss Signal
                      </Button>
                   </div>
+
+                  <div className="pt-8 text-center">
+                    <p className="text-[8px] font-black uppercase tracking-widest text-gray-400 dark:text-white opacity-30">ShieldCore Security Protocol SC-92</p>
+                  </div>
                 </div>
               </>
             )}

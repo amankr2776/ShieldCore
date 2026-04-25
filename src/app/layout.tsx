@@ -7,7 +7,7 @@ import { AuthProvider } from '@/context/auth-context';
 import { LoadingScreen } from '@/components/loading-screen';
 
 export const metadata: Metadata = {
-  title: 'FusionX WAF | AI Security Dashboard',
+  title: 'ShieldCore WAF | AI Security Dashboard',
   description: 'AI-Powered Web Application Firewall',
   icons: {
     icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>',
@@ -41,7 +41,7 @@ export default function RootLayout({
           {/* Global Version Badge */}
           <div className="fixed bottom-4 right-4 z-50 pointer-events-none">
             <div className="bg-secondary/40 backdrop-blur-md border border-destructive/20 px-3 py-1 rounded-full text-[10px] font-mono text-muted-foreground shadow-lg">
-              FusionX WAF v1.0.0 | CSIC 2010
+              ShieldCore WAF v1.0.0 | CSIC 2010
             </div>
           </div>
         </AuthProvider>

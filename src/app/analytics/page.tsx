@@ -105,7 +105,7 @@ export default function AnalyticsPage() {
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`fusionx-soc-report-${new Date().toISOString().split('T')[0]}.pdf`);
+      pdf.save(`shieldcore-soc-report-${new Date().toISOString().split('T')[0]}.pdf`);
     } catch (err) { console.error(err); } finally { setIsExporting(false); }
   };
 
@@ -154,7 +154,6 @@ export default function AnalyticsPage() {
       </div>
 
       <div className="section-label">Global Signal Mapping</div>
-      {/* Container: Remove overflow-hidden to allow popups to stay visible when near map edges */}
       <Card className="glass-card rounded-[2rem] overflow-visible relative min-h-[600px] border border-destructive/20 shadow-2xl">
         <div className="absolute top-8 left-10 z-20 space-y-2 pointer-events-none">
            <div className="flex items-center gap-3">
@@ -187,7 +186,6 @@ export default function AnalyticsPage() {
            </div>
         </div>
         
-        {/* CardContent: Set relative and overflow-visible for the forensic detail positioning */}
         <CardContent className="h-[550px] w-full flex items-center justify-center p-0 relative bg-[#020408] rounded-[2rem] overflow-visible">
           <svg viewBox="0 0 800 400" className="w-full h-full max-w-full max-h-full opacity-80" preserveAspectRatio="xMidYMid meet">
             <path 
@@ -237,7 +235,6 @@ export default function AnalyticsPage() {
             </defs>
           </svg>
 
-          {/* Forensic Details: Ensure this is clearly visible and clickable */}
           {selectedThreat && (
             <div className="absolute z-[100] animate-in zoom-in-95 fade-in duration-300" style={{ left: `${(selectedThreat.x / 800) * 100}%`, top: `${(selectedThreat.y / 400) * 100}%` }}>
                <Card className="w-80 glass-card p-6 translate-y-[-110%] translate-x-[-50%] border-destructive shadow-[0_0_50px_rgba(239,68,68,0.3)] bg-[#0a0c14]/95 backdrop-blur-3xl ring-1 ring-white/10">
@@ -279,7 +276,6 @@ export default function AnalyticsPage() {
                        </div>
                     </div>
 
-                    {/* View Logs Button: Made clearly visible with high contrast */}
                     <div className="flex gap-2 pt-4">
                        <Button size="sm" className="flex-1 bg-destructive hover:bg-destructive/90 text-white text-[9px] font-black uppercase tracking-widest h-9 rounded-xl shadow-lg shadow-destructive/20">
                          Isolate Source

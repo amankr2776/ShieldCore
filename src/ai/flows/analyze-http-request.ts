@@ -1,8 +1,7 @@
-
 'use server';
 
 /**
- * @fileOverview FusionX WAF Ingress Analysis Engine
+ * @fileOverview ShieldCore WAF Ingress Analysis Engine
  * Integrates with Groq API for sub-10ms LPU inference using Llama 3 8B.
  */
 

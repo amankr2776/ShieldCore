@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
@@ -21,7 +20,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    const auth = localStorage.getItem('fusionx_auth');
+    const auth = localStorage.getItem('shieldcore_auth');
     if (auth) {
       setIsAuthenticated(true);
       setUser(JSON.parse(auth));
@@ -42,9 +41,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 1500));
     
-    if (email === 'admin@fusionx.ai' && password === 'fusionx@2026') {
+    if (email === 'admin@shieldcore.ai' && password === 'shieldcore@2026') {
       const userData = { email };
-      localStorage.setItem('fusionx_auth', JSON.stringify(userData));
+      localStorage.setItem('shieldcore_auth', JSON.stringify(userData));
       setIsAuthenticated(true);
       setUser(userData);
       return true;
@@ -53,7 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
-    localStorage.removeItem('fusionx_auth');
+    localStorage.removeItem('shieldcore_auth');
     setIsAuthenticated(false);
     setUser(null);
     router.push('/login');

@@ -92,7 +92,7 @@ export function WafNavbar() {
       <div className="container flex h-20 items-center justify-between px-6 mx-auto max-w-7xl">
         <Link href="/" className="flex items-center gap-3 font-black text-2xl tracking-tighter text-gray-900 dark:text-white">
           <Shield className="h-8 w-8 text-destructive animate-pulse" />
-          <span className="hidden sm:inline">FUSIONX <span className="text-destructive">WAF</span></span>
+          <span className="hidden sm:inline">SHIELDCORE <span className="text-destructive">WAF</span></span>
         </Link>
         
         {isAuthenticated && (
@@ -184,7 +184,7 @@ export function WafNavbar() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 border border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-white/5 overflow-hidden hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">
                     <div className="h-full w-full flex items-center justify-center font-black text-xs text-destructive">
-                      AX
+                      SC
                     </div>
                   </Button>
                 </DropdownMenuTrigger>
@@ -220,7 +220,7 @@ export function WafNavbar() {
                     <div className="p-8 space-y-8">
                       <div className="flex items-center gap-3 font-black text-2xl tracking-tighter text-gray-900 dark:text-white">
                         <Shield className="h-8 w-8 text-destructive" />
-                        <span>FUSIONX <span className="text-destructive">WAF</span></span>
+                        <span>SHIELDCORE <span className="text-destructive">WAF</span></span>
                       </div>
                       <div className="flex flex-col gap-4">
                         {navItems.map((item) => (

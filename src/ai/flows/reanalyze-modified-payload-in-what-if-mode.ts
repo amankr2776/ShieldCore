@@ -85,7 +85,7 @@ const reanalyzePrompt = ai.definePrompt({
   name: 'reanalyzeModifiedPayloadPrompt',
   input: { schema: ReanalyzeModifiedPayloadInWhatIfModeInputSchema },
   output: { schema: ReanalyzeModifiedPayloadInWhatIfModeOutputSchema },
-  system: `You are an AI-powered Web Application Firewall (WAF) engine for FusionX WAF. Your task is to analyze a given HTTP payload string based on a set of predefined classification rules and output a JSON object containing the classification results.
+  system: `You are an AI-powered Web Application Firewall (WAF) engine for ShieldCore WAF. Your task is to analyze a given HTTP payload string based on a set of predefined classification rules and output a JSON object containing the classification results.
 Strictly adhere to the provided rules for classification, confidence scores, decisions, OWASP categories, and highlighted tokens. Generate a concise, accurate, and human-readable explanation that justifies the classification based on the detected patterns.
 The confidence score should be a float within the specified range for the detected class. The inference time should be a realistic integer within the specified range.
 

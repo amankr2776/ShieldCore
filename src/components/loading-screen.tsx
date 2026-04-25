@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -45,7 +44,7 @@ export function LoadingScreen() {
       
       <div className="mt-8 space-y-2 text-center">
         <p className="font-mono text-xs tracking-[0.3em] text-destructive uppercase animate-pulse">
-          FusionX Core Ingress
+          ShieldCore Core Ingress
         </p>
         <p className="font-mono text-sm text-muted-foreground h-5">
           {text}<span className="animate-blink">_</span>

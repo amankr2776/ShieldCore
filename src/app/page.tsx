@@ -159,10 +159,10 @@ export default function LandingPage() {
         <div className="flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="flex items-center gap-3 font-bold text-2xl tracking-tighter text-gray-900 dark:text-white">
             <Shield className="h-8 w-8 text-destructive" />
-            <span>FUSIONX <span className="text-destructive">WAF</span></span>
+            <span>SHIELDCORE <span className="text-destructive">WAF</span></span>
           </div>
           <div className="text-xs text-gray-400 dark:text-muted-foreground font-mono uppercase tracking-widest text-center">
-            Dataset: CSIC 2010 | Built for Hackathon 2026
+            Dataset: CSIC 2010 | Built for ShieldCore Security
           </div>
           <div className="flex items-center gap-2 text-[10px] text-gray-400 dark:text-muted-foreground font-bold uppercase tracking-widest">
             <Lock className="h-3 w-3" /> Encrypted Transmission

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -75,7 +74,7 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@fusionx.ai"
+                placeholder="admin@shieldcore.ai"
                 className="bg-background/50 border-border focus:ring-destructive"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -116,7 +115,7 @@ export default function LoginPage() {
             Secured with SSL | 256-bit AES
           </div>
           <div className="text-[10px] text-muted-foreground font-mono uppercase tracking-tighter">
-            v1.0.0 | Model: DistilBERT-HTTP
+            v1.0.0 | System: ShieldCore Neural
           </div>
         </CardFooter>
       </Card>
