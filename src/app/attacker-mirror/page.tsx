@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -8,43 +8,45 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { 
-  Terminal, Activity, Shield, Zap, Crosshair, 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { 
+  Terminal, Shield, Zap, Crosshair, 
   Search, Eye, Code, Layers, Lock, Unlock,
   ChevronRight, Database, Globe, Play, Loader2,
-  Tabs, TabsList, TabsTrigger, TabsContent,
   Skull, MessageSquare, User, TrendingUp,
   Scale, FileText, AlertOctagon, ZapOff,
-  Video, Maximize2, MousePointer2, Hammer
+  Activity, CheckCircle2, AlertCircle, 
+  ArrowLeft, ArrowRight, RotateCcw, Info,
+  Fingerprint, Hammer, Gavel, ExternalLink
 } from 'lucide-react';
 import { generateFakeRequest, getSeededData } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
-import * as THREE from 'three';
 
-// --- CONSTANTS & DATA ---
+// --- CONSTANTS & MAPPINGS ---
 
-const LEGAL_INFO = [
-  { law: "CFAA 18 U.S.C. § 1030", penalty: "Up to 10 Years Prison", fine: "$250,000" },
-  { law: "UK Computer Misuse Act", penalty: "Up to 14 Years Prison", fine: "Unlimited" },
-  { law: "EU Cybercrime Directive", penalty: "5 Years Minimum", fine: "€100,000" }
-];
-
-const ATTACKER_PROFILES = [
-  { handle: "v0id_walker", reputation: 98, breaches: 14, tools: "sqlmap, custom-xss", active: "2022" },
-  { handle: "ghost_shell", reputation: 85, breaches: 8, tools: "metasploit, burp", active: "2023" },
-  { handle: "red_mercury", reputation: 92, breaches: 21, tools: "gohacker, nmap", active: "2021" }
-];
-
-const CHAT_MESSAGES = [
-  "Got the creds for the target?",
-  "Testing WAF bypass now...",
-  "ShieldCore is active. Heavy resistance.",
-  "Payload rejected. Trying double-encoding.",
-  "They're blocking everything. Abandoning."
-];
+const EXPLAIN_MAP: Record<string, string> = {
+  'SQL Injection': 'Fake database commands hidden in text fields',
+  'XSS': 'Malicious scripts designed to steal user sessions',
+  'Path Traversal': 'Attempt to access restricted system files',
+  'Command Injection': 'Trying to run unauthorized server commands',
+  'Buffer Overflow': 'Overwhelming the system memory to cause a crash',
+  'SSRF': 'Tricking the server into attacking other internal systems',
+  'BASE64 DECODE': 'Stripping away a common digital disguise layer',
+  'URL DECODE': 'Translating web-encoded characters back to plain text',
+  'UNICODE NORMALIZE': 'Fixing text tricks that use look-alike characters',
+  'DISTILBERT TRANSFORMER': 'Advanced AI brain that reads the "meaning" of the request',
+  'SOFTMAX CLASSIFICATION': 'The AI making its final percentage-based decision',
+  'PROSECUTABLE': 'This activity violates federal cybercrime statutes',
+};
 
 // --- SUB-COMPONENTS ---
 
-const Typewriter = ({ lines, delay = 30, onComplete, className }: { lines: string[], delay?: number, onComplete?: () => void, className?: string }) => {
+const Typewriter = ({ lines, delay = 20, onComplete, className }: { lines: string[], delay?: number, onComplete?: () => void, className?: string }) => {
   const [currentLineIndex, setCurrentLineIndex] = useState(0);
   const [currentText, setCurrentText] = useState("");
   const [displayedLines, setDisplayedLines] = useState<string[]>([]);
@@ -72,108 +74,43 @@ const Typewriter = ({ lines, delay = 30, onComplete, className }: { lines: strin
   }, [currentLineIndex, currentText, lines, delay, onComplete]);
 
   return (
-    <div className={cn("space-y-1", className)}>
-      {displayedLines.map((line, i) => (
-        <div key={i} className="opacity-80 leading-tight break-all">{line}</div>
-      ))}
+    <div className={cn("space-y-1 font-mono text-[11px]", className)}>
+      {displayedLines.map((line, i) => {
+        let color = "text-emerald-500/80";
+        if (line.startsWith('sqlmap') || line.startsWith('curl')) color = "text-yellow-500";
+        if (line.includes('vulnerable') || line.includes('target')) color = "text-cyan-400";
+        if (line.includes('payload')) color = "text-red-400";
+        return <div key={i} className={cn("break-all", color)}>{line}</div>;
+      })}
       <div className="flex">
-        <span className="opacity-100 break-all">{currentText}</span>
-        <span className="w-1.5 h-4 bg-emerald-500 ml-1 animate-pulse shrink-0" />
+        <span className="text-white break-all">{currentText}</span>
+        <span className="w-1.5 h-3.5 bg-red-500 ml-1 animate-pulse shrink-0" />
       </div>
     </div>
   );
-};
-
-const ThreatAnatomyCanvas = ({ attack }: { attack: any }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    if (!canvasRef.current || !attack) return;
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ canvas: canvasRef.current, alpha: true, antialias: true });
-    renderer.setSize(300, 200);
-
-    const group = new THREE.Group();
-    scene.add(group);
-
-    // Exploded blueprint parts
-    const parts = [
-      { color: 0xef4444, y: 1.5, label: 'Keyword' },
-      { color: 0x06b6d4, y: 0, label: 'Operator' },
-      { color: 0x22c55e, y: -1.5, label: 'Encoding' }
-    ];
-
-    parts.forEach((p, i) => {
-      const geo = new THREE.BoxGeometry(2, 0.2, 1);
-      const mat = new THREE.MeshBasicMaterial({ color: p.color, wireframe: true, transparent: true, opacity: 0.6 });
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.position.y = p.y;
-      group.add(mesh);
-    });
-
-    camera.position.z = 6;
-
-    const animate = () => {
-      requestAnimationFrame(animate);
-      group.rotation.y += 0.01;
-      group.rotation.x += 0.005;
-      renderer.render(scene, camera);
-    };
-    animate();
-
-    return () => renderer.dispose();
-  }, [attack]);
-
-  return <canvas ref={canvasRef} className="w-full h-full" />;
 };
 
 export default function AttackerMirrorPage() {
   const [attacks, setAttacks] = useState<any[]>([]);
   const [selectedAttack, setSelectedAttack] = useState<any | null>(null);
   const [isLive, setIsLive] = useState(true);
-  const [isReplaying, setIsReplaying] = useState(false);
-  const [countdown, setCountdown] = useState(0);
-  const [defenderScore, setDefenderScore] = useState(124);
-  const [frustration, setFrustration] = useState(0);
+  const [explainMode, setExplainMode] = useState(false);
+  const [replayStage, setReplayStage] = useState(0); // 0: Idle, 1: Recon, 2: Crafting, 3: Launch/Analysis, 4: Verdict
+  const [frustration, setFrustration] = useState(45);
   const [showBreachAlert, setShowBreachAlert] = useState(false);
-  const [activeTab, setActiveTab] = useState('exploit');
-  const [replayKey, setReplayKey] = useState(0);
-
-  useEffect(() => {
-    const seed = getSeededData().slice(0, 50);
-    setAttacks(seed);
-    if (seed.length > 0) setSelectedAttack(seed[0]);
-  }, []);
-
-  useEffect(() => {
-    if (!isLive || isReplaying) return;
-    const interval = setInterval(() => {
-      const newReq = generateFakeRequest();
-      setAttacks(prev => [newReq, ...prev].slice(0, 50));
-      handleLoadAttack(newReq);
-    }, 12000);
-    return () => clearInterval(interval);
-  }, [isLive, isReplaying]);
-
-  const handleLoadAttack = (attack: any) => {
-    setIsReplaying(true);
-    setCountdown(3);
+  const [countdown, setCountdown] = useState(0);
+  
+  // Replay Trigger
+  const triggerReplay = (attack: any) => {
     setSelectedAttack(attack);
+    setReplayStage(0);
+    setCountdown(3);
     
-    if (attack.score > 0.95) {
-      setShowBreachAlert(true);
-      setTimeout(() => setShowBreachAlert(false), 2500);
-    }
-
-    const timer = setInterval(() => {
+    const cd = setInterval(() => {
       setCountdown(prev => {
         if (prev <= 1) {
-          clearInterval(timer);
-          setIsReplaying(false);
-          setReplayKey(k => k + 1);
-          setDefenderScore(s => s + 1);
-          setFrustration(f => Math.min(100, f + 15));
+          clearInterval(cd);
+          startSequence();
           return 0;
         }
         return prev - 1;
@@ -181,384 +118,462 @@ export default function AttackerMirrorPage() {
     }, 1000);
   };
 
+  const startSequence = () => {
+    setReplayStage(1);
+    setTimeout(() => setReplayStage(2), 2000);
+    setTimeout(() => setReplayStage(3), 4000);
+    setTimeout(() => {
+      setReplayStage(4);
+      if (selectedAttack?.score > 0.95) {
+        setShowBreachAlert(true);
+        setTimeout(() => setShowBreachAlert(false), 3000);
+      }
+    }, 6000);
+  };
+
+  useEffect(() => {
+    const seed = getSeededData().slice(0, 30);
+    setAttacks(seed);
+    if (seed.length > 0) triggerReplay(seed[0]);
+  }, []);
+
+  // Live Mode Simulation
+  useEffect(() => {
+    if (!isLive || replayStage !== 0) return;
+    const interval = setInterval(() => {
+      const newReq = generateFakeRequest();
+      setAttacks(prev => [newReq, ...prev].slice(0, 30));
+      triggerReplay(newReq);
+    }, 12000);
+    return () => clearInterval(interval);
+  }, [isLive, replayStage]);
+
+  const explain = (term: string) => {
+    if (!explainMode) return term;
+    return EXPLAIN_MAP[term.toUpperCase()] || term;
+  };
+
   const battleEvents = useMemo(() => {
     if (!selectedAttack) return [];
     return [
-      { time: '0.0s', action: 'ATTACKER: TARGET DISCOVERED', side: 'left' },
-      { time: '0.4s', action: 'ATTACKER: APPLYING OBFUSCATION', side: 'left' },
-      { time: '0.5s', action: 'DEFENDER: INGRESS INTERCEPTED', side: 'right' },
-      { time: '0.6s', action: 'DEFENDER: NEURAL CORE ACTIVE', side: 'right' },
-      { time: '0.7s', action: 'ATTACKER: PAYLOAD LAUNCHED', side: 'left' },
-      { time: '0.8s', action: 'DEFENDER: THREAT NEUTRALIZED', side: 'right' }
-    ];
-  }, [selectedAttack]);
-
-  const attackerProfile = useMemo(() => ATTACKER_PROFILES[replayKey % ATTACKER_PROFILES.length], [replayKey]);
+      { side: 'left', time: '0ms', text: 'Target Found: /api/v1/auth', icon: Target },
+      { side: 'right', time: '5ms', text: 'Edge Node Intercepted Packet', icon: Shield },
+      { side: 'left', time: '450ms', text: 'Crafted SQL Injection Payload', icon: Hammer },
+      { side: 'right', time: '455ms', text: 'De-obfuscation Layers Active', icon: Layers },
+      { side: 'left', time: '1200ms', text: 'Applied Base64 Encoding', icon: Code },
+      { side: 'right', time: '1205ms', text: 'Neural Transformer Activated', icon: Zap },
+      { side: 'left', time: '2800ms', text: 'Exploit Launched', icon: Activity },
+      { side: 'right', time: '2808ms', text: 'Final Decision: BLOCKED', icon: Lock },
+    ].filter((_, i) => (i / 2) < replayStage);
+  }, [selectedAttack, replayStage]);
 
   return (
-    <div className={cn(
-      "relative min-h-screen bg-black overflow-hidden dashboard-cursor selection:bg-destructive/30 transition-all duration-300",
-      showBreachAlert && "animate-shake"
-    )}>
+    <div className="flex flex-col h-screen bg-[#020408] overflow-hidden dashboard-cursor text-white selection:bg-destructive/30">
       
-      {/* BREACH ALERT OVERLAY */}
+      {/* --- BREACH ALERT OVERLAY --- */}
       {showBreachAlert && (
-        <div className="fixed inset-0 z-[10000] bg-destructive/20 backdrop-blur-md flex items-center justify-center animate-in fade-in zoom-in duration-300">
-          <div className="relative">
-            <div className="absolute inset-0 bg-destructive blur-[100px] opacity-40 animate-pulse" />
-            <div className="border-4 border-destructive p-12 bg-black/80 rounded-[3rem] text-center space-y-4 relative z-10">
-              <AlertOctagon className="h-24 w-24 text-destructive mx-auto animate-bounce" />
-              <h2 className="text-7xl font-black text-white italic tracking-tighter uppercase">BREACH ATTEMPT REPELLED</h2>
-              <p className="text-destructive font-mono text-xl font-bold uppercase tracking-[0.5em]">Neural Defense Locked</p>
-            </div>
-          </div>
+        <div className="fixed inset-0 z-[10000] bg-destructive/30 backdrop-blur-xl flex items-center justify-center animate-in fade-in zoom-in duration-300">
+           <div className="border-4 border-destructive p-16 bg-black/90 rounded-[4rem] text-center space-y-6 shadow-[0_0_100px_rgba(239,68,68,0.5)]">
+              <AlertOctagon className="h-32 w-32 text-destructive mx-auto animate-bounce" />
+              <h2 className="text-8xl font-black italic tracking-tighter uppercase">BREACH REPELLED</h2>
+              <p className="text-destructive font-mono text-2xl font-bold uppercase tracking-[0.6em]">System Integrity 100%</p>
+           </div>
         </div>
       )}
 
-      {/* CCTV FEED (DRAGGABLE PIE) */}
-      <div className="fixed top-28 right-10 z-[500] w-48 h-32 bg-black border border-white/10 rounded-xl overflow-hidden shadow-2xl group cursor-move hover:scale-110 transition-transform">
-        <div className="absolute top-2 left-2 flex items-center gap-2 z-10">
-          <div className="h-1.5 w-1.5 rounded-full bg-destructive animate-pulse" />
-          <span className="text-[8px] font-black text-white uppercase tracking-widest">LIVE CCTV: NODE_04</span>
+      {/* --- REPLAY COUNTDOWN --- */}
+      {countdown > 0 && (
+        <div className="fixed inset-0 z-[9000] bg-black/60 backdrop-blur-sm flex items-center justify-center">
+           <div className="text-center space-y-4">
+              <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Synchronizing Mirror</p>
+              <h1 className="text-9xl font-black italic text-white animate-pulse">{countdown}</h1>
+           </div>
         </div>
-        <div className="absolute inset-0 bg-[url('https://picsum.photos/seed/hacker/200/150')] bg-cover opacity-40 grayscale contrast-125" />
-        <div className="absolute inset-0 scanline opacity-20 pointer-events-none" />
-        <div className="absolute bottom-2 right-2 text-[6px] font-mono text-white/40">SENS: THERMAL</div>
-      </div>
+      )}
 
-      {/* HUD OVERLAY */}
-      <div className="absolute top-24 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-8 px-10 py-4 bg-black/80 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl">
-        <div className="flex items-center gap-3">
-          <Switch id="live-mode" checked={isLive} onCheckedChange={setIsLive} />
-          <Label htmlFor="live-mode" className="text-[10px] font-black uppercase tracking-widest opacity-60">Neural Intercept</Label>
+      {/* --- TOP HEADER BAR --- */}
+      <header className="h-20 shrink-0 border-b border-white/5 bg-black/40 backdrop-blur-xl flex items-center justify-between px-10 relative z-50">
+        <div className="flex items-center gap-6">
+          <h1 className="text-xl font-black italic tracking-tighter text-white uppercase flex items-center gap-3">
+             <div className="h-3 w-3 rounded-full bg-red-500 animate-pulse" />
+             ATTACKER <span className="text-white/20">vs</span> DEFENDER <span className="text-cyan-500">MIRROR</span>
+          </h1>
         </div>
-        <div className="w-[1px] h-8 bg-white/10" />
-        <div className="flex flex-col items-center gap-1">
-          <span className="text-[9px] font-black uppercase text-white/30 tracking-tighter">BATTLE SCORE</span>
-          <div className="flex items-center gap-4 text-xl font-black italic tracking-tighter">
-            <span className="text-destructive">ATK: 0</span>
-            <span className="text-white/20">/</span>
-            <span className="text-cyan-500">DEF: {defenderScore}</span>
+
+        <div className="flex items-center gap-12">
+          <div className="flex items-center gap-6 bg-white/5 px-8 py-2 rounded-2xl border border-white/10">
+             <div className="text-center">
+                <p className="text-[8px] font-black text-red-500 uppercase tracking-widest">Attacker</p>
+                <p className="text-2xl font-black italic">0</p>
+             </div>
+             <div className="text-white/20 font-black italic text-xl">VS</div>
+             <div className="text-center">
+                <p className="text-[8px] font-black text-cyan-500 uppercase tracking-widest">Defender</p>
+                <p className="text-2xl font-black italic">{attacks.filter(a => a.decision === 'BLOCKED').length}</p>
+             </div>
           </div>
-        </div>
-        <div className="w-[1px] h-8 bg-white/10" />
-        <div className="flex flex-col items-center">
-          <span className="text-[9px] font-black uppercase text-white/30">ATTACK VELOCITY</span>
-          <span className="text-xs font-mono text-destructive">2.4m/prep</span>
-        </div>
-        <div className="w-[1px] h-8 bg-white/10" />
-        <div className="flex flex-col items-center">
-          <span className="text-[9px] font-black uppercase text-white/30">DEFENSE VELOCITY</span>
-          <span className="text-xs font-mono text-emerald-500">5.2ms/resp</span>
-        </div>
-      </div>
 
-      {/* MAIN VIEWPORT */}
-      <div className="flex h-screen w-full pt-20">
-        
-        {/* CENTER DIVIDER & TIMELINE */}
-        <div className="absolute left-1/2 top-20 bottom-24 w-[2px] bg-white/5 z-50 overflow-hidden">
-          <div className="h-full w-full bg-gradient-to-b from-transparent via-white/10 to-transparent" />
-          <div className="absolute inset-0 flex flex-col items-center justify-start py-20 space-y-12">
-            {battleEvents.map((evt, i) => (
-              <div key={i} className={cn(
-                "relative group flex flex-col items-center transition-all duration-700",
-                isReplaying ? "opacity-0 scale-50" : "opacity-100 scale-100"
-              )} style={{ transitionDelay: `${i * 100}ms` }}>
-                <div className={cn(
-                  "h-3 w-3 rounded-full border-2 border-black z-10 transition-transform group-hover:scale-150",
-                  evt.side === 'left' ? "bg-destructive shadow-[0_0_10px_#ef4444]" : "bg-cyan-500 shadow-[0_0_10px_#06b6d4]"
-                )} />
-                <div className={cn(
-                  "absolute top-0 whitespace-nowrap px-3 py-1 rounded-md text-[8px] font-black uppercase tracking-tighter opacity-0 group-hover:opacity-100 transition-all",
-                  evt.side === 'left' ? "right-6 text-destructive bg-destructive/10" : "left-6 text-cyan-500 bg-cyan-500/10"
-                )}>
-                  {evt.time}: {evt.action}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* LEFT: ATTACKER WORKSTATION */}
-        <div className="w-1/2 h-full bg-[#050505] p-12 pr-6 overflow-hidden flex flex-col space-y-6">
-          <div className="flex justify-between items-end">
-            <h2 className="text-3xl font-black tracking-tighter text-white uppercase italic">
-              ATTACKER <span className="text-destructive">NODE_0x4F</span>
-            </h2>
-            <div className="flex flex-col items-end gap-1">
-              <span className="text-[8px] font-black text-white/30 uppercase tracking-widest">Frustration Level</span>
-              <div className="w-32 h-1.5 bg-white/5 rounded-full overflow-hidden">
-                <div className="h-full bg-destructive transition-all duration-500" style={{ width: `${frustration}%` }} />
-              </div>
+          <div className="flex items-center gap-6">
+            <div className="flex items-center space-x-3 bg-white/5 px-4 py-2 rounded-xl">
+               <Switch id="explain-mode" checked={explainMode} onCheckedChange={setExplainMode} />
+               <Label htmlFor="explain-mode" className="text-[10px] font-black uppercase tracking-widest text-white/60">Explain Mode</Label>
             </div>
-          </div>
-
-          <div className="flex-1 grid grid-cols-2 grid-rows-2 gap-6">
-            
-            {/* PANEL 1: MULTI-THREAD TERMINAL */}
-            <Card className="bg-black/60 border-white/5 rounded-[2rem] overflow-hidden flex flex-col">
-              <div className="bg-white/5 px-4 py-2 flex items-center justify-between">
-                <div className="flex gap-4">
-                  {['exploit', 'scanner', 'brute'].map(t => (
-                    <button 
-                      key={t} 
-                      onClick={() => setActiveTab(t)}
-                      className={cn(
-                        "text-[9px] font-black uppercase tracking-widest transition-colors",
-                        activeTab === t ? "text-destructive" : "text-white/20 hover:text-white/40"
-                      )}
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
-                <div className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
-              </div>
-              <CardContent className="p-6 font-mono text-[10px] text-emerald-500/60 overflow-auto no-scrollbar">
-                {!isReplaying ? (
-                  <Typewriter key={`${replayKey}-${activeTab}`} lines={[
-                    activeTab === 'exploit' ? `sqlmap -u "target.sh/api?id=1" --tamper=base64 --risk=3` :
-                    activeTab === 'scanner' ? `nmap -sV -T4 104.22.44.11 --script vuln` :
-                    `hydra -L users.txt -P rockyou.txt target.sh http-post-form`
-                  ]} />
-                ) : (
-                  <div className="h-full flex items-center justify-center italic opacity-20">Synchronizing...</div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* PANEL 2: INTELLIGENCE BOARD */}
-            <Card className="bg-black/40 border-dashed border-white/10 rounded-[2rem] p-6 relative">
-              <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.02)_0%,transparent_100%)]" />
-              <h4 className="text-[9px] font-black text-white/30 uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
-                <Skull className="h-3.5 w-3.5 text-destructive" /> Intel Board
-              </h4>
-              <div className="grid grid-cols-2 gap-3 overflow-auto no-scrollbar">
-                {[
-                  { txt: 'TARGET: SHIELDCORE_HUB', col: 'bg-destructive/20 border-destructive/30' },
-                  { txt: 'WAF: NEURAL_ACTIVE', col: 'bg-amber-500/20 border-amber-500/30' },
-                  { txt: 'EVASION: B64_LAYER', col: 'bg-cyan-500/20 border-cyan-500/30' },
-                  { txt: 'STATUS: BLOCKED', col: 'bg-white/5 border-white/10' }
-                ].map((note, i) => (
-                  <div key={i} className={cn(
-                    "p-3 rounded-xl border text-[9px] font-bold uppercase transition-all duration-1000",
-                    isReplaying ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0",
-                    note.col
-                  )} style={{ transitionDelay: `${i * 300}ms` }}>
-                    {note.txt}
-                  </div>
-                ))}
-              </div>
-            </Card>
-
-            {/* PANEL 3: DARK WEB PROFILE */}
-            <Card className="bg-black border-white/5 rounded-[2rem] p-6 flex flex-col space-y-4 shadow-inner">
-               <div className="flex items-center gap-4 border-b border-white/5 pb-4">
-                  <div className="h-10 w-10 rounded-full bg-white/5 flex items-center justify-center">
-                    <User className="h-5 w-5 text-destructive" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-black text-white uppercase">{attackerProfile.handle}</p>
-                    <p className="text-[8px] font-bold text-white/40 uppercase tracking-widest">Reputation: {attackerProfile.reputation}%</p>
-                  </div>
-               </div>
-               <div className="flex-1 space-y-3 overflow-auto no-scrollbar">
-                  <p className="text-[8px] font-black text-emerald-500 uppercase flex items-center gap-2">
-                    <MessageSquare className="h-3 w-3" /> Secure Chat Log
-                  </p>
-                  <div className="space-y-2 opacity-60">
-                    {CHAT_MESSAGES.map((msg, i) => (
-                      <div key={i} className="text-[9px] font-mono leading-tight">
-                        <span className="text-white/30">[{14 + i}:00]</span> {msg}
-                      </div>
-                    ))}
-                  </div>
-               </div>
-            </Card>
-
-            {/* PANEL 4: PAYLOAD BUILDER */}
-            <Card className="bg-black/60 border-white/5 rounded-[2rem] p-6 space-y-4 flex flex-col">
-              <h4 className="text-[9px] font-black text-white/30 uppercase tracking-[0.3em] flex items-center gap-2">
-                <Hammer className="h-3.5 w-3.5 text-cyan-500" /> Payload Builder
-              </h4>
-              <div className="flex-1 flex flex-col justify-center space-y-2">
-                {[
-                  { step: 'RAW_SQL', val: "'OR'1'='1" },
-                  { step: 'URL_ENC', val: "%27OR%271%27%3D%271" },
-                  { step: 'BASE64', val: "J09SJzEnPScx" }
-                ].map((s, i) => (
-                  <div key={i} className={cn(
-                    "relative p-3 rounded-xl border border-white/5 bg-white/[0.02] transition-all duration-700",
-                    isReplaying ? "opacity-30 blur-sm" : "opacity-100 blur-0"
-                  )} style={{ transitionDelay: `${i * 300}ms` }}>
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-[8px] font-black text-white/40">{s.step}</span>
-                      {i < 2 && <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-10"><ChevronRight className="h-4 w-4 rotate-90 text-white/20" /></div>}
-                    </div>
-                    <p className="text-[10px] font-mono text-destructive truncate">{s.val}</p>
-                  </div>
-                ))}
-              </div>
-            </Card>
+            <div className="flex items-center space-x-3 bg-white/5 px-4 py-2 rounded-xl">
+               <Switch id="live-mode" checked={isLive} onCheckedChange={setIsLive} />
+               <Label htmlFor="live-mode" className="text-[10px] font-black uppercase tracking-widest text-white/60">Live Intercept</Label>
+            </div>
+            <Select onValueChange={(v) => triggerReplay(attacks.find(a => a.id === v))}>
+               <SelectTrigger className="w-[180px] bg-white/5 border-white/10 rounded-xl h-10 text-[10px] font-black uppercase">
+                 <SelectValue placeholder="Select Attack" />
+               </SelectTrigger>
+               <SelectContent className="bg-[#0a0c14] border-white/10 text-white">
+                 {attacks.map(a => (
+                   <SelectItem key={a.id} value={a.id} className="text-[10px] font-bold uppercase">{a.attackType} - {a.ip}</SelectItem>
+                 ))}
+               </SelectContent>
+            </Select>
+            <Button variant="ghost" size="icon" onClick={() => triggerReplay(selectedAttack)} className="h-10 w-10 border border-white/10 rounded-xl hover:bg-white/5">
+              <RotateCcw className="h-4 w-4" />
+            </Button>
           </div>
         </div>
+        <div className="absolute bottom-[-1px] left-0 w-full h-[1px] bg-gradient-to-r from-red-500 via-white/5 to-cyan-500" />
+      </header>
 
-        {/* RIGHT: DEFENDER WORKSTATION */}
-        <div className="w-1/2 h-full bg-[#020408] p-12 pl-6 overflow-hidden flex flex-col space-y-6">
-          <div className="flex justify-between items-end">
-            <h2 className="text-3xl font-black tracking-tighter text-white uppercase italic">
-              DEFENDER <span className="text-cyan-500">CORE_92</span>
-            </h2>
-            <Badge variant="outline" className="bg-emerald-500/10 border-emerald-500/30 text-emerald-500 text-[10px] font-black uppercase">SYSTEM_SECURED</Badge>
+      {/* --- MAIN SPLIT VIEW --- */}
+      <div className="flex-1 flex overflow-hidden relative">
+        
+        {/* LEFT PANEL: ATTACKER SIDE */}
+        <div className="flex-1 bg-gradient-to-br from-black to-red-950/10 p-8 flex flex-col space-y-8 overflow-y-auto no-scrollbar border-r border-white/5">
+          <div className="flex justify-between items-center">
+            <div className="space-y-1">
+               <h2 className="text-3xl font-black text-red-500 uppercase italic tracking-tighter flex items-center gap-3">
+                 <Skull className="h-8 w-8" /> Attacker Side
+               </h2>
+               <div className="flex items-center gap-2">
+                 <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+                 <span className="text-[10px] font-bold text-red-500/60 uppercase tracking-[0.3em]">Intercepted Hacker Workstation</span>
+               </div>
+            </div>
+            <Badge variant="outline" className="bg-red-500/10 border-red-500/30 text-red-500 font-mono text-[9px] px-3 py-1 uppercase">Node_0x4F Active</Badge>
           </div>
 
-          <div className="flex-1 grid grid-cols-2 grid-rows-2 gap-6">
-            
-            {/* PANEL 1: NEURAL ATTENTION */}
-            <Card className="bg-black/40 border-white/5 rounded-[2rem] p-6 flex flex-col space-y-6">
-               <h4 className="text-[9px] font-black text-cyan-500 uppercase tracking-[0.3em] flex items-center gap-2">
-                <TrendingUp className="h-3.5 w-3.5" /> Neural Explainability
-              </h4>
-              <div className="flex-1 relative flex items-center justify-center">
-                 <div className="grid grid-cols-3 gap-8 w-full">
-                    <div className="space-y-4">
-                      {[1, 2, 3].map(i => <div key={i} className="h-8 w-full bg-white/5 rounded-lg border border-white/10" />)}
-                    </div>
-                    <div className="relative">
-                       {/* Simulated Attention Lines */}
-                       {!isReplaying && [1, 2, 3, 4, 5].map(i => (
-                         <div key={i} className="absolute inset-0 border-t border-cyan-500/40 animate-pulse" style={{ transform: `rotate(${i * 30 - 90}deg)`, opacity: i * 0.2 }} />
-                       ))}
-                    </div>
-                    <div className="flex items-center justify-center">
-                       <div className="h-16 w-16 rounded-full border-4 border-cyan-500 animate-blocked-shimmer flex items-center justify-center">
-                          <Zap className="h-8 w-8 text-cyan-500" />
-                       </div>
-                    </div>
-                 </div>
-              </div>
-            </Card>
-
-            {/* PANEL 2: THREAT ANATOMY */}
-            <Card className="bg-black/40 border-white/5 rounded-[2rem] p-0 overflow-hidden relative">
-               <div className="absolute top-6 left-6 z-10">
-                 <h4 className="text-[9px] font-black text-cyan-500 uppercase tracking-[0.3em] flex items-center gap-2">
-                  <Database className="h-3.5 w-3.5" /> Threat Anatomy
-                 </h4>
-               </div>
-               <div className="h-full w-full">
-                  <ThreatAnatomyCanvas attack={selectedAttack} />
-               </div>
-               <div className="absolute bottom-6 right-6 flex flex-col items-end gap-1">
-                  <span className="text-[8px] font-black text-white/40 uppercase">Complexity Matrix</span>
-                  <span className="text-xl font-black text-white tracking-tighter">LVL_4</span>
-               </div>
-            </Card>
-
-            {/* PANEL 3: COUNTERMEASURE DEPLOYMENT */}
-            <Card className="bg-black/40 border-white/5 rounded-[2rem] p-6 space-y-4">
-              <h4 className="text-[9px] font-black text-cyan-500 uppercase tracking-[0.3em] flex items-center gap-2">
-                <Shield className="h-3.5 w-3.5" /> Passive Defenses
-              </h4>
-              <div className="space-y-3">
-                 {[
-                   { name: 'Protocol Validation', icon: FileText, status: 'SECURED' },
-                   { name: 'Semantic Analysis', icon: Activity, status: 'SECURED' },
-                   { name: 'Behavioral Lock', icon: Lock, status: 'SECURED' }
-                 ].map((d, i) => (
-                   <div key={i} className={cn(
-                     "flex items-center justify-between p-3 rounded-xl border transition-all duration-1000",
-                     isReplaying ? "bg-white/5 border-white/10 opacity-30" : "bg-emerald-500/10 border-emerald-500/30 opacity-100"
-                   )} style={{ transitionDelay: `${i * 300}ms` }}>
-                      <div className="flex items-center gap-3">
-                        <d.icon className="h-4 w-4 text-emerald-500" />
-                        <span className="text-[9px] font-bold text-white uppercase">{d.name}</span>
-                      </div>
-                      {!isReplaying && <Badge className="bg-emerald-500 text-white text-[8px] font-black italic">SECURED</Badge>}
+          {/* Section 1: What they are doing */}
+          <Card className="bg-black/60 border-white/5 rounded-[2rem] overflow-hidden flex flex-col shadow-2xl">
+             <div className="bg-red-500/5 px-6 py-3 border-b border-white/5 flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-widest text-red-400">Current Objective</span>
+                <Terminal className="h-3.5 w-3.5 text-red-500/40" />
+             </div>
+             <CardContent className="p-8 space-y-6">
+                <div className="bg-white/5 p-4 rounded-xl border border-white/5">
+                   <p className="text-sm font-bold text-white leading-relaxed">
+                     {selectedAttack?.attackType === 'SQL Injection' ? 'ATTACKER IS TRYING TO BYPASS YOUR LOGIN BY INJECTING FAKE SQL COMMANDS INTO THE USERNAME FIELD' : 'ATTACKER IS ATTEMPTING TO EXPLOIT A KNOWN VULNERABILITY PATTERN TO GAIN UNAUTHORIZED ACCESS'}
+                   </p>
+                   {explainMode && <p className="text-[10px] font-medium text-white/40 mt-2 italic uppercase">Plain English Summary for Non-Technical Stakeholders</p>}
+                </div>
+                
+                <div className="bg-black rounded-xl p-6 border border-white/5 font-mono min-h-[160px] relative">
+                   <div className="absolute top-3 right-4 flex gap-1.5">
+                      <div className="h-1.5 w-1.5 rounded-full bg-red-500/40" />
+                      <div className="h-1.5 w-1.5 rounded-full bg-red-500/40" />
                    </div>
-                 ))}
-              </div>
-            </Card>
+                   {replayStage >= 1 ? (
+                     <Typewriter lines={[
+                        `sqlmap -u "shieldcore.ai/login" --data="user=${selectedAttack?.payload}"`,
+                        `[INFO] testing for SQL Injection on parameter 'user'`,
+                        `[INFO] parameter 'user' is vulnerable. confirming...`,
+                        `[PAYLOAD] ${selectedAttack?.payload.substring(0, 40)}...`
+                     ]} />
+                   ) : (
+                     <div className="h-full flex items-center justify-center text-white/10 italic text-xs uppercase tracking-widest">Waiting for session...</div>
+                   )}
+                </div>
+             </CardContent>
+          </Card>
 
-            {/* PANEL 4: LEGAL CONSEQUENCES */}
-            <Card className="bg-[#0f0f15] border-white/10 border-l-4 border-l-destructive rounded-[2rem] p-6 flex flex-col shadow-2xl relative">
-              <div className="absolute top-4 right-6">
-                <div className="border-4 border-destructive px-3 py-1 rounded rotate-12 text-destructive font-black text-xs opacity-40">PROSECUTABLE</div>
-              </div>
-              <h4 className="text-[9px] font-black text-white/30 uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
-                <Scale className="h-3.5 w-3.5 text-white/50" /> Prosecution Dossier
-              </h4>
-              <div className="flex-1 space-y-4 font-serif italic text-white/70 text-xs">
-                 <p className="border-b border-white/5 pb-2">"Subject activity violates federal cybercrime statutes..."</p>
-                 <div className="grid grid-cols-2 gap-4 not-italic font-mono uppercase">
-                    <div>
-                      <p className="text-[8px] text-white/30 mb-1">Max Penalty</p>
-                      <p className="text-xs text-white">{LEGAL_INFO[replayKey % 3].penalty}</p>
-                    </div>
-                    <div>
-                      <p className="text-[8px] text-white/30 mb-1">Statutory Fine</p>
-                      <p className="text-xs text-white">{LEGAL_INFO[replayKey % 3].fine}</p>
-                    </div>
-                 </div>
-              </div>
-            </Card>
+          {/* Section 2: How it was built */}
+          <Card className="bg-black/40 border-dashed border-white/10 rounded-[2rem] p-8 flex flex-col space-y-6">
+             <span className="text-[10px] font-black uppercase tracking-widest text-white/30">Payload Construction Stack</span>
+             <div className="space-y-4">
+                {[
+                  { label: 'Start with Malicious Intent', val: selectedAttack?.payload.split(' ')[0] || 'OR 1=1' },
+                  { label: 'Add Encoding', val: 'J09S' + (selectedAttack?.id || 'X9') + '...' , explain: explain('Base64 Decode') },
+                  { label: 'Obfuscate', val: '0x' + (selectedAttack?.id.repeat(4) || 'FF') , explain: 'Adding noise to confuse traditional systems' },
+                  { label: 'Launch', val: selectedAttack?.payload.substring(0, 30) + '...' }
+                ].map((step, i) => (
+                  <div key={i} className={cn(
+                    "flex items-start gap-6 p-4 rounded-2xl border transition-all duration-700",
+                    replayStage >= (i + 1) ? "bg-red-500/5 border-red-500/20 opacity-100" : "bg-white/5 border-white/5 opacity-30"
+                  )}>
+                     <div className="h-8 w-8 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center shrink-0">
+                        <span className="text-xs font-black text-red-500">{i + 1}</span>
+                     </div>
+                     <div className="space-y-1">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-white/60">{step.label}</p>
+                        <code className="text-[10px] text-red-400 block font-mono bg-black/40 p-2 rounded border border-white/5 truncate max-w-sm">{step.val}</code>
+                        {explainMode && step.explain && <p className="text-[10px] font-medium text-red-500/40 italic">({step.explain})</p>}
+                     </div>
+                  </div>
+                ))}
+             </div>
+          </Card>
 
+          {/* Section 3: Attacker Profile */}
+          <Card className="bg-black border-white/5 rounded-[2rem] p-8 space-y-8">
+             <div className="grid grid-cols-2 gap-8">
+                <div className="space-y-4">
+                   <span className="text-[10px] font-black uppercase tracking-widest text-white/30">Attacker Intel</span>
+                   <div className="flex flex-col gap-3">
+                      <div className="flex justify-between items-center">
+                         <span className="text-[9px] font-bold text-white/40 uppercase">Skill Level</span>
+                         <Badge className="bg-red-500 text-white font-black text-[9px] px-3">ADVANCED</Badge>
+                      </div>
+                      <div className="flex justify-between items-center">
+                         <span className="text-[9px] font-bold text-white/40 uppercase">Tool Estimate</span>
+                         <span className="text-[11px] font-black font-mono text-white italic">SQLMAP v1.7.2</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                         <span className="text-[9px] font-bold text-white/40 uppercase">Target Goal</span>
+                         <span className="text-[11px] font-black text-red-400 uppercase tracking-tighter">DATA EXFILTRATION</span>
+                      </div>
+                   </div>
+                </div>
+                <div className="space-y-4">
+                   <span className="text-[10px] font-black uppercase tracking-widest text-white/30">Frustration Level</span>
+                   <div className="space-y-3">
+                      <div className="flex justify-between items-end">
+                         <p className="text-2xl font-black italic tracking-tighter text-red-500">FRUSTRATED {frustration}%</p>
+                      </div>
+                      <Progress value={frustration} className="h-2 bg-white/5" indicatorClassName="bg-red-500 shadow-[0_0_15px_#ef4444]" />
+                      <p className="text-[9px] font-medium text-white/30 uppercase italic">"Attacker is attempting evasive maneuvers..."</p>
+                   </div>
+                </div>
+             </div>
+          </Card>
+        </div>
+
+        {/* CENTER SPINE: BATTLE TIMELINE */}
+        <div className="w-[60px] bg-black/80 flex flex-col items-center py-8 relative">
+           <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-[1px] bg-white/10" />
+           
+           <div className="flex flex-col items-center gap-8 z-10 w-full px-2">
+              {battleEvents.map((evt, i) => (
+                <div key={i} className={cn(
+                  "relative group w-full flex flex-col items-center transition-all duration-700 animate-in zoom-in-50",
+                  evt.side === 'left' ? "text-red-500" : "text-cyan-500"
+                )}>
+                  <div className={cn(
+                    "h-3 w-3 rounded-full border-2 border-black transition-transform scale-150",
+                    evt.side === 'left' ? "bg-red-500 shadow-[0_0_10px_#ef4444]" : "bg-cyan-500 shadow-[0_0_10px_#06b6d4]"
+                  )} />
+                  <div className={cn(
+                    "absolute top-[-5px] whitespace-nowrap px-3 py-1 rounded-md text-[8px] font-black uppercase tracking-tighter bg-black border border-white/5",
+                    evt.side === 'left' ? "right-6 border-red-500/30" : "left-6 border-cyan-500/30"
+                  )}>
+                    {evt.text}
+                    <div className="opacity-40 text-[7px] mt-0.5">{evt.time}</div>
+                  </div>
+                </div>
+              ))}
+           </div>
+        </div>
+
+        {/* RIGHT PANEL: DEFENDER SIDE */}
+        <div className="flex-1 bg-gradient-to-bl from-black to-cyan-950/10 p-8 flex flex-col space-y-8 overflow-y-auto no-scrollbar">
+          <div className="flex justify-between items-center">
+            <div className="space-y-1">
+               <h2 className="text-3xl font-black text-cyan-500 uppercase italic tracking-tighter flex items-center gap-3">
+                 <Shield className="h-8 w-8" /> Defender Side
+               </h2>
+               <div className="flex items-center gap-2">
+                 <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                 <span className="text-[10px] font-bold text-emerald-500/60 uppercase tracking-[0.3em]">ShieldCore Neural Ingress Core</span>
+               </div>
+            </div>
+            <Badge variant="outline" className="bg-emerald-500/10 border-emerald-500/30 text-emerald-500 font-mono text-[9px] px-3 py-1 uppercase">Protected Mode Active</Badge>
+          </div>
+
+          {/* Section 1: What our WAF is doing */}
+          <Card className="glass-card border-white/5 bg-black/40 rounded-[2rem] overflow-hidden flex flex-col shadow-2xl">
+             <div className="bg-cyan-500/5 px-6 py-3 border-b border-white/5 flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-widest text-cyan-400">Response Logic</span>
+                <Fingerprint className="h-3.5 w-3.5 text-cyan-500/40" />
+             </div>
+             <CardContent className="p-8 space-y-8">
+                <div className="bg-white/5 p-4 rounded-xl border border-white/5">
+                   <p className="text-sm font-bold text-white leading-relaxed">
+                     {explain('DistilBERT Transformer')}: {selectedAttack?.decision === 'BLOCKED' ? `OUR AI DETECTED THE HIDDEN ATTACK AND BLOCKED IT IN ${selectedAttack?.inferenceTime} MILLISECONDS` : 'SYSTEM IS MONITORING SECURE TRAFFIC'}
+                   </p>
+                </div>
+
+                <div className="grid grid-cols-1 gap-6">
+                   {[
+                     { label: 'Request Received', val: selectedAttack?.ip + ' → ' + selectedAttack?.endpoint, icon: Globe },
+                     { label: 'Decode Pipeline', val: explain('Base64 Decode') + ' Verified', icon: Layers, check: true },
+                     { label: 'AI Analysis', val: Math.round((selectedAttack?.score || 0) * 100) + '% ' + explain('Softmax Classification'), icon: Zap, check: true },
+                     { label: 'Final Decision', val: selectedAttack?.decision || 'BLOCKED', icon: Gavel, stamp: true }
+                   ].map((stage, i) => (
+                     <div key={i} className={cn(
+                       "flex items-center justify-between p-5 rounded-2xl border transition-all duration-700",
+                       replayStage >= (i + 1) ? "bg-cyan-500/5 border-cyan-500/20" : "bg-white/5 border-white/5 opacity-30"
+                     )}>
+                        <div className="flex items-center gap-5">
+                           <div className="h-10 w-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center">
+                              <stage.icon className="h-5 w-5 text-cyan-500" />
+                           </div>
+                           <div>
+                              <p className="text-[9px] font-black text-white/40 uppercase mb-1">Stage {i+1}: {stage.label}</p>
+                              <p className="text-xs font-bold text-white">{stage.val}</p>
+                           </div>
+                        </div>
+                        {replayStage >= (i+1) && stage.check && <CheckCircle2 className="h-5 w-5 text-emerald-500 animate-in zoom-in" />}
+                        {replayStage >= (i+1) && stage.stamp && (
+                          <Badge className="bg-red-500/20 border-red-500/50 text-red-500 font-black italic px-4 py-1 text-[11px] animate-in slide-in-from-right-4">
+                            {selectedAttack?.decision === 'BLOCKED' ? 'BLOCKED' : 'SAFE'}
+                          </Badge>
+                        )}
+                     </div>
+                   ))}
+                </div>
+             </CardContent>
+          </Card>
+
+          {/* Section 2: Why it was blocked */}
+          <Card className="bg-black/40 border-white/5 rounded-[2rem] p-8 space-y-6">
+             <span className="text-[10px] font-black uppercase tracking-widest text-white/30">Forensic Evidence</span>
+             <div className="space-y-3">
+                {[
+                  { text: 'DECODED PAYLOAD CONTAINS SQL INJECTION PATTERN', sev: 'HIGH' },
+                  { text: 'BOOLEAN LOGIC DETECTED — OR 1 EQUALS 1', sev: 'HIGH' },
+                  { text: 'OWASP A03 2021 VIOLATION', sev: 'MEDIUM' }
+                ].map((reason, i) => (
+                  <div key={i} className={cn(
+                    "flex items-center justify-between p-4 rounded-xl border border-white/5 bg-white/[0.02] transition-all duration-1000 delay-300",
+                    replayStage >= 4 ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4"
+                  )}>
+                     <div className="flex items-center gap-3">
+                        <AlertCircle className="h-4 w-4 text-red-500" />
+                        <span className="text-[10px] font-bold text-white/70">{reason.text}</span>
+                     </div>
+                     <Badge variant="outline" className="border-red-500/30 text-red-500 text-[8px] font-black">{reason.sev}</Badge>
+                  </div>
+                ))}
+             </div>
+             {replayStage >= 4 && (
+               <div className="pt-4 border-t border-white/5">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-2">Rule Reference</p>
+                  <p className="text-[10px] text-white/60 leading-relaxed italic">
+                    Triggered Rule: <span className="text-cyan-500 font-mono">SC-WAF-92.4</span> - Detected attempts to manipulate underlying database structure through front-end parameters.
+                  </p>
+               </div>
+             )}
+          </Card>
+
+          {/* Section 3: Recommendations */}
+          <Card className="bg-black border-white/5 rounded-[2rem] p-8 space-y-6">
+             <span className="text-[10px] font-black uppercase tracking-widest text-white/30">Defender Recommendations</span>
+             <div className="space-y-4">
+                {[
+                  { title: 'Block This IP Range', desc: 'Three other IPs from this subnet have attacked recently.', color: 'border-l-red-500' },
+                  { title: 'Enable Rate Limiting', desc: 'Login endpoint has received 47 requests in 2 minutes.', color: 'border-l-amber-500' },
+                  { title: 'Review Auth Logic', desc: 'Attacker targeting username field with known vulnerability patterns.', color: 'border-l-cyan-500' }
+                ].map((rec, i) => (
+                  <div key={i} className={cn(
+                    "p-4 rounded-xl border border-white/5 bg-white/[0.02] border-l-4 transition-all duration-1000",
+                    rec.color,
+                    replayStage >= 4 ? "opacity-100" : "opacity-0"
+                  )} style={{ transitionDelay: `${i * 200}ms` }}>
+                     <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                           <p className="text-xs font-black text-white uppercase">{rec.title}</p>
+                           <p className="text-[10px] text-white/40">{rec.desc}</p>
+                        </div>
+                        <Button size="sm" className="h-8 rounded-lg bg-white/5 border border-white/10 text-[9px] font-black hover:bg-white/10 uppercase">Apply</Button>
+                     </div>
+                  </div>
+                ))}
+             </div>
+          </Card>
+
+          {/* Legal Section */}
+          <div className={cn(
+            "bg-[#150a0a] border border-red-500/20 rounded-[2rem] p-8 flex flex-col relative overflow-hidden transition-all duration-1000",
+            replayStage >= 4 ? "opacity-100" : "opacity-0"
+          )}>
+             <div className="absolute top-4 right-8 opacity-20 rotate-12">
+                <div className="border-4 border-red-500 px-6 py-2 rounded text-red-500 font-black text-2xl uppercase">PROSECUTABLE</div>
+             </div>
+             <h4 className="text-[10px] font-black text-red-500/60 uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
+                <Gavel className="h-4 w-4" /> Legal Assessment
+             </h4>
+             <p className="text-[11px] font-serif italic text-white/60 leading-relaxed max-w-lg">
+                "Based on the severity of the attempt to compromise critical infrastructure, this activity constitutes a violation of {explain('Prosecutable')}. Subject is liable for up to 10 years incarceration and unlimited statutory fines."
+             </p>
           </div>
         </div>
       </div>
 
-      {/* TIMELINE SCRUBBER */}
-      <div className="fixed bottom-0 left-0 w-full h-24 bg-black/90 backdrop-blur-3xl border-t border-white/10 z-[1000] p-6 flex items-center gap-8">
-        <div className="flex flex-col">
-          <span className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-1">Mirror Session Buffer</span>
-          <span className="text-xs font-mono font-bold text-white/80">{attacks.length} Intercepts</span>
+      {/* --- BOTTOM TIMELINE BAR --- */}
+      <footer className="h-24 shrink-0 bg-black border-t border-white/5 px-10 flex items-center gap-10">
+        <div className="flex items-center gap-4">
+           <Button variant="ghost" size="icon" className="h-10 w-10 border border-white/10 rounded-xl" onClick={() => {
+              const idx = attacks.findIndex(a => a.id === selectedAttack?.id);
+              if (idx < attacks.length - 1) triggerReplay(attacks[idx + 1]);
+           }}>
+              <ArrowLeft className="h-4 w-4" />
+           </Button>
+           <div className="space-y-1 text-center min-w-[80px]">
+              <p className="text-[9px] font-black text-white/30 uppercase tracking-widest">History</p>
+              <p className="text-xs font-mono font-bold text-white/80">{attacks.length} Events</p>
+           </div>
+           <Button variant="ghost" size="icon" className="h-10 w-10 border border-white/10 rounded-xl" onClick={() => {
+              const idx = attacks.findIndex(a => a.id === selectedAttack?.id);
+              if (idx > 0) triggerReplay(attacks[idx - 1]);
+           }}>
+              <ArrowRight className="h-4 w-4" />
+           </Button>
         </div>
-        
-        <div className="flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar py-4">
-          {attacks.map((atk, i) => (
-            <button
-              key={atk.id}
-              onClick={() => handleLoadAttack(atk)}
-              className={cn(
-                "h-3 min-w-3 rounded-full transition-all hover:scale-150",
-                selectedAttack?.id === atk.id ? "ring-2 ring-white ring-offset-2 ring-offset-black scale-150" : "opacity-40 hover:opacity-100",
-                atk.decision === 'BLOCKED' ? "bg-destructive" : "bg-emerald-500"
-              )}
-            />
-          ))}
+
+        <div className="flex-1 h-12 bg-white/5 rounded-2xl border border-white/5 relative flex items-center px-6 overflow-hidden">
+           <div className="absolute top-1/2 left-0 w-full h-[1px] bg-white/10 -translate-y-1/2" />
+           <div className="flex-1 flex items-center justify-between relative z-10">
+              {attacks.map((atk) => (
+                <button
+                  key={atk.id}
+                  onClick={() => triggerReplay(atk)}
+                  className={cn(
+                    "h-4 w-4 rounded-full transition-all hover:scale-150 group relative",
+                    selectedAttack?.id === atk.id ? "ring-2 ring-white ring-offset-4 ring-offset-black scale-125" : "opacity-40",
+                    atk.decision === 'BLOCKED' ? "bg-red-500 shadow-[0_0_10px_#ef4444]" : "bg-cyan-500 shadow-[0_0_10px_#06b6d4]"
+                  )}
+                >
+                   <div className="absolute bottom-8 left-1/2 -translate-x-1/2 px-3 py-1 bg-black border border-white/10 rounded text-[8px] font-black uppercase whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-all">
+                     {atk.attackType} — {Math.round(atk.score * 100)}%
+                   </div>
+                </button>
+              ))}
+           </div>
         </div>
 
         <div className="flex items-center gap-6">
-           <Button 
-            variant="outline" 
-            className={cn(
-              "h-12 border-white/10 bg-white/5 hover:bg-white/10 text-white font-black uppercase text-[10px] tracking-widest px-8 rounded-2xl",
-              isReplaying && "opacity-50 cursor-not-allowed"
-            )} 
-            onClick={() => frustration >= 100 ? setFrustration(0) : handleLoadAttack(attacks[0])}
-            disabled={isReplaying}
-           >
-             {frustration >= 100 ? <><ZapOff className="h-4 w-4 mr-3" /> ATK ABANDONED</> : <><Crosshair className="h-4 w-4 mr-3" /> Replay Sync</>}
-           </Button>
+           <div className="text-right">
+              <p className="text-[8px] font-black text-white/30 uppercase tracking-[0.4em]">Strategic Defense</p>
+              <p className="text-[10px] font-mono font-bold text-white/60">ShieldCore Cluster v1.0</p>
+           </div>
+           <div className="h-12 w-12 rounded-full border border-white/10 bg-white/5 flex items-center justify-center">
+              <Activity className="h-5 w-5 text-emerald-500 animate-pulse" />
+           </div>
         </div>
-      </div>
+      </footer>
 
       <style jsx global>{`
-        @keyframes scanline { 0% { bottom: 100%; } 100% { bottom: -100px; } }
-        .scanline {
-          width: 100%; height: 100px; z-index: 5;
-          background: linear-gradient(0deg, rgba(239, 68, 68, 0) 0%, rgba(239, 68, 68, 0.1) 50%, rgba(239, 68, 68, 0) 100%);
-          position: absolute; bottom: 100%; animation: scanline 4s linear infinite;
-        }
-        @keyframes shake {
-          0%, 100% { transform: translate(0, 0); }
-          10%, 30%, 50%, 70%, 90% { transform: translate(-4px, 0); }
-          20%, 40%, 60%, 80% { transform: translate(4px, 0); }
-        }
-        .animate-shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        @keyframes stamp {
+          0% { transform: scale(3); opacity: 0; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-stamp { animation: stamp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
       `}</style>
 
     </div>
