@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -165,7 +164,7 @@ export default function LiveFeedPage() {
   };
 
   return (
-    <div className="relative min-h-screen bg-[#020408] text-white selection:bg-destructive/30 dashboard-cursor">
+    <div className="relative min-h-screen bg-background text-foreground selection:bg-destructive/30 dashboard-cursor transition-colors">
       <div className="fixed inset-0 matrix-grid opacity-20 pointer-events-none" />
       
       <div className="container mx-auto py-12 px-6 max-w-7xl space-y-10 animate-in fade-in duration-1000 relative z-10">
@@ -174,31 +173,31 @@ export default function LiveFeedPage() {
             <div className="flex items-center gap-2 text-destructive font-mono text-[10px] tracking-[0.4em] uppercase animate-pulse">
               <Activity className="h-3 w-3" /> Live Forensic Feed
             </div>
-            <h1 className="text-5xl font-black tracking-tighter uppercase text-white">TRAFFIC <span className="text-destructive">STREAM</span></h1>
-            <p className="text-muted-foreground font-medium text-lg italic opacity-60">Edge-wide telemetry across global ingress nodes.</p>
+            <h1 className="text-5xl font-black tracking-tighter uppercase">TRAFFIC <span className="text-destructive">STREAM</span></h1>
+            <p className="opacity-60 font-medium text-lg italic">Edge-wide telemetry across global ingress nodes.</p>
           </div>
-          <div className="flex items-center gap-4 bg-white/5 p-2 rounded-2xl border border-white/5 backdrop-blur-xl">
-            <div className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-white/5 border border-white/5 text-[10px] font-black uppercase tracking-widest">
+          <div className="flex items-center gap-4 bg-card/40 p-2 rounded-2xl border border-border/40 backdrop-blur-xl">
+            <div className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-accent border border-border/40 text-[10px] font-black uppercase tracking-widest">
               <div className={cn("h-2 w-2 rounded-full", isConnected ? "bg-emerald-500 animate-pulse shadow-[0_0_10px_#22c55e]" : "bg-destructive")} />
-              <span className="text-muted-foreground">{isConnected ? "Uplink Secure" : "Uplink Lost"}</span>
+              <span className="opacity-60">{isConnected ? "Uplink Secure" : "Uplink Lost"}</span>
             </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            { label: 'Total Ingress', value: stats.total, color: 'text-white', trend: '+12%', icon: Globe },
+            { label: 'Total Ingress', value: stats.total, color: 'text-foreground', trend: '+12%', icon: Globe },
             { label: 'Neutralized', value: stats.blocked, color: 'text-destructive', trend: '+4%', icon: ShieldX },
-            { label: 'Avg Threat Index', value: `${Math.round(stats.avgScore * 100)}%`, color: 'text-amber-500', trend: '-2%', icon: AlertCircle },
+            { label: 'Avg Threat Index', value: `${Math.round(stats.avgScore * 100)}%`, color: 'text-amber-600 dark:text-amber-500', trend: '-2%', icon: AlertCircle },
           ].map((s, i) => (
             <Card key={i} className="glass-card rounded-3xl overflow-hidden group p-1">
               <CardContent className="p-8 flex items-center justify-between">
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-50">
+                  <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-50">
                     <s.icon className="h-3 w-3" /> {s.label}
                   </div>
                   <div className={cn("text-4xl font-black tracking-tighter", s.color)}>{s.value}</div>
-                  <div className="text-[10px] font-bold text-emerald-500">{s.trend} <span className="text-muted-foreground opacity-40">vs prev epoch</span></div>
+                  <div className="text-[10px] font-bold text-emerald-500">{s.trend} <span className="opacity-40">vs prev epoch</span></div>
                 </div>
                 <div className="w-24 h-12 opacity-50 group-hover:opacity-100 transition-opacity">
                    <ResponsiveContainer width="100%" height="100%">
@@ -212,32 +211,32 @@ export default function LiveFeedPage() {
           ))}
         </div>
 
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6 bg-white/[0.02] p-6 rounded-3xl border border-white/5">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6 bg-card/20 p-6 rounded-3xl border border-border/40">
           <div className="flex items-center gap-4 w-full md:w-auto">
-            <Button variant="outline" size="lg" onClick={() => setIsPaused(!isPaused)} className={cn("h-14 px-8 font-black uppercase text-[10px] tracking-widest rounded-2xl transition-all border-white/10 hover:bg-white/5", isPaused ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : "bg-destructive/10 text-destructive border-destructive/20")}>
+            <Button variant="outline" size="lg" onClick={() => setIsPaused(!isPaused)} className={cn("h-14 px-8 font-black uppercase text-[10px] tracking-widest rounded-2xl transition-all border-border/40 hover:bg-accent", isPaused ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-500 border-emerald-500/20" : "bg-destructive/10 text-destructive border-destructive/20")}>
               {isPaused ? <Play className="h-4 w-4 mr-2" /> : <Pause className="h-4 w-4 mr-2" />}
               {isPaused ? "Activate Feed" : "Suspend Feed"}
             </Button>
             <div className="relative flex-1 md:w-96">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground opacity-30" />
-              <Input placeholder="Search IP or Attack Class..." className="h-14 pl-12 bg-black/40 rounded-2xl border-white/5 focus-visible:ring-destructive font-mono text-xs text-white" value={search} onChange={(e) => setSearch(e.target.value)} />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 opacity-30" />
+              <Input placeholder="Search IP or Attack Class..." className="h-14 pl-12 bg-background/50 rounded-2xl border-border/40 focus-visible:ring-destructive font-mono text-xs" value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
           </div>
           <div className="flex items-center gap-4">
-             <div className="flex gap-2 bg-black/40 p-1.5 rounded-2xl border border-white/5">
+             <div className="flex gap-2 bg-background/50 p-1.5 rounded-2xl border border-border/40">
                 {['ALL', 'BLOCKED', 'SAFE'].map(f => (
-                  <button key={f} onClick={() => setFilter(f)} className={cn("px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all", filter === f ? "bg-destructive text-white shadow-lg" : "text-muted-foreground hover:text-white")}>
+                  <button key={f} onClick={() => setFilter(f)} className={cn("px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all", filter === f ? "bg-destructive text-white shadow-lg" : "opacity-60 hover:opacity-100 hover:bg-accent")}>
                     {f}
                   </button>
                 ))}
              </div>
-             <Button variant="ghost" size="icon" className="h-14 w-14 rounded-2xl border border-white/5 hover:bg-destructive/10 hover:text-destructive text-muted-foreground" onClick={() => setRequests([])}>
+             <Button variant="ghost" size="icon" className="h-14 w-14 rounded-2xl border border-border/40 hover:bg-destructive/10 hover:text-destructive opacity-60" onClick={() => setRequests([])}>
                 <Trash2 className="h-5 w-5" />
              </Button>
           </div>
         </div>
 
-        <div className="space-y-4 max-h-[1200px] overflow-auto pr-2 custom-scrollbar">
+        <div className="space-y-4 max-h-[1200px] overflow-auto pr-2 custom-scrollbar no-scrollbar">
           {filteredRequests.map((req) => {
             const Icon = ATTACK_ICONS[req.attackType] || Shield;
             return (
@@ -250,15 +249,15 @@ export default function LiveFeedPage() {
               >
                 <CardContent className="p-6 flex flex-col md:flex-row items-center justify-between gap-6">
                   <div className="flex items-center gap-6 flex-1 min-w-0" onClick={() => setSelectedRequest(req)}>
-                    <div className={cn("p-4 rounded-2xl border border-white/5 transition-transform group-hover:scale-110 cursor-pointer", req.decision === 'BLOCKED' ? "bg-destructive/10 text-destructive" : "bg-emerald-500/10 text-emerald-500")}>
+                    <div className={cn("p-4 rounded-2xl border border-border/40 transition-transform group-hover:scale-110 cursor-pointer", req.decision === 'BLOCKED' ? "bg-destructive/10 text-destructive" : "bg-emerald-500/10 text-emerald-500")}>
                       <Icon className="h-6 w-6" />
                     </div>
                     <div className="min-w-0 flex-1 cursor-pointer">
                       <div className="flex items-center gap-2 mb-1">
-                         <span className="text-[12px] font-mono font-black text-white">{req.ip}</span>
-                         <span className="text-[10px] opacity-40 text-white">[{req.country}]</span>
+                         <span className="text-[12px] font-mono font-black">{req.ip}</span>
+                         <span className="text-[10px] opacity-40">[{req.country}]</span>
                       </div>
-                      <div className="flex items-center gap-3 text-[10px] font-mono text-muted-foreground">
+                      <div className="flex items-center gap-3 text-[10px] font-mono opacity-60">
                         <span className="text-destructive font-black">{req.method}</span>
                         <span className="truncate">{req.endpoint}</span>
                       </div>
@@ -268,9 +267,9 @@ export default function LiveFeedPage() {
                   <div className="flex flex-col items-end gap-3 w-full md:w-auto">
                     <div className="flex items-center gap-4">
                        <div className="text-right">
-                          <p className="text-[9px] font-black uppercase text-muted-foreground opacity-50 mb-1">Intelligence Match</p>
+                          <p className="text-[9px] font-black uppercase opacity-50 mb-1">Intelligence Match</p>
                           <div className="flex items-center gap-3">
-                             <div className="w-24 h-1 bg-white/5 rounded-full overflow-hidden">
+                             <div className="w-24 h-1 bg-secondary rounded-full overflow-hidden">
                                 <div className={cn("h-full transition-all", req.decision === 'BLOCKED' ? "bg-destructive" : "bg-emerald-500")} style={{ width: `${req.score * 100}%` }} />
                              </div>
                              <span className={cn("text-xs font-black font-mono", req.decision === 'BLOCKED' ? "text-destructive" : "text-emerald-500")}>{Math.round(req.score * 100)}%</span>
@@ -281,7 +280,7 @@ export default function LiveFeedPage() {
                        </Badge>
                     </div>
                     <div className="flex items-center gap-4 w-full md:w-auto justify-end">
-                       <div className="flex items-center gap-4 text-[9px] font-black text-muted-foreground opacity-40 uppercase tracking-widest mr-4">
+                       <div className="flex items-center gap-4 text-[9px] font-black opacity-40 uppercase tracking-widest mr-4">
                           <span>{req.inferenceTime}ms LAT</span>
                           <span>{formatDistanceToNow(new Date(req.timestamp))} ago</span>
                        </div>
@@ -292,7 +291,7 @@ export default function LiveFeedPage() {
                             size="sm" 
                             onClick={() => handleReplayAttack(req)}
                             disabled={replayingId === req.id}
-                            className="h-8 border-red-500 text-red-500 hover:bg-red-600 hover:text-white transition-all rounded-lg group px-4 font-black uppercase text-[9px]"
+                            className="h-8 border-destructive text-destructive hover:bg-destructive hover:text-white transition-all rounded-lg group px-4 font-black uppercase text-[9px]"
                          >
                             {replayingId === req.id ? <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" /> : <Play className="h-3.5 w-3.5 mr-2 fill-current" />}
                             {replayingId === req.id ? "REPLAYING" : "REPLAY ATTACK"}
@@ -308,13 +307,13 @@ export default function LiveFeedPage() {
           {filteredRequests.length === 0 && (
             <div className="py-40 flex flex-col items-center justify-center space-y-6 opacity-20">
               <Terminal className="h-24 w-24 text-destructive animate-pulse" />
-              <p className="font-black uppercase tracking-[0.5em] text-sm text-white">Synchronizing edge telemetry...</p>
+              <p className="font-black uppercase tracking-[0.5em] text-sm">Synchronizing edge telemetry...</p>
             </div>
           )}
         </div>
 
         <Sheet open={!!selectedRequest} onOpenChange={(open) => !open && setSelectedRequest(null)}>
-          <SheetContent className="w-full sm:max-w-2xl glass-card border-l border-white/10 shadow-2xl p-0 overflow-hidden flex flex-col">
+          <SheetContent className="w-full sm:max-w-2xl glass-card border-l border-border/40 shadow-2xl p-0 overflow-hidden flex flex-col">
             <div className="sr-only">
               <SheetHeader>
                 <SheetTitle>Incident Details</SheetTitle>
@@ -327,17 +326,17 @@ export default function LiveFeedPage() {
                 <div className="p-12 space-y-12 flex-1 overflow-auto custom-scrollbar no-scrollbar">
                   <SheetHeader>
                     <div className="flex items-center justify-between mb-4">
-                      <Badge variant="outline" className="text-[10px] font-black uppercase px-4 py-1 border-white/10 text-white">{selectedRequest.id.toUpperCase()}</Badge>
-                      <span className="text-[10px] font-mono opacity-50 uppercase text-white">{selectedRequest.timestamp}</span>
+                      <Badge variant="outline" className="text-[10px] font-black uppercase px-4 py-1 border-border/40">{selectedRequest.id.toUpperCase()}</Badge>
+                      <span className="text-[10px] font-mono opacity-50 uppercase">{selectedRequest.timestamp}</span>
                     </div>
-                    <SheetTitle className="text-5xl font-black tracking-tighter uppercase leading-none text-white">{selectedRequest.attackType}</SheetTitle>
+                    <SheetTitle className="text-5xl font-black tracking-tighter uppercase leading-none">{selectedRequest.attackType}</SheetTitle>
                     <SheetDescription className="font-mono text-[10px] uppercase tracking-[0.3em] text-destructive mt-3 font-black">Forensic Replay Timeline</SheetDescription>
                   </SheetHeader>
 
                   <div className="space-y-10">
                     <div className="section-label">De-obfuscation Pipeline</div>
                     <div className="space-y-8 relative">
-                      <div className="absolute left-4 top-4 bottom-4 w-[2px] border-l-2 border-dashed border-white/10" />
+                      <div className="absolute left-4 top-4 bottom-4 w-[2px] border-l-2 border-dashed border-border/20" />
                       {[
                         { name: 'Raw Ingress', val: selectedRequest.payload || 'Initial telemetry capture' },
                         { name: 'Recursive Decode', val: 'Stripped 2 nested URL layers' },
@@ -346,34 +345,34 @@ export default function LiveFeedPage() {
                         { name: 'Action: ' + selectedRequest.decision, val: 'Ingress node isolated' }
                       ].map((step, idx) => (
                         <div key={idx} className={cn("pl-12 relative transition-all duration-700", idx > replayStep ? "opacity-0 translate-x-4" : "opacity-100 translate-x-0")}>
-                          <div className={cn("absolute left-0 top-0 h-8 w-8 rounded-full flex items-center justify-center border-2 z-10", idx === replayStep ? "bg-destructive border-destructive scale-110" : "bg-[#0a0c14] border-white/10")}>
+                          <div className={cn("absolute left-0 top-0 h-8 w-8 rounded-full flex items-center justify-center border-2 z-10", idx === replayStep ? "bg-destructive border-destructive scale-110" : "bg-card border-border/40")}>
                             <span className="text-[10px] font-black text-white">{idx + 1}</span>
                           </div>
                           <div className="glass-card p-6 rounded-2xl">
-                             <h4 className="text-[10px] font-black uppercase tracking-widest text-white mb-2">{step.name}</h4>
-                             <p className="text-[11px] font-mono text-muted-foreground break-all bg-black/40 p-3 rounded-lg border border-white/5">{step.val}</p>
+                             <h4 className="text-[10px] font-black uppercase tracking-widest mb-2">{step.name}</h4>
+                             <p className="text-[11px] font-mono opacity-60 break-all bg-accent p-3 rounded-lg border border-border/40">{step.val}</p>
                           </div>
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  <div className="flex gap-4 pt-12 border-t border-white/5">
+                  <div className="flex gap-4 pt-12 border-t border-border/40">
                      <Button 
                         onClick={() => handleReplayAttack(selectedRequest)}
                         disabled={replayingId === selectedRequest.id}
-                        className="flex-1 bg-destructive hover:bg-destructive/90 font-black uppercase text-xs h-16 rounded-2xl shadow-lg shadow-destructive/20"
+                        className="flex-1 bg-destructive hover:bg-destructive/90 font-black uppercase text-xs h-16 rounded-2xl shadow-lg shadow-destructive/20 text-white"
                      >
                        {replayingId === selectedRequest.id ? <Loader2 className="mr-3 h-5 w-5 animate-spin" /> : <Play className="mr-3 h-5 w-5 fill-current" />}
                        {replayingId === selectedRequest.id ? "REPLAYING" : "REPLAY ATTACK"}
                      </Button>
-                     <Button variant="outline" onClick={() => setSelectedRequest(null)} className="flex-1 font-black uppercase text-xs h-16 rounded-2xl border-white/10 text-white">
+                     <Button variant="outline" onClick={() => setSelectedRequest(null)} className="flex-1 font-black uppercase text-xs h-16 rounded-2xl border-border/40">
                        Dismiss Signal
                      </Button>
                   </div>
 
                   <div className="pt-8 text-center">
-                    <p className="text-[8px] font-black uppercase tracking-widest text-white opacity-30">ShieldCore Security Protocol SC-92</p>
+                    <p className="text-[8px] font-black uppercase tracking-widest opacity-30">ShieldCore Security Protocol SC-92</p>
                   </div>
                 </div>
               </>
@@ -391,12 +390,12 @@ export default function LiveFeedPage() {
 
         {activeNotification && (
           <div className={cn(
-            "fixed bottom-6 right-6 z-[6000] w-80 glass-card border-destructive/50 bg-black/90 p-5 rounded-2xl shadow-2xl transition-all duration-500 overflow-hidden",
+            "fixed bottom-6 right-6 z-[6000] w-80 glass-card border-destructive/50 bg-card p-5 rounded-2xl shadow-2xl transition-all duration-500 overflow-hidden",
             isExiting ? "animate-out slide-out-to-bottom fade-out" : "animate-in slide-in-from-right fade-in"
           )}>
             <button 
               onClick={() => { setActiveNotification(null); setIsExiting(false); }}
-              className="absolute top-3 right-3 p-1 text-white/40 hover:text-white transition-colors z-10"
+              className="absolute top-3 right-3 p-1 opacity-40 hover:opacity-100 transition-colors z-10"
             >
               <X className="h-4 w-4" />
             </button>
@@ -407,22 +406,22 @@ export default function LiveFeedPage() {
               </div>
               <div className="min-w-0">
                 <p className="text-[10px] font-black uppercase text-destructive tracking-[0.2em] leading-none mb-1">Threat Intercepted</p>
-                <p className="text-sm font-black text-white uppercase tracking-tighter truncate">{activeNotification.attackType}</p>
+                <p className="text-sm font-black uppercase tracking-tighter truncate">{activeNotification.attackType}</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 bg-white/5 p-3 rounded-xl border border-white/5 mb-4">
+            <div className="grid grid-cols-2 gap-4 bg-accent p-3 rounded-xl border border-border/40 mb-4">
               <div>
-                <p className="text-[8px] font-black uppercase text-white/40 mb-0.5">Origin IP</p>
-                <p className="text-[11px] font-mono text-white/80">{activeNotification.ip}</p>
+                <p className="text-[8px] font-black uppercase opacity-40 mb-0.5">Origin IP</p>
+                <p className="text-[11px] font-mono opacity-80">{activeNotification.ip}</p>
               </div>
               <div>
-                <p className="text-[8px] font-black uppercase text-white/40 mb-0.5">Confidence</p>
+                <p className="text-[8px] font-black uppercase opacity-40 mb-0.5">Confidence</p>
                 <p className="text-[11px] font-mono text-destructive font-black">{Math.round(activeNotification.score * 100)}%</p>
               </div>
             </div>
 
-            <div className="absolute bottom-0 left-0 w-full h-1 bg-white/10">
+            <div className="absolute bottom-0 left-0 w-full h-1 bg-secondary">
               <div className="h-full bg-destructive animate-drain-progress" />
             </div>
           </div>
@@ -437,6 +436,8 @@ export default function LiveFeedPage() {
         .animate-drain-progress {
           animation: drain 4s linear forwards;
         }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
     </div>
   );

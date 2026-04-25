@@ -1,4 +1,3 @@
-
 import type {Metadata} from 'next';
 import './globals.css';
 import { SidebarProvider } from '@/components/ui/sidebar';
@@ -21,13 +20,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
       </head>
-      <body className="font-body antialiased bg-[#020408] text-foreground min-h-screen flex flex-col transition-colors duration-300">
+      <body className="font-body antialiased bg-background text-foreground min-h-screen flex flex-col transition-colors duration-300">
         <LoadingScreen />
         <AuthProvider>
           <SidebarProvider defaultOpen={false}>
@@ -41,7 +40,7 @@ export default function RootLayout({
           </SidebarProvider>
           {/* Global Version Badge */}
           <div className="fixed bottom-4 right-4 z-50 pointer-events-none">
-            <div className="bg-secondary/40 backdrop-blur-md border border-destructive/20 px-3 py-1 rounded-full text-[10px] font-mono text-muted-foreground shadow-lg">
+            <div className="bg-secondary/40 backdrop-blur-md border border-border/20 px-3 py-1 rounded-full text-[10px] font-mono text-muted-foreground shadow-lg">
               ShieldCore WAF v1.0.0 | CSIC 2010
             </div>
           </div>

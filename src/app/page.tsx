@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useRef, useState } from 'react';
@@ -262,7 +261,7 @@ const CinematicBackground = () => {
   }, [reducedMotion]);
 
   return (
-    <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-[#000008]">
+    <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-background">
       {/* Layer 5: Ambient Orbs */}
       <div className="absolute inset-0 opacity-60">
         <div className="orb orb-red" />
@@ -277,7 +276,7 @@ const CinematicBackground = () => {
       <canvas ref={dataCanvasRef} className="absolute inset-0" />
       
       {/* Film Grain & Depth Overlay */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.8)_100%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.4)_100%)] dark:bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.8)_100%)]" />
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")` }} />
 
       <style jsx>{`
@@ -309,42 +308,42 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="relative min-h-screen bg-[#020408] overflow-hidden font-body text-white selection:bg-destructive/40">
+    <div className="relative min-h-screen overflow-hidden font-body text-foreground selection:bg-destructive/40">
       
       <CinematicBackground />
 
       {/* Cinematic Letterbox */}
-      <div className="fixed top-0 left-0 w-full h-[8vh] bg-black z-[200] pointer-events-none opacity-60" />
-      <div className="fixed bottom-0 left-0 w-full h-[8vh] bg-black z-[200] pointer-events-none opacity-60" />
+      <div className="fixed top-0 left-0 w-full h-[8vh] bg-black z-[200] pointer-events-none opacity-60 dark:opacity-80" />
+      <div className="fixed bottom-0 left-0 w-full h-[8vh] bg-black z-[200] pointer-events-none opacity-60 dark:opacity-80" />
       
       {/* Telemetry Docks */}
       <div className="fixed inset-0 z-20 pointer-events-none">
-        <div className="absolute top-24 left-12 w-64 glass-card p-6 border-white/5 rounded-2xl bg-black/40 backdrop-blur-md">
+        <div className="absolute top-24 left-12 w-64 glass-card p-6 rounded-2xl border-white/10 dark:border-white/5 bg-background/40 backdrop-blur-md">
            <div className="flex items-center gap-3 mb-4">
               <Activity className="h-4 w-4 text-destructive animate-pulse" />
-              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-white">Live Ingress Forensics</h3>
+              <h3 className="text-[10px] font-black uppercase tracking-[0.3em]">Live Ingress Forensics</h3>
            </div>
            <div className="space-y-4">
               <div>
-                 <p className="text-[8px] uppercase font-black text-white/40 mb-1">Total Blocks</p>
+                 <p className="text-[8px] uppercase font-black opacity-40 mb-1">Total Blocks</p>
                  <p className="text-2xl font-black text-destructive tracking-tighter">{stats.blocked.toLocaleString()}</p>
               </div>
               <div>
-                 <p className="text-[8px] uppercase font-black text-white/40 mb-1">Packets Inspected</p>
-                 <p className="text-2xl font-black text-cyan-400 tracking-tighter">{stats.analyzed.toLocaleString()}</p>
+                 <p className="text-[8px] uppercase font-black opacity-40 mb-1">Packets Inspected</p>
+                 <p className="text-2xl font-black text-cyan-500 dark:text-cyan-400 tracking-tighter">{stats.analyzed.toLocaleString()}</p>
               </div>
            </div>
         </div>
 
-        <div className="absolute bottom-24 right-12 w-64 glass-card p-6 border-white/5 rounded-2xl bg-black/40 backdrop-blur-md">
+        <div className="absolute bottom-24 right-12 w-64 glass-card p-6 rounded-2xl border-white/10 dark:border-white/5 bg-background/40 backdrop-blur-md">
            <div className="flex items-center gap-3 mb-4">
               <Cpu className="h-4 w-4 text-emerald-500" />
-              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-white">Neural Integrity</h3>
+              <h3 className="text-[10px] font-black uppercase tracking-[0.3em]">Neural Integrity</h3>
            </div>
            <div className="space-y-3">
               {['WAF Node 92', 'LPU Uplink', 'DDoS Mitigator'].map((node, i) => (
                 <div key={i} className="flex items-center justify-between">
-                   <span className="text-[9px] font-bold text-white/60 uppercase">{node}</span>
+                   <span className="text-[9px] font-bold opacity-60 uppercase">{node}</span>
                    <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 </div>
               ))}
@@ -361,11 +360,11 @@ export default function LandingPage() {
               Strategic Defense Node Active
             </div>
             
-            <h1 className="text-7xl md:text-[9rem] font-black tracking-tighter text-white leading-[0.85] uppercase">
+            <h1 className="text-7xl md:text-[9rem] font-black tracking-tighter leading-[0.85] uppercase">
               SHIELD<span className="text-destructive glow-text-red">CORE</span>
             </h1>
             
-            <p className="text-xl md:text-2xl text-white/60 max-w-2xl mx-auto font-medium leading-relaxed italic opacity-80 mt-6">
+            <p className="text-xl md:text-2xl opacity-80 max-w-2xl mx-auto font-medium leading-relaxed italic mt-6">
               LPU-accelerated neural packet inspection. <br />
               Global edge protection for the modern internet.
             </p>
@@ -376,7 +375,7 @@ export default function LandingPage() {
               <Link href="/login">Launch Console <ArrowRight className="ml-3 h-6 w-6" /></Link>
             </Button>
             
-            <Button variant="outline" size="lg" className="border-white/20 bg-white/5 hover:bg-white/10 text-white font-black h-20 px-14 text-xl rounded-2xl transition-all duration-500 uppercase tracking-widest backdrop-blur-xl">
+            <Button variant="outline" size="lg" className="border-border/40 bg-secondary/10 hover:bg-secondary/20 font-black h-20 px-14 text-xl rounded-2xl transition-all duration-500 uppercase tracking-widest backdrop-blur-xl">
                Learn Specs
             </Button>
           </div>
@@ -385,12 +384,12 @@ export default function LandingPage() {
 
       <button 
         onClick={() => setIsMuted(!isMuted)} 
-        className="fixed bottom-12 left-12 z-[500] h-12 w-12 rounded-full border border-white/10 bg-black/40 backdrop-blur-xl flex items-center justify-center text-white/40 hover:text-white transition-all"
+        className="fixed bottom-12 left-12 z-[500] h-12 w-12 rounded-full border border-border/20 bg-background/40 backdrop-blur-xl flex items-center justify-center opacity-40 hover:opacity-100 transition-all"
       >
         {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
       </button>
 
-      <div className="fixed bottom-12 right-12 z-[500] text-[8px] font-mono text-white/30 uppercase tracking-[0.4em]">
+      <div className="fixed bottom-12 right-12 z-[500] text-[8px] font-mono opacity-30 uppercase tracking-[0.4em]">
          ShieldCore Neural Cluster v1.0.0 // LPU Node Active
       </div>
 

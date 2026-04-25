@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
@@ -23,7 +22,7 @@ import {
   Terminal, Fingerprint, Database as DatabaseIcon, Lock, Unlock,
   Layers, FileText, Download, ExternalLink,
   Gavel, MousePointer2, AlertTriangle, Cpu,
-  Pause, Play, History, RotateCcw
+  Pause, Play, History, RotateCcw, X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -270,7 +269,7 @@ export default function AnalyzerPage() {
   };
 
   const getHighlightBorder = () => {
-    if (!payload) return "border-white/5";
+    if (!payload) return "border-border/40";
     const lower = payload.toLowerCase();
     if (lower.includes('select') || lower.includes('<script') || lower.includes('waitfor')) return "border-destructive shadow-[0_0_15px_rgba(239,68,68,0.2)]";
     if (lower.includes('id=') || lower.includes('idA=')) return "border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.1)]";
@@ -278,21 +277,21 @@ export default function AnalyzerPage() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-80px)] bg-[#020408] text-white overflow-hidden dashboard-cursor selection:bg-destructive/30">
+    <div className="flex h-[calc(100vh-80px)] bg-background text-foreground overflow-hidden dashboard-cursor selection:bg-destructive/30 transition-colors">
       
       {/* --- LEFT COLUMN: THREAT INTELLIGENCE --- */}
-      <div className="w-1/4 border-r border-white/5 bg-black/40 flex flex-col">
+      <div className="w-1/4 border-r border-border/40 bg-card/40 flex flex-col">
         <div className="h-10 px-4 flex items-center border-t border-t-cyan-500 bg-cyan-500/5">
-           <span className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-400">Threat Intelligence</span>
+           <span className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-600 dark:text-cyan-400">Threat Intelligence</span>
         </div>
 
         <ScrollArea className="flex-1 p-4 space-y-6">
           <div className="space-y-4">
              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/20" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 opacity-20" />
                 <Input 
                   placeholder="Filter Library..." 
-                  className="h-9 pl-9 bg-white/5 border-white/5 text-[11px] rounded-lg"
+                  className="h-9 pl-9 bg-background/50 border-border/40 text-[11px] rounded-lg"
                   value={searchLibrary}
                   onChange={(e) => setSearchLibrary(e.target.value)}
                 />
@@ -305,22 +304,22 @@ export default function AnalyzerPage() {
                   { name: 'Path Traversal', data: CSIC_ANOMALOUS_SAMPLES.filter(s => s.attackType === 'Path Traversal').slice(0, 5) },
                   { name: 'Normal Traffic', data: CSIC_VALID_SAMPLES.slice(0, 8) }
                 ].map((cat, i) => (
-                  <AccordionItem key={i} value={`cat-${i}`} className="border-white/5 bg-white/[0.02] rounded-lg px-2">
+                  <AccordionItem key={i} value={`cat-${i}`} className="border-border/40 bg-background/20 rounded-lg px-2">
                     <AccordionTrigger className="text-[10px] font-bold uppercase py-3 hover:no-underline">{cat.name}</AccordionTrigger>
                     <AccordionContent className="space-y-1">
                        {cat.data.map((item, idx) => (
                          <button 
                           key={idx} 
                           onClick={() => loadFromLibrary(item.payload || item.url)}
-                          className="w-full text-left p-2 rounded hover:bg-white/5 transition-all border-l-2 border-transparent hover:border-cyan-500 group"
+                          className="w-full text-left p-2 rounded hover:bg-accent transition-all border-l-2 border-transparent hover:border-cyan-500 group"
                          >
                             <div className="flex justify-between items-center mb-1">
-                               <Badge className="text-[8px] px-1.5 h-4 bg-white/5 border-white/10 text-white/40">{item.id}</Badge>
-                               <div className="h-1 w-8 bg-white/5 rounded-full overflow-hidden">
+                               <Badge className="text-[8px] px-1.5 h-4 bg-secondary border-border/40 text-muted-foreground">{item.id}</Badge>
+                               <div className="h-1 w-8 bg-secondary rounded-full overflow-hidden">
                                   <div className="h-full bg-cyan-500" style={{ width: `${(item as any).score ? (item as any).score * 100 : 5}%` }} />
                                </div>
                             </div>
-                            <p className="text-[10px] font-mono text-white/60 truncate italic opacity-80 group-hover:text-white">{(item.payload || (item as any).url || "").substring(0, 45)}...</p>
+                            <p className="text-[10px] font-mono text-muted-foreground truncate italic opacity-80 group-hover:text-foreground">{(item.payload || (item as any).url || "").substring(0, 45)}...</p>
                          </button>
                        ))}
                     </AccordionContent>
@@ -329,17 +328,17 @@ export default function AnalyzerPage() {
              </Accordion>
           </div>
 
-          <div className="space-y-4 pt-6 border-t border-white/5">
+          <div className="space-y-4 pt-6 border-t border-border/40">
              <div className="flex items-center gap-2">
                 <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[9px] font-black uppercase text-white/40 tracking-widest">CSIC 2010 Loaded</span>
+                <span className="text-[9px] font-black uppercase opacity-40 tracking-widest">CSIC 2010 Loaded</span>
              </div>
-             <div className="bg-black/60 p-4 rounded-xl border border-white/5 space-y-4">
+             <div className="bg-card p-4 rounded-xl border border-border/40 space-y-4">
                 <div className="flex justify-between items-end">
-                   <p className="text-[8px] font-black text-white/30 uppercase">Corpus Size</p>
+                   <p className="text-[8px] font-black opacity-30 uppercase">Corpus Size</p>
                    <p className="text-xl font-black tracking-tighter">61,000</p>
                 </div>
-                <div className="h-1.5 w-full bg-white/5 rounded-full flex overflow-hidden">
+                <div className="h-1.5 w-full bg-secondary rounded-full flex overflow-hidden">
                    <div className="h-full bg-emerald-500" style={{ width: '59%' }} />
                    <div className="h-full bg-destructive" style={{ width: '41%' }} />
                 </div>
@@ -350,16 +349,16 @@ export default function AnalyzerPage() {
              </div>
           </div>
 
-          <div className="space-y-4 pt-6 border-t border-white/5">
-             <span className="text-[9px] font-black uppercase text-white/40 tracking-widest">Session Log</span>
+          <div className="space-y-4 pt-6 border-t border-border/40">
+             <span className="text-[9px] font-black uppercase opacity-40 tracking-widest">Session Log</span>
              <div className="space-y-2">
                 {sessionLog.length === 0 ? (
-                  <p className="text-[10px] italic text-white/20 text-center py-4">No analysis recorded</p>
+                  <p className="text-[10px] italic opacity-20 text-center py-4">No analysis recorded</p>
                 ) : (
                   sessionLog.map((log, i) => (
-                    <div key={i} className="p-2.5 bg-white/[0.02] border border-white/5 rounded-lg flex items-center justify-between animate-in slide-in-from-top-2">
+                    <div key={i} className="p-2.5 bg-card/60 border border-border/40 rounded-lg flex items-center justify-between animate-in slide-in-from-top-2">
                        <div className="min-w-0">
-                          <p className="text-[9px] font-mono text-white/40 mb-0.5 truncate">{log.id}</p>
+                          <p className="text-[9px] font-mono opacity-40 mb-0.5 truncate">{log.id}</p>
                           <p className="text-[10px] font-bold truncate max-w-[120px]">{log.predicted_class}</p>
                        </div>
                        <Badge className={cn("text-[8px] font-black px-1.5", log.decision === 'BLOCKED' ? "bg-destructive/10 text-destructive border-destructive/20" : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20")}>
@@ -372,8 +371,8 @@ export default function AnalyzerPage() {
           </div>
         </ScrollArea>
 
-        <div className="p-4 border-t border-white/5 bg-black/60">
-           <div className="flex justify-between items-center text-[10px] font-black uppercase text-white/40 tracking-tighter">
+        <div className="p-4 border-t border-border/40 bg-card/80">
+           <div className="flex justify-between items-center text-[10px] font-black uppercase opacity-40 tracking-tighter">
               <span>Model Acc</span>
               <span className="text-emerald-500">94.3%</span>
            </div>
@@ -381,13 +380,13 @@ export default function AnalyzerPage() {
       </div>
 
       {/* --- CENTER COLUMN: ANALYSIS WORKSPACE --- */}
-      <div className="flex-1 flex flex-col border-r border-white/5 relative">
+      <div className="flex-1 flex flex-col border-r border-border/40 relative">
         <div className="h-10 px-6 flex items-center justify-between border-t border-t-red-500 bg-red-500/5">
-           <span className="text-[10px] font-black uppercase tracking-[0.2em] text-red-400">Payload Analysis Engine</span>
+           <span className="text-[10px] font-black uppercase tracking-[0.2em] text-red-600 dark:text-red-400">Payload Analysis Engine</span>
            <div className="flex items-center gap-4">
               <div className="flex gap-1">
-                 <button className="h-6 px-3 bg-white/5 rounded text-[8px] font-black uppercase hover:bg-white/10 border border-white/5">Raw</button>
-                 <button className="h-6 px-3 bg-white/5 rounded text-[8px] font-black uppercase hover:bg-white/10 border border-white/5">Decoded</button>
+                 <button className="h-6 px-3 bg-secondary rounded text-[8px] font-black uppercase hover:bg-accent border border-border/40">Raw</button>
+                 <button className="h-6 px-3 bg-secondary rounded text-[8px] font-black uppercase hover:bg-accent border border-border/40">Decoded</button>
               </div>
               <Badge className="bg-red-500 text-white font-black text-[9px] px-2 italic">THREAT LEVEL: {sessionStats.blocked > 5 ? 'CRITICAL' : 'ELEVATED'}</Badge>
            </div>
@@ -407,7 +406,7 @@ export default function AnalyzerPage() {
                   variant="ghost" 
                   size="icon" 
                   onClick={() => setIsFeedPaused(!isFeedPaused)}
-                  className="h-6 w-6 text-white/40 hover:text-white"
+                  className="h-6 w-6 opacity-40 hover:opacity-100"
                 >
                   {isFeedPaused ? <Play className="h-3 w-3" /> : <Pause className="h-3 w-3" />}
                 </Button>
@@ -421,14 +420,14 @@ export default function AnalyzerPage() {
                      <Card 
                        key={`${item.id}-${feedIndex}-${offset}`}
                        onClick={() => loadFromLibrary(item.payload || item.url)}
-                       className="flex-1 bg-white/5 border-white/5 hover:border-red-500/50 cursor-pointer transition-all animate-in slide-in-from-right-4 group"
+                       className="flex-1 bg-card/60 border-border/40 hover:border-red-500/50 cursor-pointer transition-all animate-in slide-in-from-right-4 group"
                      >
                        <CardContent className="p-3 space-y-2">
                           <div className="flex justify-between items-center">
-                             <Badge className="text-[7px] font-black h-4 bg-red-500/20 text-red-400 border-red-500/30 uppercase">{item.attackType}</Badge>
-                             <span className="text-[9px] font-mono text-red-400 font-bold">{Math.round(item.score * 100)}%</span>
+                             <Badge className="text-[7px] font-black h-4 bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30 uppercase">{item.attackType}</Badge>
+                             <span className="text-[9px] font-mono text-red-600 dark:text-red-400 font-bold">{Math.round(item.score * 100)}%</span>
                           </div>
-                          <p className="text-[9px] font-mono text-white/40 truncate opacity-80 group-hover:text-white transition-colors">{displayContent.substring(0, 50)}...</p>
+                          <p className="text-[9px] font-mono opacity-60 truncate group-hover:opacity-100 transition-colors">{displayContent.substring(0, 50)}...</p>
                        </CardContent>
                      </Card>
                    );
@@ -437,27 +436,27 @@ export default function AnalyzerPage() {
             </div>
 
             <div className={cn(
-              "relative rounded-xl border-2 transition-all duration-500 bg-[#05070a]",
+              "relative rounded-xl border-2 transition-all duration-500 bg-background dark:bg-[#05070a]",
               getHighlightBorder()
             )}>
-              <div className="absolute top-4 left-4 font-mono text-[10px] text-white/10 select-none space-y-1">
+              <div className="absolute top-4 left-4 font-mono text-[10px] opacity-10 select-none space-y-1">
                 {Array.from({ length: 8 }).map((_, i) => <div key={i}>{i+1}</div>)}
               </div>
               <Textarea 
                 ref={textareaRef}
                 placeholder="INGRESS SOURCE PAYLOAD..."
-                className="min-h-[220px] pl-10 pt-4 bg-transparent border-none font-mono text-xs text-white placeholder:text-white/10 focus-visible:ring-0 resize-none leading-relaxed"
+                className="min-h-[220px] pl-10 pt-4 bg-transparent border-none font-mono text-xs placeholder:opacity-20 focus-visible:ring-0 resize-none leading-relaxed"
                 value={payload}
                 onChange={(e) => { setPayload(e.target.value); setReplayBanner(null); }}
               />
               <div className="absolute bottom-4 right-4 pointer-events-none opacity-20">
-                 <Cpu className="h-12 w-12 text-white" />
+                 <Cpu className="h-12 w-12" />
               </div>
             </div>
 
-            <div className="h-10 px-4 bg-white/[0.02] border border-white/5 rounded-lg flex items-center gap-3">
-               <span className="text-[8px] font-black text-cyan-500 uppercase tracking-widest">Decoded Preview:</span>
-               <p className="text-[10px] font-mono text-white/40 truncate italic flex-1">
+            <div className="h-10 px-4 bg-card/40 border border-border/40 rounded-lg flex items-center gap-3">
+               <span className="text-[8px] font-black text-cyan-600 dark:text-cyan-500 uppercase tracking-widest">Decoded Preview:</span>
+               <p className="text-[10px] font-mono opacity-60 truncate italic flex-1">
                  {payload ? (decodeURIComponent(payload.replace(/\+/g, ' ')).substring(0, 100) + '...') : 'Awaiting entry...'}
                </p>
             </div>
@@ -479,7 +478,7 @@ export default function AnalyzerPage() {
                    </span>
                  )}
                </Button>
-               <Button variant="outline" onClick={() => { setPayload(''); setReplayBanner(null); }} className="h-14 px-8 border-white/10 hover:bg-white/5 rounded-2xl text-[10px] font-black uppercase text-white/40">Clear</Button>
+               <Button variant="outline" onClick={() => { setPayload(''); setReplayBanner(null); }} className="h-14 px-8 border-border/40 hover:bg-accent rounded-2xl text-[10px] font-black uppercase opacity-40">Clear</Button>
             </div>
           </div>
 
@@ -493,9 +492,9 @@ export default function AnalyzerPage() {
              ].map((step, i) => (
                <div key={i} className={cn(
                  "border rounded-xl flex flex-col items-center justify-center gap-1 transition-all duration-700",
-                 i <= pipelineStep ? "bg-emerald-500/10 border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.2)]" : "bg-white/5 border-white/5 opacity-30"
+                 i <= pipelineStep ? "bg-emerald-500/10 border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.2)]" : "bg-card/40 border-border/40 opacity-30"
                )}>
-                  <step.icon className={cn("h-3.5 w-3.5", i <= pipelineStep ? "text-emerald-500" : "text-white/40")} />
+                  <step.icon className={cn("h-3.5 w-3.5", i <= pipelineStep ? "text-emerald-500" : "opacity-40")} />
                   <span className="text-[7px] font-black uppercase tracking-tighter text-center">{step.id}</span>
                </div>
              ))}
@@ -504,13 +503,13 @@ export default function AnalyzerPage() {
           <div ref={resultRef} className="scroll-mt-10">
             {replayBanner && (
               <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center justify-between animate-in slide-in-from-top-2">
-                <div className="flex items-center gap-3 text-amber-500">
+                <div className="flex items-center gap-3 text-amber-600 dark:text-amber-500">
                   <History className="h-4 w-4" />
                   <span className="text-[10px] font-black uppercase tracking-widest">
                     REPLAYING BLOCKED ATTACK FROM LIVE FEED — {replayBanner.type} — {new Date(replayBanner.timestamp).toLocaleTimeString()}
                   </span>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => setReplayBanner(null)} className="h-6 w-6 text-amber-500/60 hover:text-amber-500">
+                <Button variant="ghost" size="icon" onClick={() => setReplayBanner(null)} className="h-6 w-6 opacity-60 hover:opacity-100">
                   <X className="h-3 w-3" />
                 </Button>
               </div>
@@ -519,7 +518,7 @@ export default function AnalyzerPage() {
             {result ? (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 space-y-6">
                  <div className={cn(
-                    "border-l-4 p-8 rounded-2xl relative bg-black/40 shadow-2xl",
+                    "border-l-4 p-8 rounded-2xl relative bg-card/60 shadow-2xl transition-colors",
                     result.decision === 'BLOCKED' ? "border-l-destructive shadow-destructive/5" : "border-l-emerald-500 shadow-emerald-500/5"
                  )}>
                     <div className="flex justify-between items-start mb-8">
@@ -527,49 +526,49 @@ export default function AnalyzerPage() {
                           <h2 className={cn("text-4xl font-black tracking-tighter uppercase", result.decision === 'BLOCKED' ? "text-destructive" : "text-emerald-500")}>
                              {result.decision === 'BLOCKED' ? 'Threat Detected' : 'Safe Traffic'}
                           </h2>
-                          <p className="text-lg font-black text-white/80 uppercase tracking-tighter">{result.predicted_class}</p>
+                          <p className="text-lg font-black opacity-80 uppercase tracking-tighter">{result.predicted_class}</p>
                        </div>
                        <div className="text-right">
                           <p className={cn("text-4xl font-black font-mono", result.decision === 'BLOCKED' ? "text-destructive" : "text-emerald-500")}>
                              {Math.round(result.confidence_score * 100)}%
                           </p>
-                          <p className="text-[10px] font-black text-white/20 uppercase">Confidence Score</p>
+                          <p className="text-[10px] font-black opacity-20 uppercase">Confidence Score</p>
                        </div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-8 border-y border-white/5 py-6 mb-8">
+                    <div className="grid grid-cols-3 gap-8 border-y border-border/40 py-6 mb-8">
                        <div>
-                          <p className="text-[8px] font-black text-white/20 uppercase tracking-widest mb-1">Attack Class</p>
+                          <p className="text-[8px] font-black opacity-20 uppercase tracking-widest mb-1">Attack Class</p>
                           <p className="text-xs font-bold">{result.predicted_class} ({result.owasp.code})</p>
                        </div>
                        <div>
-                          <p className="text-[8px] font-black text-white/20 uppercase tracking-widest mb-1">Severity</p>
+                          <p className="text-[8px] font-black opacity-20 uppercase tracking-widest mb-1">Severity</p>
                           <Badge className={cn("font-black text-[9px]", result.severity === 'HIGH' ? "bg-destructive text-white" : "bg-emerald-500 text-white")}>
                              {result.severity}
                           </Badge>
                        </div>
                        <div>
-                          <p className="text-[8px] font-black text-white/20 uppercase tracking-widest mb-1">Inference Time</p>
-                          <p className="text-xs font-mono font-bold text-cyan-400">{result.inference_time_ms}ms</p>
+                          <p className="text-[8px] font-black opacity-20 uppercase tracking-widest mb-1">Inference Time</p>
+                          <p className="text-xs font-mono font-bold text-cyan-600 dark:text-cyan-400">{result.inference_time_ms}ms</p>
                        </div>
                     </div>
 
                     <div className="space-y-6">
                        <div className="space-y-2">
-                          <p className="text-[8px] font-black text-white/20 uppercase tracking-widest">AI Forensic Verdict</p>
-                          <p className="text-xs leading-relaxed text-white/70 italic bg-white/5 p-4 rounded-xl border border-white/5 border-l-2 border-l-white/20">
+                          <p className="text-[8px] font-black opacity-20 uppercase tracking-widest">AI Forensic Verdict</p>
+                          <p className="text-xs leading-relaxed opacity-70 italic bg-accent p-4 rounded-xl border border-border/40 border-l-2 border-l-muted-foreground/40">
                              "{result.explanation}"
                           </p>
                        </div>
 
                        {result.evidence.length > 0 && (
                           <div className="space-y-3">
-                             <p className="text-[8px] font-black text-white/20 uppercase tracking-widest">Pattern Artifacts</p>
+                             <p className="text-[8px] font-black opacity-20 uppercase tracking-widest">Pattern Artifacts</p>
                              <div className="grid grid-cols-2 gap-3">
                                 {result.evidence.map((ev, i) => (
-                                  <div key={i} className="p-3 bg-black/60 border border-white/5 rounded-xl flex items-center justify-between group hover:border-red-500/30 transition-colors animate-in fade-in" style={{ animationDelay: `${i * 100}ms` }}>
+                                  <div key={i} className="p-3 bg-background border border-border/40 rounded-xl flex items-center justify-between group hover:border-red-500/30 transition-colors animate-in fade-in" style={{ animationDelay: `${i * 100}ms` }}>
                                      <code className="text-[10px] font-black text-destructive">{ev.pattern}</code>
-                                     <span className="text-[8px] font-bold text-white/30 uppercase">{ev.label}</span>
+                                     <span className="text-[8px] font-bold opacity-30 uppercase">{ev.label}</span>
                                   </div>
                                 ))}
                              </div>
@@ -587,7 +586,7 @@ export default function AnalyzerPage() {
           </div>
         </div>
 
-        <div className="h-10 px-6 flex items-center justify-between border-t border-white/5 bg-black/60">
+        <div className="h-10 px-6 flex items-center justify-between border-t border-border/40 bg-card/80">
            <div className="flex gap-6">
               {[
                 { label: 'Analyzed', val: sessionStats.analyzed },
@@ -596,22 +595,22 @@ export default function AnalyzerPage() {
                 { label: 'FP Rate', val: `${sessionStats.fp ? ((sessionStats.fp / sessionStats.analyzed) * 100).toFixed(1) : 0}%` }
               ].map((s, i) => (
                 <div key={i} className="flex gap-2 items-center">
-                   <span className="text-[8px] font-black text-white/20 uppercase">{s.label}:</span>
+                   <span className="text-[8px] font-black opacity-20 uppercase">{s.label}:</span>
                    <span className="text-[10px] font-black font-mono">{s.val}</span>
                 </div>
               ))}
            </div>
            <div className="flex items-center gap-2">
               <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[8px] font-black text-white/30 uppercase">Analytics Synced</span>
+              <span className="text-[8px] font-black opacity-30 uppercase">Analytics Synced</span>
            </div>
         </div>
       </div>
 
       {/* --- RIGHT COLUMN: FORENSICS OUTPUT --- */}
-      <div className="w-1/4 border-l border-white/5 bg-black/40 flex flex-col">
+      <div className="w-1/4 border-l border-border/40 bg-card/40 flex flex-col">
         <div className="h-10 px-4 flex items-center border-t border-t-amber-500 bg-amber-500/5">
-           <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-400">Forensic Intelligence</span>
+           <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-600 dark:text-amber-400">Forensic Intelligence</span>
         </div>
 
         <ScrollArea className="flex-1 p-6 space-y-10">
@@ -619,7 +618,7 @@ export default function AnalyzerPage() {
           <div className="space-y-6">
              <div className="relative aspect-square w-full max-w-[180px] mx-auto">
                 <svg className="w-full h-full transform -rotate-90">
-                   <circle cx="50%" cy="50%" r="45%" stroke="currentColor" strokeWidth="12" fill="transparent" className="text-white/5" />
+                   <circle cx="50%" cy="50%" r="45%" stroke="currentColor" strokeWidth="12" fill="transparent" className="opacity-5" />
                    <circle 
                     cx="50%" cy="50%" r="45%" 
                     stroke="currentColor" strokeWidth="12" fill="transparent" 
@@ -627,7 +626,7 @@ export default function AnalyzerPage() {
                     strokeDashoffset={result ? 283 - (result.confidence_score * 283) : 283} 
                     className={cn(
                       "transition-all duration-[1.5s] ease-out",
-                      !result ? "text-white/5" : (result.confidence_score > 0.8 ? "text-destructive" : result.confidence_score > 0.5 ? "text-amber-500" : "text-emerald-500")
+                      !result ? "opacity-5" : (result.confidence_score > 0.8 ? "text-destructive" : result.confidence_score > 0.5 ? "text-amber-500" : "text-emerald-500")
                     )}
                    />
                 </svg>
@@ -640,48 +639,48 @@ export default function AnalyzerPage() {
              <div className="grid grid-cols-3 gap-2">
                 {[
                   { label: 'Severity', val: result ? (result.severity === 'HIGH' ? 92 : 12) : 0, color: 'text-red-500' },
-                  { label: 'Novelty', val: result ? result.novelty : 0, color: 'text-indigo-400' },
-                  { label: 'Evasion', val: result ? result.evasion : 0, color: 'text-amber-500' }
+                  { label: 'Novelty', val: result ? result.novelty : 0, color: 'text-indigo-600 dark:text-indigo-400' },
+                  { label: 'Evasion', val: result ? result.evasion : 0, color: 'text-amber-600 dark:text-amber-500' }
                 ].map((g, i) => (
                   <div key={i} className="text-center space-y-1">
-                     <div className="relative h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                     <div className="relative h-1 w-full bg-secondary rounded-full overflow-hidden">
                         <div className={cn("h-full transition-all duration-1000 bg-current", g.color)} style={{ width: `${g.val}%` }} />
                      </div>
-                     <p className="text-[7px] font-black uppercase text-white/30">{g.label}</p>
+                     <p className="text-[7px] font-black uppercase opacity-30">{g.label}</p>
                      <p className={cn("text-[10px] font-bold", g.color)}>{g.val}%</p>
                   </div>
                 ))}
              </div>
           </div>
 
-          <div className="space-y-4 pt-6 border-t border-white/5">
-             <span className="text-[9px] font-black uppercase text-white/40 tracking-widest">OWASP Classification</span>
+          <div className="space-y-4 pt-6 border-t border-border/40">
+             <span className="text-[9px] font-black uppercase opacity-40 tracking-widest">OWASP Classification</span>
              {result ? (
-               <div className="p-4 bg-white/5 rounded-xl border border-white/5 space-y-3">
+               <div className="p-4 bg-card rounded-xl border border-border/40 space-y-3">
                   <div className="flex justify-between items-center">
-                     <span className="text-xs font-black text-white">{result.owasp.code}</span>
-                     <Badge className="bg-red-500/20 text-red-500 border-red-500/40 text-[8px] font-black uppercase">{result.owasp.risk} Risk</Badge>
+                     <span className="text-xs font-black">{result.owasp.code}</span>
+                     <Badge className="bg-red-500/20 text-red-600 dark:text-red-500 border-red-500/40 text-[8px] font-black uppercase">{result.owasp.risk} Risk</Badge>
                   </div>
-                  <p className="text-[10px] font-bold text-white/80">{result.owasp.name}</p>
-                  <p className="text-[9px] text-white/40 leading-relaxed italic">{result.owasp.description}</p>
-                  <button className="flex items-center gap-2 text-[8px] font-black uppercase text-cyan-500 hover:text-cyan-400 transition-colors">
+                  <p className="text-[10px] font-bold opacity-80">{result.owasp.name}</p>
+                  <p className="text-[9px] opacity-40 leading-relaxed italic">{result.owasp.description}</p>
+                  <button className="flex items-center gap-2 text-[8px] font-black uppercase text-cyan-600 dark:text-cyan-500 hover:opacity-80 transition-colors">
                      LEARN MORE <ExternalLink className="h-2 w-2" />
                   </button>
                </div>
              ) : (
-               <div className="h-24 bg-white/[0.02] border-dashed border border-white/10 rounded-xl flex items-center justify-center italic text-[10px] text-white/10 uppercase">
+               <div className="h-24 bg-card/40 border-dashed border border-border/40 rounded-xl flex items-center justify-center italic text-[10px] opacity-10 uppercase">
                   No Active Classification
                </div>
              )}
           </div>
 
-          <div className="space-y-4 pt-6 border-t border-white/5">
-             <span className="text-[9px] font-black uppercase text-white/40 tracking-widest">Decode Trace</span>
+          <div className="space-y-4 pt-6 border-t border-border/40">
+             <span className="text-[9px] font-black uppercase opacity-40 tracking-widest">Decode Trace</span>
              <div className="space-y-2 font-mono text-[9px]">
                 {result ? (
                   result.pipeline.map((p, i) => (
-                    <div key={i} className="p-2 border border-white/5 bg-black/40 rounded flex flex-col gap-1">
-                       <span className="text-cyan-500 font-black">{p.step}</span>
+                    <div key={i} className="p-2 border border-border/40 bg-card/40 rounded flex flex-col gap-1">
+                       <span className="text-cyan-600 dark:text-cyan-500 font-black">{p.step}</span>
                        <div className="flex items-center justify-between opacity-40 italic">
                           <span className="truncate max-w-[80px]">IN: ...{p.output.substring(0, 10)}</span>
                           <ArrowRight className="h-2 w-2" />
@@ -690,24 +689,24 @@ export default function AnalyzerPage() {
                     </div>
                   ))
                 ) : (
-                  <div className="py-8 text-center text-white/10 italic uppercase">Awaiting trace data...</div>
+                  <div className="py-8 text-center opacity-10 italic uppercase">Awaiting trace data...</div>
                 )}
              </div>
           </div>
 
         </ScrollArea>
 
-        <div className="p-6 border-t border-white/5 bg-black/60 space-y-3">
-           <Button variant="outline" onClick={() => { navigator.clipboard.writeText(JSON.stringify(result, null, 2)); toast({ title: "Forensic Export", description: "JSON intelligence copied to clipboard." }); }} className="w-full h-10 border-white/10 text-white/60 hover:text-white rounded-lg text-[10px] font-bold uppercase justify-start pl-4 group">
+        <div className="p-6 border-t border-border/40 bg-card/80 space-y-3">
+           <Button variant="outline" onClick={() => { navigator.clipboard.writeText(JSON.stringify(result, null, 2)); toast({ title: "Forensic Export", description: "JSON intelligence copied to clipboard." }); }} className="w-full h-10 border-border/40 opacity-60 hover:opacity-100 rounded-lg text-[10px] font-bold uppercase justify-start pl-4 group">
               <FileJson className="mr-3 h-4 w-4 group-hover:text-amber-500 transition-colors" /> Export Intelligence JSON
            </Button>
-           <Button variant="outline" onClick={exportPDF} className="w-full h-10 border-white/10 text-white/60 hover:text-white rounded-lg text-[10px] font-bold uppercase justify-start pl-4 group">
+           <Button variant="outline" onClick={exportPDF} className="w-full h-10 border-border/40 opacity-60 hover:opacity-100 rounded-lg text-[10px] font-bold uppercase justify-start pl-4 group">
               <FileText className="mr-3 h-4 w-4 group-hover:text-emerald-500 transition-colors" /> Generate PDF Report
            </Button>
-           <Button variant="outline" onClick={() => { setSessionStats(s => ({ ...s, fp: s.fp + 1 })); toast({ title: "Analyst Feedback", description: "False positive report logged for model retraining." }); }} className="w-full h-10 border-white/10 text-white/60 hover:text-white rounded-lg text-[10px] font-bold uppercase justify-start pl-4 group">
+           <Button variant="outline" onClick={() => { setSessionStats(s => ({ ...s, fp: s.fp + 1 })); toast({ title: "Analyst Feedback", description: "False positive report logged for model retraining." }); }} className="w-full h-10 border-border/40 opacity-60 hover:opacity-100 rounded-lg text-[10px] font-bold uppercase justify-start pl-4 group">
               <Flag className="mr-3 h-4 w-4 group-hover:text-destructive transition-colors" /> Report False Positive
            </Button>
-           <Button variant="outline" onClick={() => { setResult(null); setPayload(''); setReplayBanner(null); textareaRef.current?.focus(); }} className="w-full h-10 border-white/10 text-white/60 hover:text-white rounded-lg text-[10px] font-bold uppercase justify-start pl-4 group">
+           <Button variant="outline" onClick={() => { setResult(null); setPayload(''); setReplayBanner(null); textareaRef.current?.focus(); }} className="w-full h-10 border-border/40 opacity-60 hover:opacity-100 rounded-lg text-[10px] font-bold uppercase justify-start pl-4 group">
               <RefreshCw className="mr-3 h-4 w-4 group-hover:text-cyan-500 transition-colors" /> Analyze Another
            </Button>
         </div>

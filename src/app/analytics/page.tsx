@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from 'react';
@@ -413,7 +412,7 @@ export default function AnalyticsPage() {
   };
 
   return (
-    <div className="container mx-auto py-12 px-6 max-w-7xl space-y-12 animate-in fade-in duration-1000 bg-[#020408] min-h-screen">
+    <div className="container mx-auto py-12 px-6 max-w-7xl space-y-12 animate-in fade-in duration-1000 bg-background min-h-screen">
       
       {/* Header: KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -423,7 +422,7 @@ export default function AnalyticsPage() {
           { label: 'CSIC Validity Rate', val: '59.0%', icon: AlertTriangle, color: 'text-amber-500', bg: 'bg-amber-500/5' },
           { label: 'Avg Inference Time', val: stats.latency, icon: Clock, color: 'text-emerald-500', bg: 'bg-emerald-500/5' },
         ].map((kpi, i) => (
-          <Card key={i} className="glass-card rounded-[2rem] border-white/5 p-6 overflow-hidden relative group">
+          <Card key={i} className="glass-card rounded-[2rem] border-border/40 p-6 overflow-hidden relative group">
             <div className={`absolute top-0 left-0 w-1 h-full ${kpi.color.replace('text-', 'bg-')}`} />
             <div className="flex justify-between items-start mb-4">
               <div className={`p-3 rounded-2xl ${kpi.bg} ${kpi.color}`}>
@@ -437,7 +436,7 @@ export default function AnalyticsPage() {
                  </ResponsiveContainer>
               </div>
             </div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-60">{kpi.label}</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">{kpi.label}</p>
             <p className={cn("text-2xl font-black tracking-tighter mt-1", kpi.color)}>{kpi.val}</p>
           </Card>
         ))}
@@ -445,14 +444,14 @@ export default function AnalyticsPage() {
 
       {/* Map Control Panel */}
       <div className="space-y-6">
-        <div className="flex flex-col lg:flex-row justify-between items-center gap-6 p-6 bg-white/[0.02] border border-white/5 rounded-[2.5rem] backdrop-blur-xl">
+        <div className="flex flex-col lg:flex-row justify-between items-center gap-6 p-6 bg-card/20 border border-border/40 rounded-[2.5rem] backdrop-blur-xl">
           <div className="relative w-full lg:w-96">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground opacity-40" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 opacity-40" />
             <Input 
               placeholder="Search Host Origin..." 
               value={search}
               onChange={(e) => handleSearch(e.target.value)}
-              className="h-12 pl-12 bg-black/40 border-white/10 rounded-xl focus-visible:ring-destructive font-mono text-xs text-white"
+              className="h-12 pl-12 bg-background/50 border-border/40 rounded-xl focus-visible:ring-destructive font-mono text-xs"
             />
           </div>
           
@@ -464,8 +463,8 @@ export default function AnalyticsPage() {
                 className={cn(
                   "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border",
                   activeFilters.includes(type) 
-                    ? `bg-black/60 border-white/20 shadow-[0_0_15px_rgba(255,255,255,0.1)]` 
-                    : "bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10"
+                    ? `bg-background border-border/40 shadow-[0_0_15px_rgba(255,255,255,0.1)]` 
+                    : "bg-background/50 border-border/20 opacity-60 hover:opacity-100"
                 )}
                 style={activeFilters.includes(type) ? { color: ATTACK_COLORS[type], borderColor: ATTACK_COLORS[type] } : {}}
               >
@@ -478,23 +477,23 @@ export default function AnalyticsPage() {
              <select 
               value={skillFilter} 
               onChange={(e) => setSkillLevel(e.target.value)}
-              className="h-12 px-6 bg-black/40 border border-white/10 rounded-xl text-[10px] font-black uppercase text-white outline-none focus:border-destructive"
+              className="h-12 px-6 bg-background/50 border border-border/40 rounded-xl text-[10px] font-black uppercase outline-none focus:border-destructive"
              >
                 <option value="ALL">ALL SKILL LEVELS</option>
                 {Object.keys(SKILL_COLORS).map(s => <option key={s} value={s}>{s.toUpperCase()}</option>)}
              </select>
-             <Button variant="ghost" size="icon" onClick={resetAll} className="h-12 w-12 rounded-xl border border-white/10 hover:bg-destructive/10 hover:text-destructive">
+             <Button variant="ghost" size="icon" onClick={resetAll} className="h-12 w-12 rounded-xl border border-border/40 hover:bg-destructive/10 hover:text-destructive">
                 <RotateCcw className="h-5 w-5" />
              </Button>
           </div>
         </div>
 
         {/* Map Container */}
-        <Card className="glass-card rounded-[3rem] border-white/5 overflow-hidden relative shadow-2xl">
+        <Card className="glass-card rounded-[3rem] border-border/40 overflow-hidden relative shadow-2xl">
           <div className="absolute top-8 left-10 z-[1000] pointer-events-none space-y-2">
              <div className="flex items-center gap-3">
                 <div className="h-3 w-3 rounded-full bg-destructive animate-ping" />
-                <h2 className="text-xl font-black uppercase tracking-tighter text-white">Global Neural Ingress</h2>
+                <h2 className="text-xl font-black uppercase tracking-tighter">Global Neural Ingress</h2>
              </div>
              <Badge variant="outline" className="bg-destructive/10 border-destructive/30 text-destructive font-mono text-[9px] px-3 py-1">
                 CSIC_2010_DATASET ACTIVE
@@ -505,36 +504,36 @@ export default function AnalyticsPage() {
              <Button 
                 variant="outline" 
                 onClick={() => setIsSimulating(!isSimulating)}
-                className={cn("h-12 px-8 rounded-xl font-black uppercase text-[10px] tracking-widest backdrop-blur-xl border-white/10", isSimulating ? "bg-emerald-500/10 text-emerald-500" : "bg-destructive/10 text-destructive")}
+                className={cn("h-12 px-8 rounded-xl font-black uppercase text-[10px] tracking-widest backdrop-blur-xl border-border/40", isSimulating ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-500" : "bg-destructive/10 text-destructive")}
              >
                {isSimulating ? <Pause className="h-4 w-4 mr-2" /> : <Play className="h-4 w-4 mr-2" />}
                {isSimulating ? "Simulation Live" : "Feed Static"}
              </Button>
           </div>
 
-          <div id="threat-map" className="w-full h-[550px] bg-[#050505]"></div>
+          <div id="threat-map" className="w-full h-[550px] bg-card"></div>
 
           {/* Map Footer Stats */}
-          <div className="bg-black/60 backdrop-blur-3xl border-t border-white/5 px-10 py-6 grid grid-cols-2 md:grid-cols-5 gap-8">
+          <div className="bg-card/60 backdrop-blur-3xl border-t border-border/40 px-10 py-6 grid grid-cols-2 md:grid-cols-5 gap-8">
              <div className="space-y-1">
-                <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest opacity-50">Total Attacks</p>
+                <p className="text-[9px] font-black opacity-50 uppercase tracking-widest">Total Attacks</p>
                 <p className="text-2xl font-black text-destructive tracking-tighter tabular-nums glow-text-red">{totalAttacks.toLocaleString()}</p>
              </div>
              <div className="space-y-1">
-                <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest opacity-50">Affected Regions</p>
-                <p className="text-2xl font-black text-white tracking-tighter">42</p>
+                <p className="text-[9px] font-black opacity-50 uppercase tracking-widest">Affected Regions</p>
+                <p className="text-2xl font-black tracking-tighter">42</p>
              </div>
              <div className="space-y-1 md:col-span-1">
-                <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest opacity-50">Most Active Threat</p>
-                <p className="text-sm font-black text-amber-500 uppercase tracking-tighter truncate">Moscow / SQL Injection</p>
+                <p className="text-[9px] font-black opacity-50 uppercase tracking-widest">Most Active Threat</p>
+                <p className="text-sm font-black text-amber-600 dark:text-amber-500 uppercase tracking-tighter truncate">Moscow / SQL Injection</p>
              </div>
              <div className="space-y-1">
-                <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest opacity-50">Threat Level</p>
+                <p className="text-[9px] font-black opacity-50 uppercase tracking-widest">Threat Level</p>
                 <Badge variant="destructive" className="bg-destructive/20 border-destructive/40 text-destructive text-[10px] font-black px-3">CRITICAL</Badge>
              </div>
              <div className="space-y-1">
-                <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest opacity-50">Packets/Min</p>
-                <p className="text-2xl font-black text-emerald-500 tracking-tighter tabular-nums">482.4k</p>
+                <p className="text-[9px] font-black opacity-50 uppercase tracking-widest">Packets/Min</p>
+                <p className="text-2xl font-black text-emerald-600 dark:text-emerald-500 tracking-tighter tabular-nums">482.4k</p>
              </div>
           </div>
         </Card>
@@ -544,12 +543,12 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 pt-10">
         
         {/* Graph 1: Timeline */}
-        <Card className="lg:col-span-2 glass-card p-10 rounded-[3rem] border-white/5 space-y-8">
+        <Card className="lg:col-span-2 glass-card p-10 rounded-[3rem] border-border/40 space-y-8">
           <div className="flex justify-between items-center">
             <h3 className="section-label mb-0 pl-0 border-none">Global Attack Timeline — Last 24 Hours</h3>
             <div className="flex items-center gap-3">
                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-               <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Live Telemetry</span>
+               <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Live Telemetry</span>
             </div>
           </div>
           <div className="h-[400px]">
@@ -561,11 +560,11 @@ export default function AnalyticsPage() {
                       <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
-                  <XAxis dataKey="hour" stroke="#ffffff30" fontSize={10} axisLine={false} tickLine={false} />
-                  <YAxis stroke="#ffffff30" fontSize={10} axisLine={false} tickLine={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="opacity-5" vertical={false} />
+                  <XAxis dataKey="hour" stroke="currentColor" className="opacity-30" fontSize={10} axisLine={false} tickLine={false} />
+                  <YAxis stroke="currentColor" className="opacity-30" fontSize={10} axisLine={false} tickLine={false} />
                   <Tooltip 
-                    contentStyle={{ background: '#0a0c14', border: '1px solid #ffffff10', borderRadius: '12px' }}
+                    contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px' }}
                     itemStyle={{ fontSize: '10px', fontWeight: 'bold' }}
                   />
                   <Area type="monotone" dataKey="attacks" stroke="#ef4444" strokeWidth={3} fillOpacity={1} fill="url(#areaGlow)" animationDuration={2000} />
@@ -575,35 +574,35 @@ export default function AnalyticsPage() {
         </Card>
 
         {/* Graph 2: Distribution */}
-        <Card className="glass-card p-10 rounded-[3rem] border-white/5 space-y-8">
-           <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground mb-4">Attack Vector Distribution</h3>
+        <Card className="glass-card p-10 rounded-[3rem] border-border/40 space-y-8">
+           <h3 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60 mb-4">Attack Vector Distribution</h3>
            <div className="h-[350px] relative">
               <ResponsiveContainer width="100%" height="100%">
                 <RadialBarChart cx="50%" cy="50%" innerRadius="10%" outerRadius="100%" barSize={15} data={typeDistribution}>
                   <RadialBar background dataKey="value" cornerRadius={10} />
                   <Tooltip 
-                    contentStyle={{ background: '#0a0c14', border: '1px solid #ffffff10', borderRadius: '12px' }}
+                    contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px' }}
                   />
                 </RadialBarChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                 <p className="text-3xl font-black text-white tracking-tighter">25k</p>
-                 <p className="text-[8px] font-bold uppercase text-muted-foreground tracking-widest">Anomalous Samples</p>
+                 <p className="text-3xl font-black tracking-tighter">25k</p>
+                 <p className="text-[8px] font-bold uppercase opacity-60 tracking-widest">Anomalous Samples</p>
               </div>
            </div>
         </Card>
 
         {/* Graph 3: Country Bar */}
-        <Card className="glass-card p-10 rounded-[3rem] border-white/5 space-y-8">
-           <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground mb-4">Threat Intensity by Country</h3>
+        <Card className="glass-card p-10 rounded-[3rem] border-border/40 space-y-8">
+           <h3 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60 mb-4">Threat Intensity by Country</h3>
            <div className="h-[350px]">
              <ResponsiveContainer width="100%" height="100%">
                <BarChart data={countryData} layout="vertical">
                  <XAxis type="number" hide />
-                 <YAxis dataKey="name" type="category" stroke="#ffffff30" fontSize={10} width={100} axisLine={false} tickLine={false} />
+                 <YAxis dataKey="name" type="category" stroke="currentColor" className="opacity-30" fontSize={10} width={100} axisLine={false} tickLine={false} />
                  <Tooltip 
                     cursor={{ fill: 'transparent' }}
-                    contentStyle={{ background: '#0a0c14', border: '1px solid #ffffff10', borderRadius: '12px' }}
+                    contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px' }}
                  />
                  <Bar dataKey="attacks" radius={[0, 10, 10, 0]} animationBegin={500}>
                     {countryData.map((entry, index) => (
@@ -616,8 +615,8 @@ export default function AnalyticsPage() {
         </Card>
 
         {/* Graph 4: Skill Donut */}
-        <Card className="glass-card p-10 rounded-[3rem] border-white/5 space-y-8">
-           <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground mb-4">Attacker Sophistication Profile</h3>
+        <Card className="glass-card p-10 rounded-[3rem] border-border/40 space-y-8">
+           <h3 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60 mb-4">Attacker Sophistication Profile</h3>
            <div className="h-[300px] relative">
               <ResponsiveContainer width="100%" height="100%">
                  <RadialBarChart cx="50%" cy="50%" innerRadius="60%" outerRadius="90%" barSize={25} data={skillData}>
@@ -626,17 +625,17 @@ export default function AnalyticsPage() {
                  </RadialBarChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pr-32">
-                 <p className="text-xl font-black text-white tracking-tighter uppercase italic">Script Kiddie</p>
-                 <p className="text-[8px] font-bold uppercase text-muted-foreground tracking-widest">Dominant Layer</p>
+                 <p className="text-xl font-black tracking-tighter uppercase italic">Script Kiddie</p>
+                 <p className="text-[8px] font-bold uppercase opacity-60 tracking-widest">Dominant Layer</p>
               </div>
            </div>
         </Card>
 
         {/* Graph 5: Live Feed */}
-        <Card className="glass-card p-10 rounded-[3rem] border-white/5 space-y-8">
+        <Card className="glass-card p-10 rounded-[3rem] border-border/40 space-y-8">
            <div className="flex justify-between items-center">
-             <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Real-Time Ingress Velocity</h3>
-             <Badge variant="outline" className="text-emerald-500 border-emerald-500/20 font-mono text-[9px]">482.4 kbps</Badge>
+             <h3 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">Real-Time Ingress Velocity</h3>
+             <Badge variant="outline" className="text-emerald-600 dark:text-emerald-500 border-emerald-500/20 font-mono text-[9px]">482.4 kbps</Badge>
            </div>
            <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
@@ -647,7 +646,7 @@ export default function AnalyticsPage() {
                           <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
                        </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="opacity-5" vertical={false} />
                     <Area type="stepAfter" dataKey="value" stroke="#ef4444" strokeWidth={2} fill="url(#liveRed)" isAnimationActive={false} />
                  </AreaChart>
               </ResponsiveContainer>
@@ -655,15 +654,15 @@ export default function AnalyticsPage() {
         </Card>
 
         {/* Graph 6: Success vs Block */}
-        <Card className="lg:col-span-2 glass-card p-10 rounded-[3rem] border-white/5 space-y-8">
-           <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Neutralization Efficacy — System-Wide</h3>
+        <Card className="lg:col-span-2 glass-card p-10 rounded-[3rem] border-border/40 space-y-8">
+           <h3 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">Neutralization Efficacy — System-Wide</h3>
            <div className="h-[350px]">
              <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={successData}>
-                   <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
-                   <XAxis dataKey="time" stroke="#ffffff30" fontSize={10} axisLine={false} tickLine={false} />
-                   <YAxis stroke="#ffffff30" fontSize={10} axisLine={false} tickLine={false} />
-                   <Tooltip contentStyle={{ background: '#0a0c14', border: '1px solid #ffffff10', borderRadius: '12px' }} />
+                   <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="opacity-5" vertical={false} />
+                   <XAxis dataKey="time" stroke="currentColor" className="opacity-30" fontSize={10} axisLine={false} tickLine={false} />
+                   <YAxis stroke="currentColor" className="opacity-30" fontSize={10} axisLine={false} tickLine={false} />
+                   <Tooltip contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px' }} />
                    <Bar dataKey="blocked" stackId="a" fill="#ef4444" radius={[4, 4, 0, 0]} />
                    <Bar dataKey="suspicious" stackId="a" fill="#d946ef" />
                    <Bar dataKey="safe" stackId="a" fill="#22c55e" radius={[0, 0, 4, 4]} />
@@ -675,12 +674,10 @@ export default function AnalyticsPage() {
       </div>
 
       <style jsx global>{`
-        .glass-card { background: rgba(15, 17, 30, 0.85); backdrop-filter: blur(20px); transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
-        .glass-card:hover { border-color: rgba(239, 68, 68, 0.2); box-shadow: 0 0 40px rgba(239, 68, 68, 0.05); }
         .glow-text-red { text-shadow: 0 0 15px rgba(239, 68, 68, 0.6); }
         
         /* Map Styles */
-        .leaflet-container { background: #020408 !important; }
+        .leaflet-container { background: var(--background) !important; }
         .custom-ping-marker { display: flex; align-items: center; justify-content: center; }
         .marker-dot { border-radius: 50%; z-index: 2; position: relative; }
         .marker-pulse { position: absolute; border: 2px solid; border-radius: 50%; width: 100%; height: 100%; animation: marker-ping 3s infinite cubic-bezier(0, 0, 0.2, 1); opacity: 0; }
@@ -695,42 +692,42 @@ export default function AnalyticsPage() {
 
         /* Professional Popup Overrides */
         .custom-leaflet-popup .leaflet-popup-content-wrapper { 
-          background: #0a0c14 !important; 
-          color: #fff !important; 
-          border: 1px solid rgba(255,255,255,0.1) !important; 
+          background: var(--card) !important; 
+          color: var(--card-foreground) !important; 
+          border: 1px solid var(--border) !important; 
           border-radius: 12px !important; 
           padding: 0 !important; 
-          box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.2) !important;
         }
         .custom-leaflet-popup .leaflet-popup-content { margin: 0 !important; width: 320px !important; }
-        .custom-leaflet-popup .leaflet-popup-tip { background: #0a0c14 !important; }
-        .custom-leaflet-popup .leaflet-popup-close-button { color: #555 !important; padding: 12px !important; font-size: 16px !important; }
+        .custom-leaflet-popup .leaflet-popup-tip { background: var(--card) !important; }
+        .custom-leaflet-popup .leaflet-popup-close-button { color: var(--muted-foreground) !important; padding: 12px !important; font-size: 16px !important; }
         
-        .rich-popup { padding: 16px; background: #0a0c14; border-radius: 12px; }
-        .popup-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 12px; }
-        .city-name { font-size: 18px; font-weight: 800; color: white; margin: 0; line-height: 1; }
+        .rich-popup { padding: 16px; border-radius: 12px; }
+        .popup-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+        .city-name { font-size: 18px; font-weight: 800; margin: 0; line-height: 1; }
         .country-name { font-size: 10px; font-weight: 700; color: #06b6d4; text-transform: uppercase; letter-spacing: 1px; margin: 4px 0 0 0; }
         .attack-badge { padding: 4px 10px; border-radius: 6px; font-size: 9px; font-weight: 900; color: white; text-transform: uppercase; margin-left: 8px; white-space: nowrap; }
         
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; background: rgba(255,255,255,0.02); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; background: var(--secondary); padding: 12px; border-radius: 8px; border: 1px solid var(--border); }
         .stat-item { display: flex; flex-direction: column; gap: 2px; }
-        .stat-item label { font-size: 8px; font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; }
-        .stat-item .value { font-size: 11px; font-weight: 800; color: white; font-family: 'JetBrains Mono', monospace; }
+        .stat-item label { font-size: 8px; font-weight: 700; opacity: 0.4; text-transform: uppercase; }
+        .stat-item .value { font-size: 11px; font-weight: 800; font-family: 'JetBrains Mono', monospace; }
         .stat-item .score-red { color: #ef4444; text-shadow: 0 0 8px rgba(239, 68, 68, 0.4); }
         .stat-item .skill-badge { font-size: 8px; font-weight: 900; padding: 2px 6px; border-radius: 4px; color: white; width: fit-content; text-transform: uppercase; margin-top: 2px; }
         .stat-item .small-text { font-size: 9px; opacity: 0.6; }
 
-        .description-section { margin-bottom: 16px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 12px; }
-        .description-section p { font-size: 10px; line-height: 1.5; color: rgba(255,255,255,0.6); margin: 0; }
+        .description-section { margin-bottom: 16px; border-top: 1px solid var(--border); padding-top: 12px; }
+        .description-section p { font-size: 10px; line-height: 1.5; opacity: 0.6; margin: 0; }
 
         .risk-section { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
-        .risk-bar-container { flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; }
+        .risk-bar-container { flex: 1; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
         .risk-bar-fill { height: 100%; }
         .risk-label { font-size: 9px; font-weight: 900; white-space: nowrap; }
 
-        .action-buttons { display: flex; gap: 8px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 12px; }
-        .popup-btn { flex: 1; padding: 8px; border-radius: 6px; font-size: 9px; font-weight: 800; text-transform: uppercase; cursor: pointer; transition: all 0.2s; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: white; }
-        .popup-btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
+        .action-buttons { display: flex; gap: 8px; border-top: 1px solid var(--border); padding-top: 12px; }
+        .popup-btn { flex: 1; padding: 8px; border-radius: 6px; font-size: 9px; font-weight: 800; text-transform: uppercase; cursor: pointer; transition: all 0.2s; border: 1px solid var(--border); background: var(--background); }
+        .popup-btn:hover { background: var(--accent); color: var(--accent-foreground); }
 
         /* Scrollbars */
         ::-webkit-scrollbar { width: 4px; }
