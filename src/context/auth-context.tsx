@@ -1,76 +1,75 @@
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { 
+  onAuthStateChanged, 
+  User, 
+  signOut as firebaseSignOut 
+} from 'firebase/auth';
+import { auth } from '@/firebase/config';
 import { useRouter, usePathname } from 'next/navigation';
+import { Shield } from 'lucide-react';
 
 interface AuthContextType {
-  isAuthenticated: boolean;
-  user: { email: string } | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
+  user: User | null;
+  loading: boolean;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [user, setUser] = useState<{ email: string } | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    const auth = localStorage.getItem('shieldcore_auth');
-    if (auth) {
-      setIsAuthenticated(true);
-      setUser(JSON.parse(auth));
-    }
-    setIsLoading(false);
-  }, []);
-
-  useEffect(() => {
-    if (!isLoading) {
-      const publicRoutes = ['/', '/login'];
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
       
-      // If not authenticated and trying to access a private route, go to login
-      if (!isAuthenticated && !publicRoutes.includes(pathname)) {
-        router.push('/login');
+      // Protection logic: Redirect to /auth if not logged in and not on a public route
+      const isPublicRoute = pathname === '/' || pathname === '/auth';
+      if (!currentUser && !isPublicRoute) {
+        router.push('/auth');
       }
-
-      // If already authenticated and visiting the login page, go to the dashboard (analyzer)
-      if (isAuthenticated && pathname === '/login') {
+      
+      // Redirect away from /auth if already logged in
+      if (currentUser && pathname === '/auth') {
         router.push('/analyzer');
       }
-    }
-  }, [isAuthenticated, pathname, isLoading, router]);
+    });
 
-  const login = async (email: string, password: string) => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    if (email === 'admin@shieldcore.ai' && password === 'shieldcore@2026') {
-      const userData = { email };
-      localStorage.setItem('shieldcore_auth', JSON.stringify(userData));
-      setIsAuthenticated(true);
-      setUser(userData);
-      
-      // Explicitly redirect to the analyzer page after success
-      router.push('/analyzer');
-      return true;
+    return () => unsubscribe();
+  }, [pathname, router]);
+
+  const logout = async () => {
+    try {
+      await firebaseSignOut(auth);
+      router.push('/auth');
+    } catch (error) {
+      console.error('Logout error:', error);
     }
-    return false;
   };
 
-  const logout = () => {
-    localStorage.removeItem('shieldcore_auth');
-    setIsAuthenticated(false);
-    setUser(null);
-    router.push('/login');
-  };
+  if (loading) {
+    return (
+      <div className="fixed inset-0 z-[9999] bg-[#020408] flex flex-col items-center justify-center">
+        <div className="relative p-8 bg-destructive/10 rounded-3xl border border-destructive/20 text-destructive animate-pulse">
+          <Shield className="h-16 w-16" />
+        </div>
+        <p className="mt-6 font-mono text-[10px] uppercase tracking-[0.5em] text-destructive">
+          Authenticating ShieldCore Node...
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, login, logout }}>
-      {!isLoading && children}
+    <AuthContext.Provider value={{ user, loading, logout }}>
+      {children}
     </AuthContext.Provider>
   );
 }

@@ -1,8 +1,9 @@
+
 "use client";
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Shield, Zap, Activity, BarChart3, Bell, LogOut, Moon, Sun, Menu, Monitor } from 'lucide-react';
+import { Shield, Zap, Activity, BarChart3, Bell, LogOut, Moon, Sun, Menu, Monitor, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,7 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useState, useEffect } from 'react';
 import { 
   Sheet, 
@@ -34,12 +36,13 @@ const navItems = [
 
 export function WafNavbar() {
   const pathname = usePathname();
-  const { isAuthenticated, logout, user } = useAuth();
+  const { user, logout } = useAuth();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
   const isLandingPage = pathname === '/';
+  const isAuthPage = pathname === '/auth';
 
   useEffect(() => {
     const saved = localStorage.getItem('theme') as 'dark' | 'light' | null;
@@ -64,7 +67,7 @@ export function WafNavbar() {
   };
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!user) return;
     const interval = setInterval(() => {
       if (Math.random() > 0.8) {
         const newNotif = {
@@ -80,9 +83,9 @@ export function WafNavbar() {
       }
     }, 10000);
     return () => clearInterval(interval);
-  }, [isAuthenticated]);
+  }, [user]);
 
-  if (!isAuthenticated && !isLandingPage && pathname !== '/login') return null;
+  if (isAuthPage) return null;
 
   return (
     <nav className={cn(
@@ -97,7 +100,7 @@ export function WafNavbar() {
           <span className="hidden sm:inline">SHIELDCORE <span className="text-destructive">WAF</span></span>
         </Link>
         
-        {isAuthenticated && !isLandingPage && (
+        {user && !isLandingPage && (
           <div className="hidden lg:flex gap-1 items-center bg-gray-100 dark:bg-white/5 p-1 rounded-2xl border border-gray-200 dark:border-white/5">
             {navItems.map((item) => {
               const isActive = pathname === item.href;
@@ -132,9 +135,9 @@ export function WafNavbar() {
                 {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
               </Button>
 
-              {!isAuthenticated ? (
-                <Button asChild size="sm" className="bg-destructive hover:bg-destructive/90 text-white font-bold rounded-xl px-8 h-12 glow-btn">
-                  <Link href="/login">Initialize</Link>
+              {!user ? (
+                <Button asChild size="sm" className="bg-destructive hover:bg-destructive/90 text-white font-bold rounded-xl px-8 h-12 glow-btn transition-all active:scale-95">
+                  <Link href="/auth">Initialize</Link>
                 </Button>
               ) : (
                 <div className="flex items-center gap-2">
@@ -186,23 +189,27 @@ export function WafNavbar() {
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 border border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-white/5 overflow-hidden hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">
-                        <div className="h-full w-full flex items-center justify-center font-black text-xs text-destructive">
-                          SC
-                        </div>
+                      <Button variant="ghost" className="relative h-10 w-10 rounded-xl p-0 overflow-hidden border border-white/10 hover:border-destructive/30 transition-all">
+                        <Avatar className="h-full w-full">
+                          <AvatarImage src={user.photoURL || undefined} alt={user.displayName || 'User'} />
+                          <AvatarFallback className="bg-destructive/10 text-destructive font-black text-xs">
+                            {user.displayName?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'SC'}
+                          </AvatarFallback>
+                        </Avatar>
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56 glass-card border-gray-200 dark:border-white/10 p-2">
-                      <DropdownMenuLabel className="px-3 py-2">
+                    <DropdownMenuContent align="end" className="w-64 glass-card border-gray-200 dark:border-white/10 p-3 shadow-2xl animate-in slide-in-from-top-2">
+                      <DropdownMenuLabel className="p-2 mb-2">
                         <div className="flex flex-col space-y-1">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-muted-foreground">Analyst Node</p>
-                          <p className="text-sm font-bold tracking-tight truncate text-gray-900 dark:text-white">{user?.email}</p>
+                          <p className="text-[10px] font-black uppercase tracking-widest text-destructive">Analyst Node Active</p>
+                          <p className="text-sm font-black tracking-tight truncate text-gray-900 dark:text-white">{user.displayName || 'Security Analyst'}</p>
+                          <p className="text-[10px] font-mono text-muted-foreground truncate">{user.email}</p>
                         </div>
                       </DropdownMenuLabel>
                       <DropdownMenuSeparator className="bg-gray-100 dark:bg-white/5" />
-                      <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer rounded-lg font-bold text-xs uppercase tracking-widest mt-1">
-                        <LogOut className="mr-2 h-4 w-4" />
-                        Logout System
+                      <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer rounded-lg font-bold text-[10px] uppercase tracking-widest mt-2 p-3 group">
+                        <LogOut className="mr-3 h-4 w-4 group-hover:-translate-x-1 transition-transform" />
+                        Terminate Session
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
