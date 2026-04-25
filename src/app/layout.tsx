@@ -1,12 +1,17 @@
+
 import type {Metadata} from 'next';
 import './globals.css';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { Toaster } from '@/components/ui/toaster';
 import { WafNavbar } from '@/components/waf-navbar';
+import { AuthProvider } from '@/context/auth-context';
 
 export const metadata: Metadata = {
-  title: 'FusionX WAF Dashboard',
+  title: 'FusionX WAF | AI Security Dashboard',
   description: 'AI-Powered Web Application Firewall',
+  icons: {
+    icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>',
+  }
 };
 
 export default function RootLayout({
@@ -21,16 +26,24 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </head>
-      <body className="font-body antialiased bg-background text-foreground min-h-screen flex flex-col">
-        <SidebarProvider defaultOpen={false}>
-          <div className="flex flex-col w-full min-h-screen">
-            <WafNavbar />
-            <main className="flex-1">
-              {children}
-            </main>
+      <body className="font-body antialiased bg-[#0f1117] text-foreground min-h-screen flex flex-col">
+        <AuthProvider>
+          <SidebarProvider defaultOpen={false}>
+            <div className="flex flex-col w-full min-h-screen">
+              <WafNavbar />
+              <main className="flex-1">
+                {children}
+              </main>
+            </div>
+            <Toaster />
+          </SidebarProvider>
+          {/* Global Version Badge */}
+          <div className="fixed bottom-4 right-4 z-50 pointer-events-none">
+            <div className="bg-secondary/80 backdrop-blur-md border border-border px-3 py-1 rounded-full text-[10px] font-mono text-muted-foreground shadow-lg">
+              FusionX WAF v1.0.0 | DistilBERT-HTTP | CSIC 2010
+            </div>
           </div>
-          <Toaster />
-        </SidebarProvider>
+        </AuthProvider>
       </body>
     </html>
   );

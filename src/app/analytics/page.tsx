@@ -1,157 +1,183 @@
+
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
 import { 
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, 
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend 
 } from 'recharts';
-import { Shield, ShieldAlert, Zap, Users, ArrowUpRight, BarChart3 } from 'lucide-react';
-import { generateFakeRequest, FAKE_IPS, ATTACK_TYPES } from '@/lib/mock-data';
+import { Shield, ShieldAlert, Zap, Users, ArrowUpRight, BarChart3, Download, Calendar, Loader2 } from 'lucide-react';
+import { generateFakeRequest, FAKE_IPS, ATTACK_TYPES, getSeededData } from '@/lib/mock-data';
+import { cn } from '@/lib/utils';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 
 export default function AnalyticsPage() {
-  const [trafficData, setTrafficData] = useState<any[]>([]);
-  const [attackDistData, setAttackDistData] = useState<any[]>([]);
-  const [timelineData, setTimelineData] = useState<any[]>([]);
-  const [topIps, setTopIps] = useState<any[]>([]);
-  const [kpis, setKpis] = useState({
-    total: 0,
-    blocked: 0,
-    rate: 0,
-    avgInference: 0
-  });
+  const [data, setData] = useState<any[]>([]);
+  const [dateRange, setDateRange] = useState('24H');
+  const [isExporting, setIsExporting] = useState(false);
+  const reportRef = useRef<HTMLDivElement>(null);
 
-  // Initialize data
   useEffect(() => {
-    // Generate some seed data
-    const initialTraffic = [
-      { name: 'Safe', value: 70, color: '#22c55e' },
-      { name: 'Blocked', value: 20, color: '#ef4444' },
-      { name: 'Suspicious', value: 10, color: '#f59e0b' }
-    ];
-    setTrafficData(initialTraffic);
-
-    const initialAttackDist = ATTACK_TYPES.map(type => ({
-      name: type,
-      count: Math.floor(Math.random() * 50) + 10
-    }));
-    setAttackDistData(initialAttackDist);
-
-    const initialTimeline = Array.from({ length: 60 }, (_, i) => ({
-      time: `${i}m`,
-      blocked: Math.floor(Math.random() * 5)
-    }));
-    setTimelineData(initialTimeline);
-
-    const initialTopIps = FAKE_IPS.slice(0, 5).map(ip => ({
-      ip,
-      total: Math.floor(Math.random() * 100) + 50,
-      blocked: Math.floor(Math.random() * 40) + 5,
-      mostCommon: ATTACK_TYPES[Math.floor(Math.random() * ATTACK_TYPES.length)]
-    })).sort((a, b) => b.blocked - a.blocked);
-    setTopIps(initialTopIps);
+    setData(getSeededData());
   }, []);
 
-  // Update loop
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const req = generateFakeRequest();
-      
-      setKpis(prev => {
-        const newTotal = prev.total + 1;
-        const newBlocked = prev.blocked + (req.decision === 'BLOCKED' ? 1 : 0);
-        return {
-          total: newTotal,
-          blocked: newBlocked,
-          rate: Math.round((newBlocked / newTotal) * 100),
-          avgInference: parseFloat(((prev.avgInference * prev.total + req.inferenceTime) / newTotal).toFixed(2)) || req.inferenceTime
-        };
-      });
+  const filteredData = useMemo(() => {
+    const now = Date.now();
+    const ranges: Record<string, number> = {
+      '1H': 60 * 60 * 1000,
+      '6H': 6 * 60 * 60 * 1000,
+      '24H': 24 * 60 * 60 * 1000,
+      'ALL': Infinity
+    };
+    const limit = ranges[dateRange];
+    return data.filter(r => now - new Date(r.timestamp).getTime() <= limit);
+  }, [data, dateRange]);
 
-      setTrafficData(prev => prev.map(item => {
-        if (item.name === 'Safe' && req.decision === 'SAFE') return { ...item, value: item.value + 1 };
-        if (item.name === 'Blocked' && req.decision === 'BLOCKED') return { ...item, value: item.value + 1 };
-        if (item.name === 'Suspicious' && req.decision === 'SUSPICIOUS') return { ...item, value: item.value + 1 };
-        return item;
-      }));
+  const stats = useMemo(() => {
+    if (filteredData.length === 0) return { total: 0, blocked: 0, rate: 0, avgLat: 0, score: 0 };
+    const blocked = filteredData.filter(r => r.decision === 'BLOCKED').length;
+    const totalLat = filteredData.reduce((acc, r) => acc + r.inferenceTime, 0);
+    const totalScore = filteredData.reduce((acc, r) => acc + r.score, 0);
+    return {
+      total: filteredData.length,
+      blocked,
+      rate: Math.round((blocked / filteredData.length) * 100),
+      avgLat: parseFloat((totalLat / filteredData.length).toFixed(1)),
+      score: Math.round((totalScore / filteredData.length) * 100)
+    };
+  }, [filteredData]);
 
-      if (req.decision === 'BLOCKED') {
-        setAttackDistData(prev => prev.map(item => 
-          item.name === req.attackType ? { ...item, count: item.count + 1 } : item
-        ));
-        
-        setTimelineData(prev => {
-          const newData = [...prev];
-          newData[newData.length - 1].blocked += 1;
-          return newData;
-        });
-      }
-    }, 2000);
+  const trafficBreakdown = useMemo(() => [
+    { name: 'Safe', value: filteredData.filter(r => r.decision === 'SAFE').length, color: '#10b981' },
+    { name: 'Blocked', value: filteredData.filter(r => r.decision === 'BLOCKED').length, color: '#ef4444' },
+    { name: 'Suspicious', value: filteredData.filter(r => r.decision === 'SUSPICIOUS').length, color: '#f59e0b' }
+  ], [filteredData]);
 
-    return () => clearInterval(interval);
-  }, []);
+  const attackDistribution = useMemo(() => {
+    const counts: Record<string, number> = {};
+    ATTACK_TYPES.forEach(t => counts[t] = 0);
+    filteredData.filter(r => r.decision === 'BLOCKED').forEach(r => {
+      counts[r.attackType] = (counts[r.attackType] || 0) + 1;
+    });
+    return Object.entries(counts).map(([name, count]) => ({ name, count }));
+  }, [filteredData]);
+
+  const heatmapData = useMemo(() => {
+    const matrix = Array.from({ length: 7 }, (_, day) => 
+      Array.from({ length: 24 }, (_, hour) => ({ day, hour, count: 0 }))
+    );
+    filteredData.filter(r => r.decision === 'BLOCKED').forEach(r => {
+      const d = new Date(r.timestamp);
+      matrix[d.getDay()][d.getHours()].count++;
+    });
+    return matrix.flat();
+  }, [filteredData]);
+
+  const topIps = useMemo(() => {
+    const ipStats: Record<string, any> = {};
+    filteredData.forEach(r => {
+      if (!ipStats[r.ip]) ipStats[r.ip] = { ip: r.ip, total: 0, blocked: 0, type: r.attackType };
+      ipStats[r.ip].total++;
+      if (r.decision === 'BLOCKED') ipStats[r.ip].blocked++;
+    });
+    return Object.values(ipStats).sort((a, b) => b.blocked - a.blocked).slice(0, 5);
+  }, [filteredData]);
+
+  const handleExport = async () => {
+    if (!reportRef.current) return;
+    setIsExporting(true);
+    try {
+      const canvas = await html2canvas(reportRef.current, { backgroundColor: '#0f1117' });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`fusionx-waf-report-${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   return (
-    <div className="container mx-auto py-6 px-6 max-w-7xl space-y-6 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between">
+    <div className="container mx-auto py-10 px-6 max-w-7xl space-y-10 animate-in fade-in duration-500" ref={reportRef}>
+      <div className="flex flex-col md:row items-center justify-between gap-6">
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight">Analytics Dashboard</h1>
-          <p className="text-muted-foreground">Comprehensive overview of traffic patterns and security metrics.</p>
+          <h1 className="text-4xl font-extrabold tracking-tight">Security Analytics</h1>
+          <p className="text-muted-foreground">Comprehensive behavioral analysis and threat intelligence.</p>
         </div>
-        <div className="hidden md:flex items-center gap-2 bg-accent/10 px-4 py-2 rounded-full border border-accent/20">
-          <Zap className="h-4 w-4 text-accent" />
-          <span className="text-xs font-bold text-accent uppercase tracking-tighter">Real-time Analysis Active</span>
+        <div className="flex items-center gap-4 bg-secondary/30 p-1.5 rounded-full border border-border/50">
+          {['1H', '6H', '24H', 'ALL'].map(range => (
+            <button
+              key={range}
+              onClick={() => setDateRange(range)}
+              className={cn(
+                "px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all",
+                dateRange === range ? "bg-destructive text-white shadow-lg shadow-destructive/20" : "text-muted-foreground hover:text-white"
+              )}
+            >
+              {range}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { label: 'Total Requests', value: kpis.total || '0', icon: BarChart3, color: 'text-primary' },
-          { label: 'Total Blocked', value: kpis.blocked || '0', icon: ShieldAlert, color: 'text-destructive' },
-          { label: 'Detection Rate', value: `${kpis.rate}%` || '0%', icon: Shield, color: 'text-accent' },
-          { label: 'Avg Latency', value: `${kpis.avgInference}ms` || '0ms', icon: ArrowUpRight, color: 'text-emerald-500' }
+          { label: 'Detection Rate', value: `${stats.rate}%`, icon: Shield, color: 'text-destructive', desc: 'Attack vs Safe traffic' },
+          { label: 'Avg Latency', value: `${stats.avgLat}ms`, icon: Zap, color: 'text-accent', desc: 'Sub-packet inference' },
+          { label: 'Total Threats', value: stats.blocked, icon: ShieldAlert, color: 'text-destructive', desc: 'Blocked malicious payloads' },
+          { label: 'Conf. Score', value: `${stats.score}%`, icon: ArrowUpRight, color: 'text-emerald-500', desc: 'Model certainty average' }
         ].map((kpi, i) => (
-          <Card key={i} className="border-border bg-card">
-            <CardContent className="p-6 flex justify-between items-center">
+          <Card key={i} className="border-border/50 bg-card/50 backdrop-blur-sm overflow-hidden group">
+            <CardContent className="p-8 flex justify-between items-start">
               <div className="space-y-1">
-                <p className="text-xs font-medium text-muted-foreground uppercase">{kpi.label}</p>
-                <p className="text-2xl font-bold">{kpi.value}</p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{kpi.label}</p>
+                <p className="text-4xl font-extrabold tracking-tighter">{kpi.value}</p>
+                <p className="text-[10px] text-muted-foreground mt-2">{kpi.desc}</p>
               </div>
-              <div className={`p-3 bg-secondary rounded-lg ${kpi.color}`}>
-                <kpi.icon className="h-6 w-6" />
+              <div className={`p-4 bg-secondary/50 rounded-2xl group-hover:scale-110 transition-transform ${kpi.color}`}>
+                <kpi.icon className="h-7 w-7" />
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Row 1: Traffic & Distribution */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="bg-card border-border">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Traffic breakdown */}
+        <Card className="border-border/50 bg-card">
           <CardHeader>
-            <CardTitle>Traffic Breakdown</CardTitle>
-            <CardDescription>Security classification of all incoming requests</CardDescription>
+            <CardTitle className="text-lg font-bold uppercase tracking-widest">Traffic Classification</CardTitle>
+            <CardDescription>Semantic distribution of all ingress requests</CardDescription>
           </CardHeader>
-          <CardContent className="h-[300px]">
+          <CardContent className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={trafficData}
+                  data={trafficBreakdown}
                   cx="50%"
                   cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
+                  innerRadius={80}
+                  outerRadius={100}
                   paddingAngle={5}
                   dataKey="value"
+                  animationDuration={1500}
                 >
-                  {trafficData.map((entry, index) => (
+                  {trafficBreakdown.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#1a1d2e', borderColor: '#2a2d3e', borderRadius: '8px' }}
+                  contentStyle={{ backgroundColor: '#1a1d2e', border: 'none', borderRadius: '12px', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }}
                 />
                 <Legend verticalAlign="bottom" height={36}/>
               </PieChart>
@@ -159,85 +185,120 @@ export default function AnalyticsPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-card border-border">
+        {/* Attack type bar */}
+        <Card className="border-border/50 bg-card">
           <CardHeader>
-            <CardTitle>Attack Type Distribution</CardTitle>
-            <CardDescription>Detected vulnerabilities by category</CardDescription>
+            <CardTitle className="text-lg font-bold uppercase tracking-widest">Threat Vector Distribution</CardTitle>
+            <CardDescription>Breakdown by semantic attack category</CardDescription>
           </CardHeader>
-          <CardContent className="h-[300px]">
+          <CardContent className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={attackDistData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#2a2d3e" />
-                <XAxis dataKey="name" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
-                <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
+              <BarChart data={attackDistribution} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#2a2d3e" />
+                <XAxis type="number" hide />
+                <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={10} width={100} axisLine={false} tickLine={false} />
                 <Tooltip 
-                  cursor={{ fill: '#2a2d3e' }}
-                  contentStyle={{ backgroundColor: '#1a1d2e', borderColor: '#2a2d3e', borderRadius: '8px' }}
+                  cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                  contentStyle={{ backgroundColor: '#1a1d2e', border: 'none', borderRadius: '12px' }}
                 />
-                <Bar dataKey="count" fill="#3962AC" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="count" fill="#ef4444" radius={[0, 4, 4, 0]} barSize={20} animationDuration={1500} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
 
-      {/* Row 2: Timeline */}
-      <Card className="bg-card border-border">
+      {/* Heatmap Section */}
+      <Card className="border-border/50 bg-card">
         <CardHeader>
-          <CardTitle>Blocked Requests Per Minute</CardTitle>
-          <CardDescription>Temporal analysis of active security threats</CardDescription>
+          <CardTitle className="text-lg font-bold uppercase tracking-widest">Attack Activity Heatmap</CardTitle>
+          <CardDescription>Temporal intensity of blocked requests across 24h/7d cycle</CardDescription>
         </CardHeader>
-        <CardContent className="h-[300px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={timelineData}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#2a2d3e" />
-              <XAxis dataKey="time" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} hide />
-              <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
-              <Tooltip 
-                contentStyle={{ backgroundColor: '#1a1d2e', borderColor: '#2a2d3e', borderRadius: '8px' }}
-              />
-              <Line type="monotone" dataKey="blocked" stroke="#ef4444" strokeWidth={2} dot={false} animationDuration={300} />
-            </LineChart>
-          </ResponsiveContainer>
+        <CardContent>
+          <div className="grid grid-cols-[auto_1fr] gap-4">
+            <div className="flex flex-col justify-between py-2 text-[10px] font-bold text-muted-foreground uppercase h-[200px]">
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <span key={d}>{d}</span>)}
+            </div>
+            <div className="grid grid-cols-24 gap-1 h-[200px]">
+              {heatmapData.map((cell, i) => {
+                const intensity = Math.min(cell.count * 20, 100);
+                return (
+                  <div 
+                    key={i} 
+                    className="w-full rounded-sm transition-all hover:ring-2 hover:ring-white/20 cursor-help"
+                    style={{ backgroundColor: cell.count === 0 ? 'rgba(255,255,255,0.05)' : `rgba(239, 68, 68, ${intensity/100})` }}
+                    title={`${cell.count} blocks at Hour ${cell.hour}`}
+                  />
+                )
+              })}
+            </div>
+          </div>
+          <div className="flex justify-between mt-4 text-[10px] font-mono text-muted-foreground px-12 uppercase tracking-widest">
+            <span>00:00</span>
+            <span>06:00</span>
+            <span>12:00</span>
+            <span>18:00</span>
+            <span>23:00</span>
+          </div>
         </CardContent>
       </Card>
 
-      {/* Row 3: Top IPs */}
-      <Card className="bg-card border-border">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-accent" />
-            <CardTitle>Top Attacker IPs</CardTitle>
-          </div>
-          <CardDescription>Identifying persistent sources of malicious activity</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow className="border-border/50">
-                <TableHead>IP Address</TableHead>
-                <TableHead className="text-right">Total Requests</TableHead>
-                <TableHead className="text-right">Blocked</TableHead>
-                <TableHead>Primary Attack Vector</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {topIps.map((ipData, i) => (
-                <TableRow key={i} className="border-border/30">
-                  <TableCell className="font-mono font-bold text-accent">{ipData.ip}</TableCell>
-                  <TableCell className="text-right font-mono">{ipData.total}</TableCell>
-                  <TableCell className="text-right font-mono font-bold text-destructive">{ipData.blocked}</TableCell>
-                  <TableCell>
-                    <span className="px-2 py-0.5 rounded-full bg-secondary text-[10px] font-bold uppercase tracking-wider">
-                      {ipData.mostCommon}
-                    </span>
-                  </TableCell>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Top Attacker IPs */}
+        <Card className="lg:col-span-2 border-border/50 bg-card">
+          <CardHeader>
+            <CardTitle className="text-lg font-bold uppercase tracking-widest">High Risk Sources</CardTitle>
+            <CardDescription>Top sources of verified malicious payloads</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow className="border-border/30">
+                  <TableHead className="uppercase text-[10px] font-bold">IP Source</TableHead>
+                  <TableHead className="text-right uppercase text-[10px] font-bold">Total</TableHead>
+                  <TableHead className="text-right uppercase text-[10px] font-bold">Blocked</TableHead>
+                  <TableHead className="uppercase text-[10px] font-bold">Primary Vector</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+              </TableHeader>
+              <TableBody>
+                {topIps.map((ip, i) => (
+                  <TableRow key={i} className="border-border/20">
+                    <TableCell className="font-mono text-sm font-bold text-accent">{ip.ip}</TableCell>
+                    <TableCell className="text-right font-mono text-sm">{ip.total}</TableCell>
+                    <TableCell className="text-right font-mono text-sm font-extrabold text-destructive">{ip.blocked}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="text-[9px] font-bold uppercase tracking-tighter bg-destructive/10 text-destructive border-destructive/20">
+                        {ip.type}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        {/* Intelligence Card */}
+        <Card className="border-border/50 bg-destructive/5 flex flex-col items-center justify-center text-center p-8 space-y-6">
+          <div className="p-6 rounded-full bg-destructive/10 border border-destructive/20 text-destructive">
+            <ShieldAlert className="h-12 w-12" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-xl font-extrabold tracking-tight">System Status: ALERT</h3>
+            <p className="text-xs text-muted-foreground leading-relaxed uppercase tracking-widest">
+              Peak attack activity detected on Tuesday between 14:00 - 16:00 UTC. Recommended firewall policy update.
+            </p>
+          </div>
+          <Button 
+            className="w-full bg-destructive hover:bg-destructive/90 text-white font-bold h-12 uppercase tracking-widest"
+            onClick={handleExport}
+            disabled={isExporting}
+          >
+            {isExporting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
+            Export Full Report (PDF)
+          </Button>
+        </Card>
+      </div>
     </div>
   );
 }
