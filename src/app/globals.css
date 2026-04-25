@@ -1,10 +1,32 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
+    --background: 0 0% 100%;
+    --foreground: 226 21% 4%;
+    --card: 0 0% 100%;
+    --card-foreground: 226 21% 4%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 226 21% 4%;
+    --primary: 0 84% 60%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 0 84% 60%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 0 84% 60%;
+    --radius: 0.75rem;
+  }
+
+  .dark {
     --background: 226 21% 4%;
     --foreground: 210 40% 98%;
     --card: 231 28% 8%;
@@ -24,7 +46,6 @@
     --border: 231 20% 20%;
     --input: 231 20% 20%;
     --ring: 0 84% 60%;
-    --radius: 0.75rem;
   }
 }
 
@@ -33,7 +54,7 @@
     @apply border-border;
   }
   body {
-    @apply bg-[#020408] text-foreground antialiased selection:bg-destructive/30;
+    @apply bg-background text-foreground antialiased selection:bg-destructive/30 transition-colors duration-300;
     overflow-x: hidden;
   }
 }
@@ -45,15 +66,18 @@
 
 /* Glassmorphism */
 .glass-card {
+  @apply backdrop-blur-xl transition-all duration-500 shadow-sm dark:shadow-none;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.dark .glass-card {
   background: rgba(15, 17, 30, 0.85) !important;
-  backdrop-filter: blur(20px);
   border: 1px solid rgba(239, 68, 68, 0.12) !important;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glass-card:hover {
-  border-color: rgba(239, 68, 68, 0.4) !important;
-  box-shadow: 0 0 30px rgba(239, 68, 68, 0.1);
+  @apply border-primary/40 shadow-lg dark:shadow-[0_0_30px_rgba(239,68,68,0.1)];
 }
 
 /* Section Headings */
@@ -71,6 +95,10 @@
 .skeleton-shimmer {
   position: relative;
   overflow: hidden;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.dark .skeleton-shimmer {
   background: rgba(255, 255, 255, 0.03);
 }
 
@@ -81,8 +109,12 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.05), transparent);
   animation: skeleton-sweep 2s infinite;
+}
+
+.dark .skeleton-shimmer::after {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
 }
 
 @keyframes blocked-shimmer {
@@ -124,4 +156,15 @@
   background-image: linear-gradient(to right, rgba(239, 68, 68, 0.4) 50%, transparent 50%);
   background-size: 8px 1px;
   background-repeat: repeat-x;
+}
+
+.radar-sweep {
+  background: conic-gradient(from 0deg, transparent 0deg, rgba(239, 68, 68, 0.2) 360deg);
+  animation: spin 4s linear infinite;
+  border-radius: 50%;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }

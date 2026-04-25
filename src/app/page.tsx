@@ -1,10 +1,9 @@
-
 "use client";
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import * as THREE from 'three';
-import { Shield, Zap, BarChart3, ArrowRight, Lock, Activity } from 'lucide-react';
+import { Shield, ArrowRight, Activity, Zap, BarChart3, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -21,7 +20,6 @@ export default function LandingPage() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-    // Particle Field
     const particlesCount = 3000;
     const posArray = new Float32Array(particlesCount * 3);
     for (let i = 0; i < particlesCount * 3; i++) {
@@ -39,7 +37,6 @@ export default function LandingPage() {
     const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
     scene.add(particlesMesh);
 
-    // 3D Shield Wireframe
     const shieldGeometry = new THREE.OctahedronGeometry(1, 2);
     const shieldMaterial = new THREE.MeshBasicMaterial({
       color: 0xef4444,
@@ -53,7 +50,6 @@ export default function LandingPage() {
 
     camera.position.z = 3;
 
-    // Mouse Parallax
     let mouseX = 0;
     let mouseY = 0;
     const onMouseMove = (event: MouseEvent) => {
@@ -66,14 +62,10 @@ export default function LandingPage() {
       requestAnimationFrame(animate);
       particlesMesh.rotation.y += 0.001;
       particlesMesh.rotation.x += 0.0005;
-      
       shieldMesh.rotation.y += 0.01;
-      
-      // Parallax smooth
       camera.position.x += (mouseX * 0.5 - camera.position.x) * 0.05;
       camera.position.y += (-mouseY * 0.5 - camera.position.y) * 0.05;
       camera.lookAt(scene.position);
-
       renderer.render(scene, camera);
     };
     animate();
@@ -94,21 +86,20 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#020408] overflow-hidden selection:bg-destructive/30">
-      <canvas ref={canvasRef} className="fixed inset-0 z-0 pointer-events-none opacity-60" />
+    <div className="flex flex-col min-h-screen bg-white dark:bg-[#020408] transition-colors duration-300 overflow-hidden selection:bg-destructive/30">
+      <canvas ref={canvasRef} className="fixed inset-0 z-0 pointer-events-none opacity-30 dark:opacity-60" />
 
-      {/* Hero Section */}
       <section className="relative z-10 container mx-auto px-6 pt-32 pb-24 flex flex-col items-center text-center space-y-12">
         <div className="space-y-4 animate-in fade-in slide-in-from-top-8 duration-1000">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-destructive/10 border border-destructive/30 text-destructive text-[10px] font-bold tracking-[0.3em] uppercase">
             <Activity className="h-3 w-3" />
             Neural Engine Active
           </div>
-          <h1 className="text-6xl md:text-8xl font-black tracking-tighter text-white glow-text-red leading-[0.9]">
+          <h1 className="text-6xl md:text-8xl font-black tracking-tighter text-gray-900 dark:text-white dark:glow-text-red leading-[0.9]">
             AI-POWERED <br />
             <span className="text-destructive">SECURITY</span>
           </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto font-medium leading-relaxed">
+          <p className="text-lg text-gray-600 dark:text-muted-foreground max-w-2xl mx-auto font-medium leading-relaxed">
             Real-time semantic threat detection using fine-tuned DistilBERT intelligence. 
             Intercept obfuscated attacks that traditional firewalls ignore.
           </p>
@@ -118,13 +109,12 @@ export default function LandingPage() {
           <Button asChild size="lg" className="bg-destructive hover:bg-destructive/90 text-white font-bold h-16 px-10 text-lg rounded-xl glow-btn transition-all duration-300">
             <Link href="/login">Launch Command <ArrowRight className="ml-2 h-5 w-5" /></Link>
           </Button>
-          <Button asChild variant="outline" size="lg" className="h-16 px-10 text-lg rounded-xl border-white/10 bg-white/5 backdrop-blur-xl hover:bg-white/10 transition-all duration-300">
+          <Button asChild variant="outline" size="lg" className="h-16 px-10 text-lg rounded-xl border-gray-200 dark:border-white/10 bg-white/50 dark:bg-white/5 backdrop-blur-xl hover:bg-white/10 transition-all duration-300 text-gray-900 dark:text-white">
             <Link href="/architecture">System Specs</Link>
           </Button>
         </div>
 
-        {/* Stats Strip */}
-        <div className="w-full max-w-5xl grid grid-cols-2 md:grid-cols-4 gap-8 py-12 border-y border-white/5 bg-white/[0.02] backdrop-blur-md rounded-3xl animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-500">
+        <div className="w-full max-w-5xl grid grid-cols-2 md:grid-cols-4 gap-8 py-12 border-y border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.02] backdrop-blur-md rounded-3xl animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-500">
            <CounterStat label="Training Samples" value={61000} suffix="" />
            <CounterStat label="Model Accuracy" value={94.3} suffix="%" />
            <CounterStat label="Attack Vectors" value={6} suffix="" />
@@ -132,7 +122,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Features */}
       <section className="relative z-10 container mx-auto px-6 py-24">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {[
@@ -155,28 +144,27 @@ export default function LandingPage() {
               color: "text-emerald-500"
             }
           ].map((feature, i) => (
-            <div key={i} className="glass-card group p-10 rounded-3xl border border-white/5 hover:border-destructive/30 transition-all duration-500 flex flex-col items-center text-center">
-              <div className={`p-5 rounded-2xl bg-secondary/50 mb-8 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-500 ${feature.color}`}>
+            <div key={i} className="glass-card group p-10 rounded-3xl border border-gray-100 dark:border-white/5 hover:border-destructive/30 transition-all duration-500 flex flex-col items-center text-center">
+              <div className={`p-5 rounded-2xl bg-gray-100 dark:bg-secondary/50 mb-8 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-500 ${feature.color}`}>
                 <feature.icon className="h-10 w-10" />
               </div>
-              <h3 className="text-2xl font-bold mb-4 tracking-tight">{feature.title}</h3>
-              <p className="text-muted-foreground leading-relaxed text-sm">{feature.desc}</p>
+              <h3 className="text-2xl font-bold mb-4 tracking-tight text-gray-900 dark:text-white">{feature.title}</h3>
+              <p className="text-gray-600 dark:text-muted-foreground leading-relaxed text-sm">{feature.desc}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="relative z-10 container mx-auto px-6 py-12 mt-auto border-t border-white/5">
+      <footer className="relative z-10 container mx-auto px-6 py-12 mt-auto border-t border-gray-100 dark:border-white/5">
         <div className="flex flex-col md:flex-row justify-between items-center gap-8">
-          <div className="flex items-center gap-3 font-bold text-2xl tracking-tighter">
+          <div className="flex items-center gap-3 font-bold text-2xl tracking-tighter text-gray-900 dark:text-white">
             <Shield className="h-8 w-8 text-destructive" />
             <span>FUSIONX <span className="text-destructive">WAF</span></span>
           </div>
-          <div className="text-xs text-muted-foreground font-mono uppercase tracking-widest text-center">
+          <div className="text-xs text-gray-400 dark:text-muted-foreground font-mono uppercase tracking-widest text-center">
             Dataset: CSIC 2010 | Built for Hackathon 2026
           </div>
-          <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
+          <div className="flex items-center gap-2 text-[10px] text-gray-400 dark:text-muted-foreground font-bold uppercase tracking-widest">
             <Lock className="h-3 w-3" /> Encrypted Transmission
           </div>
         </div>
@@ -215,10 +203,10 @@ function CounterStat({ label, value, suffix }: { label: string, value: number, s
 
   return (
     <div ref={ref} className="text-center space-y-1">
-      <p className="text-3xl font-black tracking-tighter text-white">
+      <p className="text-3xl font-black tracking-tighter text-gray-900 dark:text-white">
         {value % 1 === 0 ? Math.floor(count).toLocaleString() : count.toFixed(1)}{suffix}
       </p>
-      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">{label}</p>
+      <p className="text-[10px] text-gray-400 dark:text-muted-foreground uppercase font-bold tracking-widest">{label}</p>
     </div>
   );
 }
