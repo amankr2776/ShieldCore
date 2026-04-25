@@ -12,18 +12,25 @@ import {
 import { 
   ShieldAlert, Zap, Download, Loader2, 
   Activity, Clock, AlertTriangle, Fingerprint,
-  Globe
+  Globe, MapPin, X, Shield
 } from 'lucide-react';
 import { getSeededData } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 
-const COUNTRY_COORDS: Record<string, { x: number, y: number }> = {
-  'US': { x: 200, y: 140 }, 'UK': { x: 470, y: 110 }, 'Russia': { x: 580, y: 90 },
-  'China': { x: 720, y: 140 }, 'India': { x: 650, y: 170 }, 'Brazil': { x: 260, y: 240 },
-  'Germany': { x: 490, y: 110 }, 'France': { x: 475, y: 120 }, 'Japan': { x: 760, y: 140 },
-  'Australia': { x: 740, y: 260 }
+const CITY_COORDS: Record<string, { city: string, x: number, y: number }[]> = {
+  'US': [{ city: 'New York', x: 220, y: 130 }, { city: 'San Francisco', x: 140, y: 150 }, { city: 'Chicago', x: 195, y: 140 }],
+  'UK': [{ city: 'London', x: 470, y: 100 }],
+  'RU': [{ city: 'Moscow', x: 580, y: 80 }],
+  'CN': [{ city: 'Beijing', x: 710, y: 130 }, { city: 'Shanghai', x: 730, y: 155 }],
+  'IN': [{ city: 'Mumbai', x: 640, y: 170 }, { city: 'Delhi', x: 655, y: 145 }],
+  'BR': [{ city: 'São Paulo', x: 280, y: 260 }],
+  'DE': [{ city: 'Berlin', x: 490, y: 100 }],
+  'FR': [{ city: 'Paris', x: 475, y: 110 }],
+  'JP': [{ city: 'Tokyo', x: 760, y: 130 }],
+  'AU': [{ city: 'Sydney', x: 740, y: 290 }],
+  'ES': [{ city: 'Madrid', x: 460, y: 130 }]
 };
 
 const WORLD_MAP_PATH = "M110,130 L130,120 L150,140 L170,120 L190,140 L210,130 L230,150 L250,140 L240,160 L220,170 L200,160 L180,180 L160,170 L140,190 L120,180 L100,200 L80,190 Z M460,90 L480,80 L500,100 L520,90 L540,110 L560,100 L580,120 L600,110 L620,130 L640,120 L660,140 L680,130 L700,150 L720,140 L740,160 L760,150 L780,170 L800,160 L800,300 L780,310 L760,290 L740,300 L720,280 L700,290 L680,270 L660,280 L640,260 L620,270 L600,250 L580,260 L560,240 L540,250 L520,230 L500,240 L480,220 L460,230 L440,210 L420,220 L400,200 L380,210 L360,190 L340,200 L320,180 L300,190 L280,170 L260,180 L240,160 L220,170 L200,150 L180,160 L160,140 L140,150 L120,130 L100,140 Z";
@@ -32,12 +39,26 @@ export default function AnalyticsPage() {
   const [data, setData] = useState<any[]>([]);
   const [dateRange, setDateRange] = useState('24H');
   const [isExporting, setIsExporting] = useState(false);
-  const [activeDots, setActiveDots] = useState<any[]>([]);
+  const [threatMarkers, setThreatMarkers] = useState<any[]>([]);
+  const [selectedThreat, setSelectedThreat] = useState<any | null>(null);
   const reportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setData(getSeededData());
-    setActiveDots([{ id: 'd1', ...COUNTRY_COORDS['US'] }, { id: 'd2', ...COUNTRY_COORDS['China'] }]);
+    const seeded = getSeededData();
+    setData(seeded);
+    
+    // Derived interactive threat markers from data
+    const blockedEvents = seeded.filter(r => r.decision === 'BLOCKED').slice(0, 15);
+    const markers = blockedEvents.map((event, idx) => {
+      const cityList = CITY_COORDS[event.country] || CITY_COORDS['US'];
+      const cityData = cityList[idx % cityList.length];
+      return {
+        ...event,
+        ...cityData,
+        id: `marker-${idx}-${event.id}`
+      };
+    });
+    setThreatMarkers(markers);
   }, []);
 
   const stats = useMemo(() => {
@@ -63,12 +84,6 @@ export default function AnalyticsPage() {
     { subject: 'SSRF', A: 80, B: 25 },
     { subject: 'Overflow', A: 75, B: 20 },
   ];
-
-  const heatmapData = useMemo(() => {
-    const hours = Array.from({ length: 24 }, (_, i) => i);
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    return { days, hours };
-  }, []);
 
   const topIps = [
     { ip: '192.168.1.1', country: 'US', total: 450, blocked: 42, type: 'SQLi' },
@@ -142,16 +157,73 @@ export default function AnalyticsPage() {
            <h3 className="text-xl font-black tracking-tighter text-gray-900 dark:text-white uppercase">Live Threat Vector Map</h3>
            <p className="text-[10px] font-mono text-gray-400 dark:text-muted-foreground opacity-50 uppercase tracking-widest">Active Ingress Monitoring</p>
         </div>
-        <CardContent className="h-[450px] flex items-center justify-center p-0">
-          <svg viewBox="0 0 800 400" className="w-full h-full opacity-60">
-            <path d={WORLD_MAP_PATH} fill="currentColor" className="text-gray-100 dark:text-[#0d101a]" stroke="currentColor" className="text-gray-200 dark:text-[#2a2d3e]" strokeWidth="1" />
-            {activeDots.map(dot => (
-              <g key={dot.id}>
-                <circle cx={dot.x} cy={dot.y} r="12" fill="#ef4444" className="animate-pulse" opacity="0.2" />
-                <circle cx={dot.x} cy={dot.y} r="4" fill="#ef4444" />
+        
+        <CardContent className="h-[450px] w-full flex items-center justify-center p-0 relative">
+          <svg viewBox="0 0 800 400" className="w-full h-full max-w-full max-h-full opacity-60 transition-all">
+            <path 
+              d={WORLD_MAP_PATH} 
+              fill="currentColor" 
+              className="text-gray-100 dark:text-[#0d101a]" 
+              stroke="currentColor" 
+              strokeWidth="0.5"
+              className="text-gray-300 dark:text-[#2a2d3e]" 
+            />
+            
+            {threatMarkers.map(marker => (
+              <g 
+                key={marker.id} 
+                className="cursor-pointer group/pin"
+                onClick={() => setSelectedThreat(marker)}
+              >
+                {/* Pulse Aura */}
+                <circle cx={marker.x} cy={marker.y} r="12" fill="#ef4444" className="animate-pulse" opacity="0.2" />
+                
+                {/* Threat Marker Pin */}
+                <g transform={`translate(${marker.x - 8}, ${marker.y - 16}) scale(0.8)`}>
+                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" fill="#ef4444" />
+                   <circle cx="12" cy="10" r="3" fill="white" />
+                </g>
               </g>
             ))}
           </svg>
+
+          {/* Interactive Threat Popup */}
+          {selectedThreat && (
+            <div className="absolute z-50 animate-in zoom-in-95 fade-in duration-300 pointer-events-none" style={{ left: `${(selectedThreat.x / 800) * 100}%`, top: `${(selectedThreat.y / 400) * 100}%` }}>
+               <Card className="w-64 glass-card p-4 translate-y-[-110%] translate-x-[-50%] border-destructive/40 shadow-2xl pointer-events-auto">
+                 <div className="flex justify-between items-start mb-3">
+                    <Badge variant="destructive" className="text-[8px] font-black uppercase tracking-widest">Threat Detected</Badge>
+                    <button onClick={() => setSelectedThreat(null)} className="p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded">
+                      <X className="h-3 w-3 text-muted-foreground" />
+                    </button>
+                 </div>
+                 <div className="space-y-3">
+                    <div>
+                       <p className="text-[10px] font-black text-gray-900 dark:text-white uppercase tracking-tighter">{selectedThreat.city}, {selectedThreat.country}</p>
+                       <p className="text-[9px] font-mono text-muted-foreground">{selectedThreat.ip}</p>
+                    </div>
+                    <div className="pt-2 border-t border-black/5 dark:border-white/5 space-y-1">
+                       <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-widest">
+                          <span className="text-muted-foreground">Vector:</span>
+                          <span className="text-destructive">{selectedThreat.attackType}</span>
+                       </div>
+                       <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-widest">
+                          <span className="text-muted-foreground">Confidence:</span>
+                          <span className="text-emerald-500">{Math.round(selectedThreat.score * 100)}%</span>
+                       </div>
+                       <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-widest">
+                          <span className="text-muted-foreground">Timestamp:</span>
+                          <span className="text-gray-400">Just Now</span>
+                       </div>
+                    </div>
+                    <Button variant="ghost" className="w-full h-7 text-[8px] font-black uppercase tracking-widest bg-destructive/5 hover:bg-destructive/10 text-destructive mt-1">
+                      View Detailed Log
+                    </Button>
+                 </div>
+               </Card>
+            </div>
+          )}
+
           <div className="absolute bottom-8 right-10 flex gap-4">
              <div className="flex items-center gap-2 bg-white/60 dark:bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl border border-black/5 dark:border-white/5 text-[9px] font-mono font-black text-gray-500 dark:text-muted-foreground">
                <div className="h-1.5 w-1.5 rounded-full bg-destructive" /> ATTACK DETECTED
