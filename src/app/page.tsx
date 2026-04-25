@@ -15,8 +15,9 @@ export default function LandingPage() {
   useEffect(() => {
     if (!canvasRef.current) return;
 
+    // --- 0. Scene Setup ---
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
     const renderer = new THREE.WebGLRenderer({ 
       canvas: canvasRef.current, 
       antialias: true, 
@@ -26,127 +27,166 @@ export default function LandingPage() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-    // --- 1. Starfield Particle System ---
-    const particlesCount = 10000;
-    const posArray = new Float32Array(particlesCount * 3);
-    const speedArray = new Float32Array(particlesCount);
-
-    for (let i = 0; i < particlesCount * 3; i++) {
-      posArray[i] = (Math.random() - 0.5) * 20;
+    // --- 1. Starfield Particle System (50,000 Stars) ---
+    const starsCount = 50000;
+    const starPos = new Float32Array(starsCount * 3);
+    const starSizes = new Float32Array(starsCount);
+    for (let i = 0; i < starsCount * 3; i++) {
+      starPos[i] = (Math.random() - 0.5) * 40;
     }
-    for (let i = 0; i < particlesCount; i++) {
-      speedArray[i] = Math.random() * 0.005 + 0.002;
+    for (let i = 0; i < starsCount; i++) {
+      starSizes[i] = Math.random() * 0.02;
     }
-
-    const particlesGeometry = new THREE.BufferGeometry();
-    particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-    
-    const particlesMaterial = new THREE.PointsMaterial({
+    const starGeo = new THREE.BufferGeometry();
+    starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+    const starMat = new THREE.PointsMaterial({
       size: 0.015,
       color: 0x00ffff,
       transparent: true,
-      opacity: 0.4,
+      opacity: 0.6,
       blending: THREE.AdditiveBlending,
     });
-    
-    const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
-    scene.add(particlesMesh);
+    const starMesh = new THREE.Points(starGeo, starMat);
+    scene.add(starMesh);
 
-    // --- 2. Holographic Globe ---
+    // --- 2. Volumetric Nebula Clouds ---
+    const createNebula = (color: number, x: number) => {
+      const group = new THREE.Group();
+      for (let i = 0; i < 5; i++) {
+        const geo = new THREE.PlaneGeometry(15, 15);
+        const mat = new THREE.MeshBasicMaterial({
+          color: color,
+          transparent: true,
+          opacity: 0.03,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+          side: THREE.DoubleSide
+        });
+        const p = new THREE.Mesh(geo, mat);
+        p.position.set(x + (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 5, -10 + Math.random() * 5);
+        p.rotation.z = Math.random() * Math.PI;
+        group.add(p);
+      }
+      return group;
+    };
+    const nebulaLeft = createNebula(0x581c87, -10);
+    const nebulaRight = createNebula(0x1e3a8a, 10);
+    scene.add(nebulaLeft, nebulaRight);
+
+    // --- 3. Hyper-Detailed Globe ---
     const globeGroup = new THREE.Group();
     
-    // Grid Lines (Holographic Earth)
-    const globeGeo = new THREE.SphereGeometry(2, 64, 64);
+    // Core Globe with Glow
+    const globeGeo = new THREE.SphereGeometry(2.5, 128, 128);
     const globeMat = new THREE.MeshBasicMaterial({
+      color: 0x000205,
+      transparent: true,
+      opacity: 0.9
+    });
+    const globeCore = new THREE.Mesh(globeGeo, globeMat);
+    globeGroup.add(globeCore);
+
+    // Grid Atmosphere Layer
+    const gridGeo = new THREE.SphereGeometry(2.51, 64, 64);
+    const gridMat = new THREE.MeshBasicMaterial({
       color: 0x00eaff,
       wireframe: true,
       transparent: true,
-      opacity: 0.15,
+      opacity: 0.05,
       blending: THREE.AdditiveBlending
     });
-    const globe = new THREE.Mesh(globeGeo, globeMat);
-    globeGroup.add(globe);
+    const globeGrid = new THREE.Mesh(gridGeo, gridMat);
+    globeGroup.add(globeGrid);
 
-    // Inner Glow
-    const innerGlobeGeo = new THREE.SphereGeometry(1.95, 32, 32);
-    const innerGlobeMat = new THREE.MeshBasicMaterial({
-      color: 0x0055ff,
-      transparent: true,
-      opacity: 0.05
-    });
-    const innerGlobe = new THREE.Mesh(innerGlobeGeo, innerGlobeMat);
-    globeGroup.add(innerGlobe);
+    // City Dots (Thousands of Pulse Points)
+    const cities = [];
+    for(let i = 0; i < 200; i++) {
+      const lat = (Math.random() - 0.5) * 160;
+      const lon = (Math.random() - 0.5) * 360;
+      cities.push({ lat, lon });
+    }
 
-    // City Origin Dots
-    const cities = [
-      { lat: 40.7128, lon: -74.0060 }, // New York
-      { lat: 35.6762, lon: 139.6503 }, // Tokyo
-      { lat: 51.5074, lon: -0.1278 },  // London
-      { lat: -33.8688, lon: 151.2093 }, // Sydney
-      { lat: 31.2304, lon: 121.4737 }, // Shanghai
-      { lat: -23.5505, lon: -46.6333 }, // Sao Paulo
-      { lat: 55.7558, lon: 37.6173 },   // Moscow
-    ];
-
-    const dotGeo = new THREE.SphereGeometry(0.04, 8, 8);
-    const dotMat = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.8 });
-    
+    const dotGeo = new THREE.SphereGeometry(0.015, 8, 8);
     const cityDots: THREE.Mesh[] = [];
-
     cities.forEach(city => {
       const phi = (90 - city.lat) * (Math.PI / 180);
       const theta = (city.lon + 180) * (Math.PI / 180);
-      
-      const dot = new THREE.Mesh(dotGeo, dotMat);
-      dot.position.x = 2 * Math.sin(phi) * Math.cos(theta);
-      dot.position.y = 2 * Math.cos(phi);
-      dot.position.z = 2 * Math.sin(phi) * Math.sin(theta);
-      
+      const dot = new THREE.Mesh(dotGeo, new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.8 }));
+      dot.position.x = 2.5 * Math.sin(phi) * Math.cos(theta);
+      dot.position.y = 2.5 * Math.cos(phi);
+      dot.position.z = 2.5 * Math.sin(phi) * Math.sin(theta);
       globeGroup.add(dot);
       cityDots.push(dot);
     });
 
     scene.add(globeGroup);
 
-    // --- 3. Attack Trajectory Arcs ---
+    // --- 4. Attack Trajectory Arcs ---
     const arcsGroup = new THREE.Group();
     scene.add(arcsGroup);
 
-    const createArc = (start: THREE.Vector3) => {
-      const end = new THREE.Vector3(
-        (Math.random() - 0.5) * 10,
-        (Math.random() - 0.5) * 10,
-        Math.random() * 5 + 5
-      );
+    const createArc = () => {
+      const startCity = cityDots[Math.floor(Math.random() * cityDots.length)];
+      const endCity = cityDots[Math.floor(Math.random() * cityDots.length)];
       
-      const mid = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
-      mid.y += 2; // Curve height
+      const startPos = new THREE.Vector3().copy(startCity.position);
+      const endPos = new THREE.Vector3().copy(endCity.position);
       
-      const curve = new THREE.QuadraticBezierCurve3(start, mid, end);
+      // Arc Curve
+      const mid = new THREE.Vector3().addVectors(startPos, endPos).multiplyScalar(0.5).normalize().multiplyScalar(4.5);
+      const curve = new THREE.QuadraticBezierCurve3(startPos, mid, endPos);
       const points = curve.getPoints(50);
       const geometry = new THREE.BufferGeometry().setFromPoints(points);
       
+      const color = [0xff3333, 0xffaa00, 0x00ffff][Math.floor(Math.random() * 3)];
       const material = new THREE.LineBasicMaterial({ 
-        color: 0xff3333, 
+        color, 
         transparent: true, 
-        opacity: 0.4,
+        opacity: 0,
         blending: THREE.AdditiveBlending 
       });
       
       const line = new THREE.Line(geometry, material);
-      (line as any).life = 1.0;
-      (line as any).speed = Math.random() * 0.01 + 0.005;
+      (line as any).life = 0;
+      (line as any).maxLife = 1.0;
+      (line as any).speed = Math.random() * 0.01 + 0.008;
       return line;
     };
 
     let activeArcs: THREE.Line[] = [];
 
-    // --- 4. Lighting ---
-    const mainLight = new THREE.PointLight(0x00ffff, 2, 50);
-    mainLight.position.set(5, 5, 5);
-    scene.add(mainLight);
+    // --- 5. Data Ring & Hex Panels ---
+    const binaryGroup = new THREE.Group();
+    const binaryText = "0101011010100101111001";
+    for(let i = 0; i < 40; i++) {
+      const angle = (i / 40) * Math.PI * 2;
+      const x = Math.cos(angle) * 4.5;
+      const z = Math.sin(angle) * 4.5;
+      const geo = new THREE.BoxGeometry(0.05, 0.05, 0.01);
+      const mat = new THREE.MeshBasicMaterial({ color: 0x22c55e, transparent: true, opacity: 0.2 });
+      const b = new THREE.Mesh(geo, mat);
+      b.position.set(x, 0, z);
+      b.lookAt(0, 0, 0);
+      binaryGroup.add(b);
+    }
+    scene.add(binaryGroup);
 
-    camera.position.z = 6;
+    const hexGroup = new THREE.Group();
+    for(let i = 0; i < 15; i++) {
+      const angle = (i / 15) * Math.PI * 2;
+      const x = Math.cos(angle) * 6;
+      const z = Math.sin(angle) * 6;
+      const geo = new THREE.CylinderGeometry(0.3, 0.3, 0.05, 6);
+      const mat = new THREE.MeshBasicMaterial({ color: 0x00ffff, wireframe: true, transparent: true, opacity: 0.1 });
+      const h = new THREE.Mesh(geo, mat);
+      h.position.set(x, (Math.random() - 0.5) * 2, z);
+      h.rotation.x = Math.PI / 2;
+      hexGroup.add(h);
+    }
+    scene.add(hexGroup);
+
+    // --- 6. Animation Logic ---
+    camera.position.z = 10;
 
     let mouseX = 0;
     let mouseY = 0;
@@ -159,42 +199,47 @@ export default function LandingPage() {
     const animate = () => {
       requestAnimationFrame(animate);
 
-      // Globe Rotation
-      globeGroup.rotation.y += 0.002;
-      globeGroup.rotation.x += 0.0005;
+      // Globe & Rings Rotation
+      globeGroup.rotation.y += 0.001;
+      binaryGroup.rotation.y -= 0.002;
+      hexGroup.rotation.y += 0.0005;
 
       // Particle Drift
-      const positions = particlesGeometry.attributes.position.array as Float32Array;
-      for (let i = 0; i < particlesCount; i++) {
-        const i3 = i * 3;
-        positions[i3 + 2] += speedArray[i];
-        if (positions[i3 + 2] > 10) positions[i3 + 2] = -10;
-      }
-      particlesGeometry.attributes.position.needsUpdate = true;
+      starMesh.rotation.y += 0.0002;
+      nebulaLeft.rotation.z += 0.0005;
+      nebulaRight.rotation.z -= 0.0005;
 
-      // Manage Arcs
-      if (Math.random() > 0.95 && activeArcs.length < 15) {
-        const randomDot = cityDots[Math.floor(Math.random() * cityDots.length)];
-        const worldPos = new THREE.Vector3();
-        randomDot.getWorldPosition(worldPos);
-        const arc = createArc(worldPos);
+      // Pulse City Dots
+      const time = Date.now() * 0.001;
+      cityDots.forEach((dot, idx) => {
+        const scale = 1 + Math.sin(time * 3 + idx) * 0.3;
+        dot.scale.set(scale, scale, scale);
+      });
+
+      // Manage Attack Arcs (Storm Logic)
+      if (Math.random() > 0.8 && activeArcs.length < 50) {
+        const arc = createArc();
         arcsGroup.add(arc);
         activeArcs.push(arc);
       }
 
       activeArcs.forEach((arc, index) => {
-        (arc as any).life -= (arc as any).speed;
-        (arc.material as THREE.LineBasicMaterial).opacity = (arc as any).life * 0.4;
-        if ((arc as any).life <= 0) {
+        (arc as any).life += (arc as any).speed;
+        const life = (arc as any).life;
+        // Fade in and out
+        (arc.material as THREE.LineBasicMaterial).opacity = life < 0.5 ? life * 2 : (1 - life) * 2;
+        
+        if (life >= (arc as any).maxLife) {
           arcsGroup.remove(arc);
           activeArcs.splice(index, 1);
+          // Impact flash could be added here
         }
       });
 
-      // Parallax
-      camera.position.x += (mouseX * 2 - camera.position.x) * 0.05;
-      camera.position.y += (-mouseY * 2 - camera.position.y) * 0.05;
-      camera.lookAt(scene.position);
+      // Smooth Camera Parallax
+      camera.position.x += (mouseX * 5 - camera.position.x) * 0.05;
+      camera.position.y += (-mouseY * 5 - camera.position.y) * 0.05;
+      camera.lookAt(0, 0, 0);
 
       renderer.render(scene, camera);
     };
@@ -217,24 +262,24 @@ export default function LandingPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#020408] transition-colors duration-300 overflow-hidden selection:bg-destructive/30">
-      {/* 3D Cinematic Background */}
+      {/* 3D Cinematic Background Layer */}
       <div className="fixed inset-0 z-0 pointer-events-none">
-        <canvas ref={canvasRef} className="w-full h-full opacity-80" />
+        <canvas ref={canvasRef} className="w-full h-full opacity-90" />
         
-        {/* Nebula Fog Effect */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(88,28,135,0.15)_0%,transparent_70%)] animate-pulse" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(30,58,138,0.1)_0%,transparent_50%)]" />
+        {/* Post-Processing Overlays */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(88,28,135,0.2)_0%,transparent_80%)] animate-pulse pointer-events-none" />
         
-        {/* Hexagonal Matrix Overlay */}
-        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M30 0l25.98 15v30L30 60 4.02 45V15z\' fill-opacity=\'0.4\' fill=\'%2300ffff\' fill-rule=\'evenodd\'/%3E%3C/svg%3E")', backgroundSize: '60px' }} />
+        {/* Cinematic Vignette & Grain */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.6)_100%)] pointer-events-none" />
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
+        
+        {/* Scanline / Matrix Grid Overlay */}
+        <div className="absolute inset-0 opacity-[0.05] pointer-events-none" style={{ backgroundImage: 'linear-gradient(rgba(18,16,16,0) 50%,rgba(0,0,0,0.25) 50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))', backgroundSize: '100% 2px, 3px 100%' }} />
       </div>
       
-      {/* Scanline Overlay */}
-      <div className="fixed inset-0 z-[5] pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.03),rgba(0,255,0,0.01),rgba(0,0,255,0.03))] bg-[length:100%_2px,3px_100%] opacity-20" />
-
       <section className="relative z-10 container mx-auto px-6 pt-32 pb-24 flex flex-col items-center text-center space-y-12 min-h-screen justify-center">
         <div className="space-y-6 animate-in fade-in slide-in-from-top-12 duration-1000">
-          <div className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-destructive/10 border border-destructive/30 text-destructive text-[10px] font-black tracking-[0.4em] uppercase shadow-[0_0_20px_rgba(239,68,68,0.2)]">
+          <div className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-destructive/10 border border-destructive/30 text-destructive text-[10px] font-black tracking-[0.4em] uppercase shadow-[0_0_30px_rgba(239,68,68,0.3)]">
             <Activity className="h-3.5 w-3.5 animate-pulse" />
             ShieldCore Neural Cluster Active
           </div>
@@ -257,7 +302,7 @@ export default function LandingPage() {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-8 pt-8 animate-in fade-in zoom-in-95 duration-1000 delay-300">
-          <Button asChild size="lg" className="bg-destructive hover:bg-destructive/90 text-white font-black h-20 px-14 text-xl rounded-2xl glow-btn transition-all duration-500 hover:scale-105 active:scale-95 uppercase tracking-widest shadow-[0_0_30px_rgba(239,68,68,0.4)]">
+          <Button asChild size="lg" className="bg-destructive hover:bg-destructive/90 text-white font-black h-20 px-14 text-xl rounded-2xl glow-btn transition-all duration-500 hover:scale-105 active:scale-95 uppercase tracking-widest shadow-[0_0_40px_rgba(239,68,68,0.5)]">
             <Link href="/login">Launch Console <ArrowRight className="ml-3 h-6 w-6" /></Link>
           </Button>
           <Button asChild variant="outline" size="lg" className="h-20 px-14 text-xl rounded-2xl border-gray-200 dark:border-white/10 bg-white/5 dark:bg-white/5 backdrop-blur-2xl hover:bg-white/10 transition-all duration-500 text-gray-900 dark:text-white font-black uppercase tracking-widest">
